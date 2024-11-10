@@ -9,26 +9,103 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.3/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        /* Tus estilos aquí */
-        /* ... */
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+        #map {
+            flex-grow: 1;
+        }
+        #sidebar {
+            width: 300px;
+            padding: 10px;
+            background-color: #f7f7f7;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+            overflow-y: auto;
+            text-align: center;
+        }
+        .section-button, #exportSection button {
+            width: 100%;
+            padding: 10px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        .section-content {
+            display: none;
+            padding: 10px;
+            background-color: #e9ecef;
+            border-radius: 5px;
+        }
+        #infoSection p {
+            margin: 5px 0;
+            line-height: 1.2;
+        }
+        #chartContainer {
+            position: fixed;
+            left: 10px;
+            bottom: 10px;
+            width: 300px;
+            padding: 10px;
+            background-color: #e9ecef;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+            z-index: 1000;
+        }
+        #credits {
+            position: fixed;
+            bottom: 10px;
+            right: 10px;
+            background-color: rgba(255, 255, 255, 0.8);
+            padding: 5px 10px;
+            font-size: 0.8em;
+            border-radius: 5px;
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.2);
+            z-index: 1000;
+        }
     </style>
 </head>
 <body>
     <div id="map"></div>
     <div id="sidebar">
-        <!-- Contenido de la barra lateral -->
+        <img id="logo" src="CBS.png" alt="Logo" style="width: 60%; margin-bottom: 5px;">
+        <button class="section-button" onclick="toggleSection('searchSection')">Buscar por Código de Finca</button>
+        <div id="searchSection" class="section-content">
+            <input type="text" id="searchField" placeholder="Ingrese Código de Finca y presione Enter" style="width: 100%;" />
+        </div>
+        <button class="section-button" onclick="toggleSection('infoSection')">Información de la Finca</button>
+        <div id="infoSection" class="section-content">
+            <p><strong>Código de Finca:</strong> <span id="fincaCodigo"></span></p>
+            <p><strong>Propietario:</strong> <span id="fincaPropietario"></span></p>
+            <p><strong>Nombre de la Finca:</strong> <span id="fincaNombre"></span></p>
+            <p><strong>Área Total de la Finca:</strong> <span id="fincaAreaTotal"></span> ha</p>
+        </div>
+        <button class="section-button" onclick="toggleSection('exportSection')">Exportar a Excel</button>
+        <div id="exportSection" class="section-content">
+            <button onclick="exportToExcel()">Exportar a Excel</button>
+        </div>
     </div>
     <div id="chartContainer">
         <h4>Distribución de Cultivos</h4>
         <canvas id="cultivosChart"></canvas>
     </div>
     <div id="credits">Geoportal elaborado por Diego Castaño P.</div>
-
     <script>
-        let geoJsonLayer, fincaLayer, rutasLayer, layersControl, cultivoSummary;
-        let activePopup;
+        let geoJsonLayer, fincaLayer, rutasLayer, layersControl;
         let chartInstance;
-        let highlightLayer;
+        
+        const map = L.map('map').setView([5.0, -72.0], 7);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; OpenStreetMap contributors'
+        }).addTo(map);
+
+        layersControl = L.control.layers(null, null, { position: 'topright' }).addTo(map);
 
         const colorsByCultivo = {
             "Palma aceite": "#FFC107",
@@ -44,140 +121,82 @@
         };
 
         function toggleSection(sectionId) {
-            const section = document.getElementById(sectionId);
-            section.style.display = section.style.display === 'none' ? 'block' : 'none';
+            document.getElementById(sectionId).classList.toggle('section-content');
         }
 
-        const map = L.map('map').setView([5.0, -72.0], 7);
-        let baseMapLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '&copy; OpenStreetMap contributors'
-        }).addTo(map);
+        function loadGeoJsonLayer(url, style, layerName) {
+            fetch(url)
+                .then(response => response.json())
+                .then(data => {
+                    const layer = L.geoJSON(data, { style }).addTo(map);
+                    layersControl.addOverlay(layer, layerName);
+                    return layer;
+                })
+                .catch(error => console.error(`Error loading ${layerName}:`, error));
+        }
 
-        layersControl = L.control.layers(null, null, { position: 'topright' }).addTo(map);
+        fincaLayer = loadGeoJsonLayer(
+            'https://diecas8.github.io/CBSIG/fincasssss.geojson',
+            { color: "#8B4513", weight: 1.5, fillOpacity: 0 },
+            "Fincas"
+        );
 
-        // Cargar capa de usos
-        fetch('./usos.geojson')
-            .then(response => response.json())
-            .then(data => {
-                geoJsonLayer = L.geoJSON(data, {
-                    style: feature => ({
-                        color: colorsByCultivo[feature.properties.cultivo] || "#000000",
-                        weight: 1,
-                        fillOpacity: 0.5
-                    })
-                });
-                layersControl.addOverlay(geoJsonLayer, "Usos");
-                geoJsonLayer.addTo(map);
-                window.geoData = data;
-            });
+        rutasLayer = loadGeoJsonLayer(
+            'https://diecas8.github.io/CBSIG/Rutas.geojson',
+            { color: "#FF5733", weight: 2, dashArray: '5,5' },
+            "Rutas"
+        );
 
-        // Cargar capa de fincas
-        fetch('./fincasssss.geojson')
-            .then(response => response.json())
-            .then(data => {
-                fincaLayer = L.geoJSON(data, {
-                    style: {
-                        color: "#8B4513",
-                        weight: 1.5,
-                        fillOpacity: 0
-                    },
-                    onEachFeature: (feature, layer) => {
-                        if (feature.properties && feature.properties.nom_finca_) {
-                            layer.bindTooltip(`${feature.properties.cod_finca} - ${feature.properties.nom_finca_}`, {
-                                permanent: true,
-                                direction: "center",
-                                className: "finca-label"
-                            });
-                        }
-                    }
-                });
-                layersControl.addOverlay(fincaLayer, "Fincas");
-                fincaLayer.addTo(map);
-            });
-
-        // Cargar capa de rutas
-        fetch('./Rutas.geojson')
-            .then(response => response.json())
-            .then(data => {
-                rutasLayer = L.geoJSON(data, {
-                    style: {
-                        color: "#FF5733",
-                        weight: 2,
-                        dashArray: '5,5'
-                    }
-                });
-                layersControl.addOverlay(rutasLayer, "Rutas");
-                rutasLayer.addTo(map);
-            });
-
-        // Función para buscar finca
-        document.getElementById("searchField").addEventListener("keydown", function (event) {
-            if (event.key === "Enter" && window.geoData) buscarFinca();
+        document.getElementById("searchField").addEventListener("keydown", function(event) {
+            if (event.key === "Enter") buscarFinca();
         });
 
         function buscarFinca() {
             const codFinca = document.getElementById("searchField").value.trim().toUpperCase();
-            const fincaFeatures = window.geoData.features.filter(feature => feature.properties.cod_finca.toUpperCase() === codFinca);
-            if (fincaFeatures.length === 0) {
-                alert("Finca no encontrada");
-                document.getElementById("infoSection").style.display = "none";
-                return;
-            }
-            const fincaData = fincaFeatures[0].properties;
-            document.getElementById("fincaCodigo").textContent = fincaData.cod_finca;
-            document.getElementById("fincaPropietario").textContent = fincaData.proprietari || "No especificado";
-            document.getElementById("fincaNombre").textContent = fincaData.nom_finca_ || "No especificado";
+            fetch('https://diecas8.github.io/CBSIG/usos.geojson')
+                .then(response => response.json())
+                .then(data => {
+                    const fincaFeatures = data.features.filter(feature => feature.properties.cod_finca.toUpperCase() === codFinca);
+                    if (fincaFeatures.length > 0) {
+                        map.fitBounds(L.geoJSON(fincaFeatures).getBounds());
+                        showFincaInfo(fincaFeatures[0].properties);
+                        updateCultivoChart(fincaFeatures);
+                    } else {
+                        alert("Finca no encontrada");
+                    }
+                });
+        }
 
-            const areaTotal = fincaFeatures.reduce((acc, feature) => acc + parseFloat(feature.properties.has || 0), 0);
-            document.getElementById("fincaAreaTotal").textContent = areaTotal.toFixed(2).replace(".", ",");
+        function showFincaInfo(properties) {
+            document.getElementById("fincaCodigo").textContent = properties.cod_finca;
+            document.getElementById("fincaPropietario").textContent = properties.proprietari || "No especificado";
+            document.getElementById("fincaNombre").textContent = properties.nom_finca_ || "No especificado";
+            document.getElementById("fincaAreaTotal").textContent = (properties.has || 0).toFixed(2);
+        }
 
-            if (highlightLayer) map.removeLayer(highlightLayer);
-            highlightLayer = L.geoJSON(fincaFeatures, {
-                style: { color: "blue", weight: 3, dashArray: '3', fillOpacity: 0 }
-            }).addTo(map);
-            map.fitBounds(highlightLayer.getBounds());
-
-            setTimeout(() => {
-                map.removeLayer(highlightLayer);
-            }, 3000);
-
-            const summaryTableBody = document.getElementById("cultivoTable").querySelector("tbody");
-            summaryTableBody.innerHTML = ""; 
-
-            cultivoSummary = {};
-            fincaFeatures.forEach(feature => {
+        function updateCultivoChart(features) {
+            const cultivoSummary = {};
+            features.forEach(feature => {
                 const cultivo = feature.properties.cultivo || "Desconocido";
-                const has = parseFloat(feature.properties.has) || 0;
+                const has = parseFloat(feature.properties.has || 0);
                 cultivoSummary[cultivo] = (cultivoSummary[cultivo] || 0) + has;
             });
 
-            for (const [cultivo, hasTotal] of Object.entries(cultivoSummary)) {
-                const row = document.createElement("tr");
-                row.innerHTML = `<td>${cultivo}</td><td>${hasTotal.toFixed(2).replace(".", ",")}</td>`;
-                summaryTableBody.appendChild(row);
-            }
-            renderChart(cultivoSummary, areaTotal);
-            document.getElementById("infoSection").style.display = "block";
-        }
-
-        function renderChart(cultivoSummary, areaTotal) {
             if (chartInstance) chartInstance.destroy();
-            const ctx = document.getElementById('cultivosChart').getContext('2d');
-            chartInstance = new Chart(ctx, {
+            chartInstance = new Chart(document.getElementById('cultivosChart'), {
                 type: 'pie',
                 data: {
-                    labels: Object.keys(cultivoSummary).map(cultivo => `${cultivo} (${((cultivoSummary[cultivo] / areaTotal) * 100).toFixed(1)}%)`),
+                    labels: Object.keys(cultivoSummary),
                     datasets: [{
                         data: Object.values(cultivoSummary),
                         backgroundColor: Object.keys(cultivoSummary).map(cultivo => colorsByCultivo[cultivo] || "#CCCCCC")
                     }]
-                },
-                options: { responsive: true }
+                }
             });
         }
 
         function exportToExcel() {
-            const ws = XLSX.utils.table_to_sheet(document.getElementById("cultivoTable"));
+            const ws = XLSX.utils.table_to_sheet(document.getElementById("infoSection"));
             const wb = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(wb, ws, "Resumen de Cultivos");
             XLSX.writeFile(wb, `Resumen_Finca_${document.getElementById("fincaCodigo").textContent}.xlsx`);
@@ -185,3 +204,4 @@
     </script>
 </body>
 </html>
+
