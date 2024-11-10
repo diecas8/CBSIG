@@ -250,7 +250,7 @@
 
             const areaTotal = fincaFeatures.reduce((acc, feature) => acc + parseFloat(feature.properties.has || 0), 0);
             document.getElementById("fincaAreaTotal").textContent = areaTotal.toFixed(2).replace(".", ",");
-
+            
             if (highlightLayer) map.removeLayer(highlightLayer); 
             highlightLayer = L.geoJSON(fincaFeatures, {
                 style: { color: "blue", weight: 3, dashArray: '3', fillOpacity: 0 }
