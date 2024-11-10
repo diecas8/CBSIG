@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Geoportal Predios PFNM, Casanare</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.3/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+        #map {
+            flex-grow: 1;
+        }
+        #sidebar {
+            width: 300px;
+            padding: 10px;
+            background-color: #f7f7f7;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+            overflow-y: auto;
+            text-align: center;
+        }
+        #logo {
+            width: 60%;
+            margin-bottom: 5px;
+            display: block;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        .section-button {
+            width: 100%;
+            padding: 10px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            text-align: left;
+            margin-top: 10px;
+        }
+        .section-content {
+            display: none;
+            margin-top: 5px;
+            padding: 10px;
+            background-color: #e9ecef;
+            border-radius: 5px;
+        }
+        #infoSection p {
+            margin: 5px 0;
+            line-height: 1.2;
+        }
+        #chartContainer {
+            position: fixed;
+            left: 10px;
+            bottom: 10px;
+            width: 300px;
+            padding: 10px;
+            background-color: #e9ecef;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+            z-index: 1000;
+        }
+        #credits {
+            position: fixed;
+            bottom: 10px;
+            right: 10px;
+            background-color: rgba(255, 255, 255, 0.8);
+            padding: 5px 10px;
+            font-size: 0.8em;
+            border-radius: 5px;
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.2);
+            z-index: 1000;
+        }
+        .header-title {
+            text-align: center;
+            font-size: 1em;
+            font-weight: bold;
+            margin: 5px 0;
+            line-height: 1.2;
+        }
+        .finca-label {
+            font-weight: bold;
+            color: #8B4513;
+            background-color: rgba(255, 255, 255, 0.8);
+            border-radius: 3px;
+            padding: 2px 5px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        table, th, td {
+            border: 1px solid #ccc;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #4CAF50;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div id="map"></div>
+    <div id="sidebar">
+        <img id="logo" src="CBS.png" alt="Logo">
+        <div class="header-title">Predios cadenas productivas<br>Copaiba y Meliponas</div>
+
+        <button class="section-button" onclick="toggleSection('searchSection')">Buscar por Código de Finca</button>
+        <div id="searchSection" class="section-content">
+            <input type="text" id="searchField" placeholder="Ingrese Código de Finca y presione Enter" style="width: 100%;" />
+        </div>
+
+        <button class="section-button" onclick="toggleSection('infoSection')">Información de la Finca</button>
+        <div id="infoSection" class="section-content">
+            <p><strong>Código de Finca:</strong> <span id="fincaCodigo"></span></p>
+            <p><strong>Propietario:</strong> <span id="fincaPropietario"></span></p>
+            <p><strong>Nombre de la Finca:</strong> <span id="fincaNombre"></span></p>
+            <p><strong>Área Total de la Finca:</strong> <span id="fincaAreaTotal"></span> ha</p>
+            <h4>Resumen de Cultivos</h4>
+            <table id="cultivoTable">
+                <thead>
+                    <tr>
+                        <th>Cultivo</th>
+                        <th>Área (ha)</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+
+        <button class="section-button" onclick="toggleSection('exportSection')">Exportar a Excel</button>
+        <div id="exportSection" class="section-content">
+            <button onclick="exportToExcel()" style="width: 100%; padding: 10px; background-color: #4CAF50; color: white; border: none; border-radius: 5px;">Exportar a Excel</button>
+        </div>
+    </div>
+
+    <div id="chartContainer">
+        <h4>Distribución de Cultivos</h4>
+        <canvas id="cultivosChart"></canvas>
+    </div>
+
+    <div id="credits">Geoportal elaborado por Diego Castaño P.</div>
+
+    <script>
+        let geoJsonLayer, fincaLayer, rutasLayer, layersControl, cultivoSummary;
+        let activePopup;
+        let chartInstance;
+        let highlightLayer;
+
+        const colorsByCultivo = {
+            "Palma aceite": "#FFC107",
+            "Bosque de galería": "#8B4513",
+            "Pasto limpio": "#4CAF50",
+            "Humedal": "#1E90FF",
+            "Otros": "#E91E63",
+            "Infraestructura": "#9C27B0",
+            "Cítricos": "#FF5722",
+            "Cabras": "#795548",
+            "Pasto arbolado": "#00BCD4",
+            "Pasto enmalezado": "#CDDC39"
+        };
+
+        function toggleSection(sectionId) {
+            const section = document.getElementById(sectionId);
+            section.style.display = section.style.display === 'none' ? 'block' : 'none';
+        }
+
+        const map = L.map('map').setView([5.0, -72.0], 7);
+        let baseMapLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; OpenStreetMap contributors'
+        }).addTo(map);
+
+        layersControl = L.control.layers(null, null, { position: 'topright' }).addTo(map);
+
+        fetch('usos.geojson')
+            .then(response => response.json())
+            .then(data => {
+                geoJsonLayer = L.geoJSON(data, {
+                    style: feature => ({
+                        color: colorsByCultivo[feature.properties.cultivo] || "#000000",
+                        weight: 1,
+                        fillOpacity: 0.5
+                    })
+                });
+                layersControl.addOverlay(geoJsonLayer, "Usos");
+                geoJsonLayer.addTo(map);
+                window.geoData = data;
+            });
+
+        document.getElementById("searchField").addEventListener("keydown", function (event) {
+            if (event.key === "Enter" && window.geoData) buscarFinca();
+        });
+
+        function buscarFinca() {
+            const codFinca = document.getElementById("searchField").value.trim().toUpperCase();
+            const fincaFeatures = window.geoData.features.filter(feature => feature.properties.cod_finca.toUpperCase() === codFinca);
+            if (fincaFeatures.length === 0) {
+                alert("Finca no encontrada");
+                document.getElementById("infoSection").style.display = "none";
+                return;
+            }
+            const fincaData = fincaFeatures[0].properties;
+            document.getElementById("fincaCodigo").textContent = fincaData.cod_finca;
+            document.getElementById("fincaPropietario").textContent = fincaData.proprietari || "No especificado";
+            document.getElementById("fincaNombre").textContent = fincaData.nom_finca_ || "No especificado";
+
+            const areaTotal = fincaFeatures.reduce((acc, feature) => acc + parseFloat(feature.properties.has || 0), 0);
+            document.getElementById("fincaAreaTotal").textContent = areaTotal.toFixed(2).replace(".", ",");
+            
+            if (highlightLayer) map.removeLayer(highlightLayer); 
+            highlightLayer = L.geoJSON(fincaFeatures, {
+                style: { color: "blue", weight: 3, dashArray: '3', fillOpacity: 0 }
+            }).addTo(map);
+            map.fitBounds(highlightLayer.getBounds());
+
+            setTimeout(() => {
+                map.removeLayer(highlightLayer);
+            }, 3000);
+
+            const summaryTableBody = document.getElementById("cultivoTable").querySelector("tbody");
+            summaryTableBody.innerHTML = ""; 
+
+            cultivoSummary = {};
+            fincaFeatures.forEach(feature => {
+                const cultivo = feature.properties.cultivo || "Desconocido";
+                const has = parseFloat(feature.properties.has) || 0;
+                cultivoSummary[cultivo] = (cultivoSummary[cultivo] || 0) + has;
+            });
+
+            for (const [cultivo, hasTotal] of Object.entries(cultivoSummary)) {
+                const row = document.createElement("tr");
+                row.innerHTML = `<td>${cultivo}</td><td>${hasTotal.toFixed(2).replace(".", ",")}</td>`;
+                summaryTableBody.appendChild(row);
+            }
+            renderChart(cultivoSummary, areaTotal);
+            document.getElementById("infoSection").style.display = "block";
+        }
+
+        function renderChart(cultivoSummary, areaTotal) {
+            if (chartInstance) chartInstance.destroy();
+            const ctx = document.getElementById('cultivosChart').getContext('2d');
+            chartInstance = new Chart(ctx, {
+                type: 'pie',
+                data: {
+                    labels: Object.keys(cultivoSummary).map(cultivo => `${cultivo} (${((cultivoSummary[cultivo] / areaTotal) * 100).toFixed(1)}%)`),
+                    datasets: [{
+                        data: Object.values(cultivoSummary),
+                        backgroundColor: Object.keys(cultivoSummary).map(cultivo => colorsByCultivo[cultivo] || "#CCCCCC")
+                    }]
+                },
+                options: { responsive: true }
+            });
+        }
+
+        function exportToExcel() {
+            const ws = XLSX.utils.table_to_sheet(document.getElementById("cultivoTable"));
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Resumen de Cultivos");
+            XLSX.writeFile(wb, `Resumen_Finca_${document.getElementById("fincaCodigo").textContent}.xlsx`);
+        }
+    </script>
+</body>
+</html>
+
+
