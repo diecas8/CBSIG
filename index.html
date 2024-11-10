@@ -183,54 +183,56 @@
 
         // Cargar capa de usos
         fetch('https://diecas8.github.io/CGSI/usos.geojson')
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error("Error al cargar usos.geojson");
-                }
-                return response.json();
-            })
+            .then(response => response.json())
             .then(data => {
                 geoJsonLayer = L.geoJSON(data, {
                     style: feature => ({
                         color: colorsByCultivo[feature.properties.cultivo] || "#000000",
                         weight: 1,
                         fillOpacity: 0.5
-                    })
+                    }),
+                    onEachFeature: (feature, layer) => {
+                        layer.on('click', () => {
+                            if (activePopup) activePopup.remove();
+                            activePopup = L.popup()
+                                .setLatLng(layer.getBounds().getCenter())
+                                .setContent(`Código de Finca: ${feature.properties.cod_finca}<br>Cultivo: ${feature.properties.cultivo}<br>Área: ${parseFloat(feature.properties.has).toFixed(2).replace(".", ",")} ha`)
+                                .openOn(map);
+                        });
+                    }
                 });
                 layersControl.addOverlay(geoJsonLayer, "Usos");
                 geoJsonLayer.addTo(map);
-            })
-            .catch(error => console.error("Error al cargar usos.geojson:", error));
+                window.geoData = data;
+            });
 
         // Cargar capa de fincas
         fetch('https://diecas8.github.io/CGSI/fincasssss.geojson')
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error("Error al cargar fincasssss.geojson");
-                }
-                return response.json();
-            })
+            .then(response => response.json())
             .then(data => {
                 fincaLayer = L.geoJSON(data, {
                     style: {
                         color: "#8B4513",
                         weight: 1.5,
                         fillOpacity: 0
+                    },
+                    onEachFeature: (feature, layer) => {
+                        if (feature.properties && feature.properties.nom_finca_) {
+                            layer.bindTooltip(`${feature.properties.cod_finca} - ${feature.properties.nom_finca_}`, {
+                                permanent: true,
+                                direction: "center",
+                                className: "finca-label"
+                            });
+                        }
                     }
                 });
                 layersControl.addOverlay(fincaLayer, "Fincas");
                 fincaLayer.addTo(map);
-            })
-            .catch(error => console.error("Error al cargar fincasssss.geojson:", error));
+            });
 
         // Cargar capa de rutas
         fetch('https://diecas8.github.io/CGSI/Rutas.geojson')
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error("Error al cargar Rutas.geojson");
-                }
-                return response.json();
-            })
+            .then(response => response.json())
             .then(data => {
                 rutasLayer = L.geoJSON(data, {
                     style: {
@@ -241,8 +243,7 @@
                 });
                 layersControl.addOverlay(rutasLayer, "Rutas");
                 rutasLayer.addTo(map);
-            })
-            .catch(error => console.error("Error al cargar Rutas.geojson:", error));
+            });
 
         document.getElementById("searchField").addEventListener("keydown", function (event) {
             if (event.key === "Enter" && window.geoData) buscarFinca();
