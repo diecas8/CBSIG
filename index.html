@@ -181,8 +181,14 @@
 
         layersControl = L.control.layers(null, null, { position: 'topright' }).addTo(map);
 
-        fetch('usos.geojson')
-            .then(response => response.json())
+        // Cargar capa de usos
+        fetch('https://diecas8.github.io/CGSI/usos.geojson')
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error("Error al cargar usos.geojson");
+                }
+                return response.json();
+            })
             .then(data => {
                 geoJsonLayer = L.geoJSON(data, {
                     style: feature => ({
@@ -193,8 +199,50 @@
                 });
                 layersControl.addOverlay(geoJsonLayer, "Usos");
                 geoJsonLayer.addTo(map);
-                window.geoData = data;
-            });
+            })
+            .catch(error => console.error("Error al cargar usos.geojson:", error));
+
+        // Cargar capa de fincas
+        fetch('https://diecas8.github.io/CGSI/fincasssss.geojson')
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error("Error al cargar fincasssss.geojson");
+                }
+                return response.json();
+            })
+            .then(data => {
+                fincaLayer = L.geoJSON(data, {
+                    style: {
+                        color: "#8B4513",
+                        weight: 1.5,
+                        fillOpacity: 0
+                    }
+                });
+                layersControl.addOverlay(fincaLayer, "Fincas");
+                fincaLayer.addTo(map);
+            })
+            .catch(error => console.error("Error al cargar fincasssss.geojson:", error));
+
+        // Cargar capa de rutas
+        fetch('https://diecas8.github.io/CGSI/Rutas.geojson')
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error("Error al cargar Rutas.geojson");
+                }
+                return response.json();
+            })
+            .then(data => {
+                rutasLayer = L.geoJSON(data, {
+                    style: {
+                        color: "#FF5733",
+                        weight: 2,
+                        dashArray: '5,5'
+                    }
+                });
+                layersControl.addOverlay(rutasLayer, "Rutas");
+                rutasLayer.addTo(map);
+            })
+            .catch(error => console.error("Error al cargar Rutas.geojson:", error));
 
         document.getElementById("searchField").addEventListener("keydown", function (event) {
             if (event.key === "Enter" && window.geoData) buscarFinca();
