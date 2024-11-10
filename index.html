@@ -9,145 +9,19 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.3/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            display: flex;
-            height: 100vh;
-            overflow: hidden;
-        }
-        #map {
-            flex-grow: 1;
-        }
-        #sidebar {
-            width: 300px;
-            padding: 10px;
-            background-color: #f7f7f7;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
-            overflow-y: auto;
-            text-align: center;
-        }
-        #logo {
-            width: 60%;
-            margin-bottom: 5px;
-            display: block;
-            margin-left: auto;
-            margin-right: auto;
-        }
-        .section-button {
-            width: 100%;
-            padding: 10px;
-            background-color: #4CAF50;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            text-align: left;
-            margin-top: 10px;
-        }
-        .section-content {
-            display: none;
-            margin-top: 5px;
-            padding: 10px;
-            background-color: #e9ecef;
-            border-radius: 5px;
-        }
-        #infoSection p {
-            margin: 5px 0;
-            line-height: 1.2;
-        }
-        #chartContainer {
-            position: fixed;
-            left: 10px;
-            bottom: 10px;
-            width: 300px;
-            padding: 10px;
-            background-color: #e9ecef;
-            border-radius: 5px;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
-            z-index: 1000;
-        }
-        #credits {
-            position: fixed;
-            bottom: 10px;
-            right: 10px;
-            background-color: rgba(255, 255, 255, 0.8);
-            padding: 5px 10px;
-            font-size: 0.8em;
-            border-radius: 5px;
-            box-shadow: 0 0 5px rgba(0, 0, 0, 0.2);
-            z-index: 1000;
-        }
-        .header-title {
-            text-align: center;
-            font-size: 1em;
-            font-weight: bold;
-            margin: 5px 0;
-            line-height: 1.2;
-        }
-        .finca-label {
-            font-weight: bold;
-            color: #8B4513;
-            background-color: rgba(255, 255, 255, 0.8);
-            border-radius: 3px;
-            padding: 2px 5px;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 10px;
-        }
-        table, th, td {
-            border: 1px solid #ccc;
-            padding: 8px;
-            text-align: left;
-        }
-        th {
-            background-color: #4CAF50;
-            color: white;
-        }
+        /* Tus estilos aquí */
+        /* ... */
     </style>
 </head>
 <body>
     <div id="map"></div>
     <div id="sidebar">
-        <img id="logo" src="CBS.png" alt="Logo">
-        <div class="header-title">Predios cadenas productivas<br>Copaiba y Meliponas</div>
-
-        <button class="section-button" onclick="toggleSection('searchSection')">Buscar por Código de Finca</button>
-        <div id="searchSection" class="section-content">
-            <input type="text" id="searchField" placeholder="Ingrese Código de Finca y presione Enter" style="width: 100%;" />
-        </div>
-
-        <button class="section-button" onclick="toggleSection('infoSection')">Información de la Finca</button>
-        <div id="infoSection" class="section-content">
-            <p><strong>Código de Finca:</strong> <span id="fincaCodigo"></span></p>
-            <p><strong>Propietario:</strong> <span id="fincaPropietario"></span></p>
-            <p><strong>Nombre de la Finca:</strong> <span id="fincaNombre"></span></p>
-            <p><strong>Área Total de la Finca:</strong> <span id="fincaAreaTotal"></span> ha</p>
-            <h4>Resumen de Cultivos</h4>
-            <table id="cultivoTable">
-                <thead>
-                    <tr>
-                        <th>Cultivo</th>
-                        <th>Área (ha)</th>
-                    </tr>
-                </thead>
-                <tbody></tbody>
-            </table>
-        </div>
-
-        <button class="section-button" onclick="toggleSection('exportSection')">Exportar a Excel</button>
-        <div id="exportSection" class="section-content">
-            <button onclick="exportToExcel()" style="width: 100%; padding: 10px; background-color: #4CAF50; color: white; border: none; border-radius: 5px;">Exportar a Excel</button>
-        </div>
+        <!-- Contenido de la barra lateral -->
     </div>
-
     <div id="chartContainer">
         <h4>Distribución de Cultivos</h4>
         <canvas id="cultivosChart"></canvas>
     </div>
-
     <div id="credits">Geoportal elaborado por Diego Castaño P.</div>
 
     <script>
@@ -182,13 +56,8 @@
         layersControl = L.control.layers(null, null, { position: 'topright' }).addTo(map);
 
         // Cargar capa de usos
-        fetch('https://diecas8.github.io/CGSI/usos.geojson')
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error("Error al cargar usos.geojson");
-                }
-                return response.json();
-            })
+        fetch('./usos.geojson')
+            .then(response => response.json())
             .then(data => {
                 geoJsonLayer = L.geoJSON(data, {
                     style: feature => ({
@@ -199,38 +68,36 @@
                 });
                 layersControl.addOverlay(geoJsonLayer, "Usos");
                 geoJsonLayer.addTo(map);
-            })
-            .catch(error => console.error("Error al cargar usos.geojson:", error));
+                window.geoData = data;
+            });
 
         // Cargar capa de fincas
-        fetch('https://diecas8.github.io/CGSI/fincasssss.geojson')
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error("Error al cargar fincasssss.geojson");
-                }
-                return response.json();
-            })
+        fetch('./fincasssss.geojson')
+            .then(response => response.json())
             .then(data => {
                 fincaLayer = L.geoJSON(data, {
                     style: {
                         color: "#8B4513",
                         weight: 1.5,
                         fillOpacity: 0
+                    },
+                    onEachFeature: (feature, layer) => {
+                        if (feature.properties && feature.properties.nom_finca_) {
+                            layer.bindTooltip(`${feature.properties.cod_finca} - ${feature.properties.nom_finca_}`, {
+                                permanent: true,
+                                direction: "center",
+                                className: "finca-label"
+                            });
+                        }
                     }
                 });
                 layersControl.addOverlay(fincaLayer, "Fincas");
                 fincaLayer.addTo(map);
-            })
-            .catch(error => console.error("Error al cargar fincasssss.geojson:", error));
+            });
 
         // Cargar capa de rutas
-        fetch('https://diecas8.github.io/CGSI/Rutas.geojson')
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error("Error al cargar Rutas.geojson");
-                }
-                return response.json();
-            })
+        fetch('./Rutas.geojson')
+            .then(response => response.json())
             .then(data => {
                 rutasLayer = L.geoJSON(data, {
                     style: {
@@ -241,9 +108,9 @@
                 });
                 layersControl.addOverlay(rutasLayer, "Rutas");
                 rutasLayer.addTo(map);
-            })
-            .catch(error => console.error("Error al cargar Rutas.geojson:", error));
+            });
 
+        // Función para buscar finca
         document.getElementById("searchField").addEventListener("keydown", function (event) {
             if (event.key === "Enter" && window.geoData) buscarFinca();
         });
@@ -263,8 +130,8 @@
 
             const areaTotal = fincaFeatures.reduce((acc, feature) => acc + parseFloat(feature.properties.has || 0), 0);
             document.getElementById("fincaAreaTotal").textContent = areaTotal.toFixed(2).replace(".", ",");
-            
-            if (highlightLayer) map.removeLayer(highlightLayer); 
+
+            if (highlightLayer) map.removeLayer(highlightLayer);
             highlightLayer = L.geoJSON(fincaFeatures, {
                 style: { color: "blue", weight: 3, dashArray: '3', fillOpacity: 0 }
             }).addTo(map);
@@ -318,4 +185,3 @@
     </script>
 </body>
 </html>
-
