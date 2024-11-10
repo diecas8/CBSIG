@@ -155,7 +155,6 @@
         let activePopup;
         let chartInstance;
         let highlightLayer;
-        let lastHighlightedLayer;
 
         const colorsByCultivo = {
             "Palma aceite": "#FFC107",
@@ -184,7 +183,12 @@
 
         // Cargar capa de usos
         fetch('https://diecas8.github.io/CGSI/usos.geojson')
-            .then(response => response.json())
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error("Error al cargar usos.geojson");
+                }
+                return response.json();
+            })
             .then(data => {
                 geoJsonLayer = L.geoJSON(data, {
                     style: feature => ({
@@ -195,13 +199,17 @@
                 });
                 layersControl.addOverlay(geoJsonLayer, "Usos");
                 geoJsonLayer.addTo(map);
-                window.geoData = data;
             })
             .catch(error => console.error("Error al cargar usos.geojson:", error));
 
         // Cargar capa de fincas
         fetch('https://diecas8.github.io/CGSI/fincasssss.geojson')
-            .then(response => response.json())
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error("Error al cargar fincasssss.geojson");
+                }
+                return response.json();
+            })
             .then(data => {
                 fincaLayer = L.geoJSON(data, {
                     style: {
@@ -217,7 +225,12 @@
 
         // Cargar capa de rutas
         fetch('https://diecas8.github.io/CGSI/Rutas.geojson')
-            .then(response => response.json())
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error("Error al cargar Rutas.geojson");
+                }
+                return response.json();
+            })
             .then(data => {
                 rutasLayer = L.geoJSON(data, {
                     style: {
@@ -292,35 +305,8 @@
                         backgroundColor: Object.keys(cultivoSummary).map(cultivo => colorsByCultivo[cultivo] || "#CCCCCC")
                     }]
                 },
-                options: {
-                    responsive: true,
-                    onClick: (event, elements) => {
-                        if (elements.length > 0) {
-                            const chartIndex = elements[0].index;
-                            const selectedCultivo = Object.keys(cultivoSummary)[chartIndex];
-                            highlightMapLayerByCultivo(selectedCultivo);
-                        }
-                    }
-                }
+                options: { responsive: true }
             });
-        }
-
-        function highlightMapLayerByCultivo(cultivo) {
-            if (lastHighlightedLayer) {
-                map.removeLayer(lastHighlightedLayer);
-            }
-            
-            lastHighlightedLayer = L.geoJSON(window.geoData, {
-                filter: feature => feature.properties.cultivo === cultivo,
-                style: {
-                    color: "red",
-                    weight: 3,
-                    dashArray: '3',
-                    fillOpacity: 0.5
-                }
-            }).addTo(map);
-
-            map.fitBounds(lastHighlightedLayer.getBounds());
         }
 
         function exportToExcel() {
