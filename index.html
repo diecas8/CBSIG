@@ -13,8 +13,21 @@
             font-family: Arial, sans-serif;
             margin: 0;
             display: flex;
+            flex-direction: column;
             height: 100vh;
             overflow: hidden;
+        }
+        #header {
+            text-align: center;
+            padding: 10px;
+            background-color: #4CAF50;
+            color: white;
+            font-size: 1.5em;
+            font-weight: bold;
+        }
+        #mapContainer {
+            display: flex;
+            flex-grow: 1;
         }
         #map {
             flex-grow: 1;
@@ -89,70 +102,75 @@
     </style>
 </head>
 <body>
-    <div id="map"></div>
-    <div id="sidebar">
-        <!-- Logo del geoportal -->
-        <img id="logo" src="CBS.png" alt="Logo del Geoportal">
+    <!-- Encabezado del mapa -->
+    <div id="header">UBICACIÓN DE PREDIOS COPAIBA Y MELIPONAS</div>
 
-        <h2>Información del Predio</h2>
-        <input type="text" id="searchField" placeholder="Ingrese Código de Finca y presione Enter" style="width: 100%; margin-bottom: 10px;" />
-        
-        <!-- Selector de mapa base -->
-        <select id="baseMapSelect" onchange="changeBaseMap()">
-            <option value="osm">OpenStreetMap</option>
-            <option value="satellite">Satélite</option>
-            <option value="terrain">Terreno</option>
-        </select>
+    <div id="mapContainer">
+        <div id="map"></div>
+        <div id="sidebar">
+            <!-- Logo del geoportal -->
+            <img id="logo" src="CBS.png" alt="Logo del Geoportal">
 
-        <!-- Selector de capas -->
-        <label for="layerSelect">Capas disponibles:</label><br>
-        <input type="checkbox" id="usosLayerCheckbox" onchange="toggleLayer(usosLayer)"> Usos<br>
-        <input type="checkbox" id="fincasLayerCheckbox" onchange="toggleLayer(fincasLayer)"> Fincas<br>
-
-        <button id="exportButton" onclick="exportToExcel()">Exportar a Excel</button>
-        
-        <div id="infoContainer">
-            <h3>Resumen de la Finca</h3>
-            <p><strong>Código de Finca:</strong> <span id="fincaCodigo"></span></p>
-            <p><strong>Propietario:</strong> <span id="fincaPropietario"></span></p>
-            <p><strong>Nombre de la Finca:</strong> <span id="fincaNombre"></span></p>
-            <p><strong>Área Total de la Finca:</strong> <span id="fincaAreaTotal"></span> ha</p>
+            <h2>Información del Predio</h2>
+            <input type="text" id="searchField" placeholder="Ingrese Código de Finca y presione Enter" style="width: 100%; margin-bottom: 10px;" />
             
-            <div id="tableContainer">
-                <h4>Resumen de Cultivos</h4>
-                <table id="summaryTable">
+            <!-- Selector de mapa base -->
+            <select id="baseMapSelect" onchange="changeBaseMap()">
+                <option value="osm">OpenStreetMap</option>
+                <option value="satellite">Satélite</option>
+                <option value="terrain">Terreno</option>
+            </select>
+
+            <!-- Selector de capas -->
+            <label for="layerSelect">Capas disponibles:</label><br>
+            <input type="checkbox" id="usosLayerCheckbox" onchange="toggleLayer(usosLayer)"> Usos<br>
+            <input type="checkbox" id="fincasLayerCheckbox" onchange="toggleLayer(fincasLayer)"> Fincas<br>
+
+            <button id="exportButton" onclick="exportToExcel()">Exportar a Excel</button>
+            
+            <div id="infoContainer">
+                <h3>Resumen de la Finca</h3>
+                <p><strong>Código de Finca:</strong> <span id="fincaCodigo"></span></p>
+                <p><strong>Propietario:</strong> <span id="fincaPropietario"></span></p>
+                <p><strong>Nombre de la Finca:</strong> <span id="fincaNombre"></span></p>
+                <p><strong>Área Total de la Finca:</strong> <span id="fincaAreaTotal"></span> ha</p>
+                
+                <div id="tableContainer">
+                    <h4>Resumen de Cultivos</h4>
+                    <table id="summaryTable">
+                        <thead>
+                            <tr>
+                                <th>Cultivo</th>
+                                <th>Área (ha)</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Botón y contenedor del anexo -->
+            <button id="anexoButton" onclick="toggleAnexo()">Mostrar Datos Consolidados</button>
+            <div id="anexoContainer">
+                <h3>Datos Consolidados por Cultivo</h3>
+                <table id="anexoTable">
                     <thead>
                         <tr>
                             <th>Cultivo</th>
-                            <th>Área (ha)</th>
+                            <th>Área Total (ha)</th>
                         </tr>
                     </thead>
                     <tbody></tbody>
                 </table>
             </div>
         </div>
-
-        <!-- Botón y contenedor del anexo -->
-        <button id="anexoButton" onclick="toggleAnexo()">Mostrar Datos Consolidados</button>
-        <div id="anexoContainer">
-            <h3>Datos Consolidados por Cultivo</h3>
-            <table id="anexoTable">
-                <thead>
-                    <tr>
-                        <th>Cultivo</th>
-                        <th>Área Total (ha)</th>
-                    </tr>
-                </thead>
-                <tbody></tbody>
-            </table>
-        </div>
     </div>
 
     <script>
         let usosLayer, fincasLayer;
         let activePopup;
-        let combinedData = { features: [] };  // Datos combinados para la tabla consolidada
-        
+        let combinedData = { features: [] };
+
         const colorsByCultivo = {
             "Palma aceite": "#FFC107",
             "Bosque de galería": "#8B4513",
@@ -185,17 +203,13 @@
             baseMapLayer.addTo(map);
         }
 
-        function loadGeoJson(url, layerName) {
+        function loadGeoJson(url, styleOptions) {
             return fetch(url)
                 .then(response => response.json())
                 .then(data => {
                     combinedData.features = combinedData.features.concat(data.features);
                     const layer = L.geoJSON(data, {
-                        style: feature => ({
-                            color: colorsByCultivo[feature.properties.cultivo] || "#000000",
-                            weight: 1,
-                            fillOpacity: 0.5
-                        }),
+                        style: styleOptions,
                         onEachFeature: (feature, layer) => {
                             layer.on('click', () => {
                                 if (activePopup) activePopup.remove();
@@ -213,10 +227,20 @@
 
         // Cargar los archivos GeoJSON y asignarlos a capas
         Promise.all([
-            loadGeoJson('./usos.geojson').then(layer => usosLayer = layer),
-            loadGeoJson('./fincasssss.geojson').then(layer => fincasLayer = layer)
+            loadGeoJson('./usos.geojson', {
+                color: '#4CAF50',
+                weight: 1,
+                opacity: 0.8,
+                fillOpacity: 0.3
+            }).then(layer => usosLayer = layer),
+            loadGeoJson('./fincasssss.geojson', {
+                color: '#8B4513',
+                weight: 1.5,
+                opacity: 1,
+                fillOpacity: 0 // Sin relleno para la capa de fincas
+            }).then(layer => fincasLayer = layer)
         ]).then(() => {
-            populateAnexoTable(); // Llenar la tabla de anexo con datos consolidados por cultivo
+            populateAnexoTable();
         });
 
         function toggleLayer(layer) {
@@ -230,7 +254,6 @@
         function populateAnexoTable() {
             const cultivoSummary = {};
 
-            // Agrupar hectáreas por tipo de cultivo
             combinedData.features.forEach(feature => {
                 const cultivo = feature.properties.cultivo || "Desconocido";
                 const has = parseFloat(feature.properties.has) || 0;
@@ -303,3 +326,4 @@
     </script>
 </body>
 </html>
+
