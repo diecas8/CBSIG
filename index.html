@@ -6,8 +6,6 @@
     <title>Geoportal Predios PFNM, Casanare</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.3/xlsx.full.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -24,26 +22,8 @@
             padding: 10px;
             background-color: #f7f7f7;
             box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
-            overflow-y: auto;
             text-align: center;
-        }
-        #credits {
-            font-size: 0.8em;
-            margin-top: 10px;
-        }
-        #chartContainer {
-            margin-top: 10px;
-            display: none;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 10px;
-        }
-        th, td {
-            border: 1px solid #ccc;
-            padding: 5px;
-            text-align: left;
+            overflow-y: auto;
         }
     </style>
 </head>
@@ -51,132 +31,95 @@
     <div id="map"></div>
     <div id="sidebar">
         <img src="CBS.png" alt="Logo" style="width: 100%; margin-bottom: 10px;">
-        <div>Predios cadenas productivas Copaiba y Meliponas</div>
-        <input type="text" id="searchField" placeholder="Ingrese Código de Finca" style="width: 100%; margin-top: 10px;">
-        <button onclick="exportToExcel()" style="width: 100%; margin-top: 10px;">Exportar a Excel</button>
-
-        <!-- Contenedor de Gráfico -->
-        <div id="chartContainer">
-            <h4>Distribución de Cultivos</h4>
-            <canvas id="cultivosChart"></canvas>
-        </div>
-
-        <div id="credits">Geoportal elaborado por Diego Castaño P.</div>
+        <h3>Predios cadenas productivas Copaiba y Meliponas</h3>
+        <p>Ingrese Código de Finca:</p>
+        <input type="text" id="searchField" placeholder="Código de Finca" style="width: 90%; margin-bottom: 10px;">
+        <p id="status">Estado: Listo para buscar</p>
     </div>
 
     <script>
-        let map = L.map('map').setView([5.0, -72.0], 7);
-        let baseMapLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        // Inicializar el mapa
+        const map = L.map('map').setView([5.0, -72.0], 7);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '&copy; OpenStreetMap contributors'
         }).addTo(map);
 
-        let geoJsonLayer, fincaLayer, rutasLayer, chartInstance;
-        const colorsByCultivo = {
-            "Palma aceite": "#FFC107",
-            "Bosque de galería": "#8B4513",
-            "Pasto limpio": "#4CAF50",
-            "Humedal": "#1E90FF",
-            "Otros": "#E91E63",
-            "Infraestructura": "#9C27B0",
-            "Cítricos": "#FF5722",
-            "Cabras": "#795548",
-            "Pasto arbolado": "#00BCD4",
-            "Pasto enmalezado": "#CDDC39"
-        };
+        // Variables para capas
+        let geoJsonLayer, fincaLayer, rutasLayer;
 
-        function cargarCapas() {
+        // Función para cargar capa de usos
+        function cargarCapaUsos() {
             fetch('https://diecas8.github.io/CGSI/usos.geojson')
                 .then(response => response.json())
                 .then(data => {
                     geoJsonLayer = L.geoJSON(data, {
-                        style: feature => ({
-                            color: colorsByCultivo[feature.properties.cultivo] || "#000000",
-                            weight: 1,
-                            fillOpacity: 0.5
-                        }),
+                        style: { color: "#FF5733", weight: 1, fillOpacity: 0.5 },
                         onEachFeature: (feature, layer) => {
-                            layer.bindPopup(`Cultivo: ${feature.properties.cultivo}<br>Área: ${feature.properties.has} ha`);
+                            layer.bindPopup(`<b>Cultivo:</b> ${feature.properties.cultivo}<br><b>Área:</b> ${feature.properties.has} ha`);
                         }
                     }).addTo(map);
+                    document.getElementById('status').textContent = 'Capa de usos cargada';
                 })
-                .catch(err => console.error("Error cargando usos.geojson:", err));
+                .catch(error => {
+                    console.error("Error al cargar usos.geojson:", error);
+                    document.getElementById('status').textContent = 'Error al cargar capa de usos';
+                });
+        }
 
+        // Función para cargar capa de fincas
+        function cargarCapaFincas() {
             fetch('https://diecas8.github.io/CGSI/fincasssss.geojson')
                 .then(response => response.json())
                 .then(data => {
                     fincaLayer = L.geoJSON(data, {
                         style: { color: "#8B4513", weight: 1.5, fillOpacity: 0 }
                     }).addTo(map);
+                    document.getElementById('status').textContent = 'Capa de fincas cargada';
                 })
-                .catch(err => console.error("Error cargando fincasssss.geojson:", err));
+                .catch(error => {
+                    console.error("Error al cargar fincasssss.geojson:", error);
+                    document.getElementById('status').textContent = 'Error al cargar capa de fincas';
+                });
+        }
 
+        // Función para cargar capa de rutas
+        function cargarCapaRutas() {
             fetch('https://diecas8.github.io/CGSI/Rutas.geojson')
                 .then(response => response.json())
                 .then(data => {
                     rutasLayer = L.geoJSON(data, {
                         style: { color: "#FF5733", weight: 2, dashArray: '5,5' }
                     }).addTo(map);
+                    document.getElementById('status').textContent = 'Capa de rutas cargada';
                 })
-                .catch(err => console.error("Error cargando Rutas.geojson:", err));
+                .catch(error => {
+                    console.error("Error al cargar Rutas.geojson:", error);
+                    document.getElementById('status').textContent = 'Error al cargar capa de rutas';
+                });
         }
 
-        cargarCapas();
+        // Llamada a las funciones para cargar las capas
+        cargarCapaUsos();
+        cargarCapaFincas();
+        cargarCapaRutas();
 
+        // Función para buscar finca por código
         document.getElementById("searchField").addEventListener("keydown", function(event) {
-            if (event.key === "Enter") buscarFinca();
-        });
-
-        function buscarFinca() {
-            const codFinca = document.getElementById("searchField").value.toUpperCase();
-            if (geoJsonLayer) {
+            if (event.key === "Enter" && geoJsonLayer) {
+                const codigoFinca = this.value.toUpperCase();
+                let encontrada = false;
                 geoJsonLayer.eachLayer(layer => {
-                    const { cod_finca, cultivo, has } = layer.feature.properties;
-                    if (cod_finca === codFinca) {
+                    if (layer.feature.properties.cod_finca === codigoFinca) {
                         map.fitBounds(layer.getBounds());
                         layer.openPopup();
-                        actualizarGrafico({ [cultivo]: has });
+                        encontrada = true;
                     }
                 });
+                if (!encontrada) {
+                    alert("Finca no encontrada");
+                }
             }
-        }
-
-        function actualizarGrafico(data) {
-            const areaTotal = Object.values(data).reduce((acc, val) => acc + val, 0);
-            const labels = Object.keys(data).map(cultivo => `${cultivo} (${((data[cultivo] / areaTotal) * 100).toFixed(1)}%)`);
-            const values = Object.values(data);
-            const colors = labels.map(cultivo => colorsByCultivo[cultivo.split(" ")[0]] || "#CCCCCC");
-
-            if (chartInstance) chartInstance.destroy();
-
-            const ctx = document.getElementById('cultivosChart').getContext('2d');
-            chartInstance = new Chart(ctx, {
-                type: 'pie',
-                data: {
-                    labels,
-                    datasets: [{
-                        data: values,
-                        backgroundColor: colors
-                    }]
-                },
-                options: { responsive: true }
-            });
-
-            document.getElementById("chartContainer").style.display = "block";
-        }
-
-        function exportToExcel() {
-            const ws_data = [["Cultivo", "Área (ha)"]];
-            if (geoJsonLayer) {
-                geoJsonLayer.eachLayer(layer => {
-                    const { cultivo, has } = layer.feature.properties;
-                    ws_data.push([cultivo, has]);
-                });
-            }
-            const wb = XLSX.utils.book_new();
-            const ws = XLSX.utils.aoa_to_sheet(ws_data);
-            XLSX.utils.book_append_sheet(wb, ws, "Resumen de Cultivos");
-            XLSX.writeFile(wb, "Resumen_Cultivos.xlsx");
-        }
+        });
     </script>
 </body>
 </html>
