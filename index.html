@@ -6,13 +6,28 @@
     <title>Geoportal Predios PFNM, Casanare</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.3/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
             margin: 0;
             display: flex;
+            flex-direction: column;
             height: 100vh;
             overflow: hidden;
+        }
+        #header {
+            text-align: center;
+            padding: 10px;
+            background-color: #4CAF50;
+            color: white;
+            font-size: 1.5em;
+            font-weight: bold;
+        }
+        #mapContainer {
+            display: flex;
+            flex-grow: 1;
         }
         #map {
             flex-grow: 1;
@@ -22,104 +37,292 @@
             padding: 10px;
             background-color: #f7f7f7;
             box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
-            text-align: center;
             overflow-y: auto;
+        }
+        #logo {
+            max-width: 80%;
+            margin-bottom: 20px;
+        }
+        #infoContainer {
+            margin-top: 10px;
+            background-color: #e9ecef;
+            padding: 10px;
+            border-radius: 5px;
+            display: none;
+        }
+        #tableContainer {
+            margin-top: 20px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        table, th, td {
+            border: 1px solid #ccc;
+            padding: 8px;
+            text-align: left;
+        }
+        #exportButton {
+            margin-top: 20px;
+            width: 100%;
+            padding: 10px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        #baseMapSelect, #layerSelect {
+            margin-bottom: 10px;
+            width: 100%;
+            padding: 5px;
+        }
+        .chartContainer {
+            margin-top: 20px;
+            display: none;
+        }
+        #anexoContainer {
+            display: none;
+            padding: 10px;
+            background-color: #f1f1f1;
+            margin-top: 20px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        #anexoButton {
+            margin-top: 20px;
+            padding: 10px;
+            background-color: #2196F3;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            width: 100%;
         }
     </style>
 </head>
 <body>
-    <div id="map"></div>
-    <div id="sidebar">
-        <img src="CBS.png" alt="Logo" style="width: 100%; margin-bottom: 10px;">
-        <h3>Predios cadenas productivas Copaiba y Meliponas</h3>
-        <p>Ingrese Código de Finca:</p>
-        <input type="text" id="searchField" placeholder="Código de Finca" style="width: 90%; margin-bottom: 10px;">
-        <p id="status">Estado: Listo para buscar</p>
+    <!-- Encabezado del mapa -->
+    <div id="header">UBICACIÓN DE PREDIOS COPAIBA Y MELIPONAS</div>
+
+    <div id="mapContainer">
+        <div id="map"></div>
+        <div id="sidebar">
+            <!-- Logo del geoportal -->
+            <img id="logo" src="CBS.png" alt="Logo del Geoportal">
+
+            <h2>Información del Predio</h2>
+            <input type="text" id="searchField" placeholder="Ingrese Código de Finca y presione Enter" style="width: 100%; margin-bottom: 10px;" />
+            
+            <!-- Selector de mapa base -->
+            <select id="baseMapSelect" onchange="changeBaseMap()">
+                <option value="osm">OpenStreetMap</option>
+                <option value="satellite">Satélite</option>
+                <option value="terrain">Terreno</option>
+            </select>
+
+            <!-- Selector de capas -->
+            <label for="layerSelect">Capas disponibles:</label><br>
+            <input type="checkbox" id="usosLayerCheckbox" onchange="toggleLayer(usosLayer)"> Usos<br>
+            <input type="checkbox" id="fincasLayerCheckbox" onchange="toggleLayer(fincasLayer)"> Fincas<br>
+
+            <button id="exportButton" onclick="exportToExcel()">Exportar a Excel</button>
+            
+            <div id="infoContainer">
+                <h3>Resumen de la Finca</h3>
+                <p><strong>Código de Finca:</strong> <span id="fincaCodigo"></span></p>
+                <p><strong>Propietario:</strong> <span id="fincaPropietario"></span></p>
+                <p><strong>Nombre de la Finca:</strong> <span id="fincaNombre"></span></p>
+                <p><strong>Área Total de la Finca:</strong> <span id="fincaAreaTotal"></span> ha</p>
+                
+                <div id="tableContainer">
+                    <h4>Resumen de Cultivos</h4>
+                    <table id="summaryTable">
+                        <thead>
+                            <tr>
+                                <th>Cultivo</th>
+                                <th>Área (ha)</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Botón y contenedor del anexo -->
+            <button id="anexoButton" onclick="toggleAnexo()">Mostrar Datos Consolidados</button>
+            <div id="anexoContainer">
+                <h3>Datos Consolidados por Cultivo</h3>
+                <table id="anexoTable">
+                    <thead>
+                        <tr>
+                            <th>Cultivo</th>
+                            <th>Área Total (ha)</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
     </div>
 
     <script>
-        // Inicializar el mapa
+        let usosLayer, fincasLayer;
+        let activePopup;
+        let combinedData = { features: [] };
+
+        const colorsByCultivo = {
+            "Palma aceite": "#FFC107",
+            "Bosque de galería": "#8B4513",
+            "Pasto limpio": "#4CAF50",
+            "Humedal": "#1E90FF",
+            "Otros": "#E91E63",
+            "Infraestructura": "#9C27B0",
+            "Cítricos": "#FF5722",
+            "Cabras": "#795548",
+            "Pasto arbolado": "#00BCD4",
+            "Pasto enmalezado": "#CDDC39"
+        };
+
         const map = L.map('map').setView([5.0, -72.0], 7);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        let baseMapLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '&copy; OpenStreetMap contributors'
         }).addTo(map);
 
-        // Variables para capas
-        let geoJsonLayer, fincaLayer, rutasLayer;
+        function changeBaseMap() {
+            const selectedMap = document.getElementById('baseMapSelect').value;
+            if (baseMapLayer) map.removeLayer(baseMapLayer);
 
-        // Función para cargar capa de usos
-        function cargarCapaUsos() {
-            fetch('https://diecas8.github.io/CGSI/usos.geojson')
-                .then(response => response.json())
-                .then(data => {
-                    geoJsonLayer = L.geoJSON(data, {
-                        style: { color: "#FF5733", weight: 1, fillOpacity: 0.5 },
-                        onEachFeature: (feature, layer) => {
-                            layer.bindPopup(`<b>Cultivo:</b> ${feature.properties.cultivo}<br><b>Área:</b> ${feature.properties.has} ha`);
-                        }
-                    }).addTo(map);
-                    document.getElementById('status').textContent = 'Capa de usos cargada';
-                })
-                .catch(error => {
-                    console.error("Error al cargar usos.geojson:", error);
-                    document.getElementById('status').textContent = 'Error al cargar capa de usos';
-                });
-        }
-
-        // Función para cargar capa de fincas
-        function cargarCapaFincas() {
-            fetch('https://diecas8.github.io/CGSI/fincasssss.geojson')
-                .then(response => response.json())
-                .then(data => {
-                    fincaLayer = L.geoJSON(data, {
-                        style: { color: "#8B4513", weight: 1.5, fillOpacity: 0 }
-                    }).addTo(map);
-                    document.getElementById('status').textContent = 'Capa de fincas cargada';
-                })
-                .catch(error => {
-                    console.error("Error al cargar fincasssss.geojson:", error);
-                    document.getElementById('status').textContent = 'Error al cargar capa de fincas';
-                });
-        }
-
-        // Función para cargar capa de rutas
-        function cargarCapaRutas() {
-            fetch('https://diecas8.github.io/CGSI/Rutas.geojson')
-                .then(response => response.json())
-                .then(data => {
-                    rutasLayer = L.geoJSON(data, {
-                        style: { color: "#FF5733", weight: 2, dashArray: '5,5' }
-                    }).addTo(map);
-                    document.getElementById('status').textContent = 'Capa de rutas cargada';
-                })
-                .catch(error => {
-                    console.error("Error al cargar Rutas.geojson:", error);
-                    document.getElementById('status').textContent = 'Error al cargar capa de rutas';
-                });
-        }
-
-        // Llamada a las funciones para cargar las capas
-        cargarCapaUsos();
-        cargarCapaFincas();
-        cargarCapaRutas();
-
-        // Función para buscar finca por código
-        document.getElementById("searchField").addEventListener("keydown", function(event) {
-            if (event.key === "Enter" && geoJsonLayer) {
-                const codigoFinca = this.value.toUpperCase();
-                let encontrada = false;
-                geoJsonLayer.eachLayer(layer => {
-                    if (layer.feature.properties.cod_finca === codigoFinca) {
-                        map.fitBounds(layer.getBounds());
-                        layer.openPopup();
-                        encontrada = true;
-                    }
-                });
-                if (!encontrada) {
-                    alert("Finca no encontrada");
-                }
+            if (selectedMap === 'satellite') {
+                baseMapLayer = L.tileLayer('https://{s}.google.com/vt?x={x}&y={y}&z={z}&s=Ga', { maxZoom: 20, attribution: 'Map data © Google' });
+            } else if (selectedMap === 'terrain') {
+                baseMapLayer = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', { maxZoom: 17, attribution: '&copy; OpenStreetMap contributors &copy; OpenTopoMap' });
+            } else {
+                baseMapLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenStreetMap contributors' });
             }
+            baseMapLayer.addTo(map);
+        }
+
+        function loadGeoJson(url, styleOptions) {
+            return fetch(url)
+                .then(response => response.json())
+                .then(data => {
+                    combinedData.features = combinedData.features.concat(data.features);
+                    const layer = L.geoJSON(data, {
+                        style: styleOptions,
+                        onEachFeature: (feature, layer) => {
+                            layer.on('click', () => {
+                                if (activePopup) activePopup.remove();
+                                activePopup = L.popup()
+                                    .setLatLng(layer.getBounds().getCenter())
+                                    .setContent(`Código de Finca: ${feature.properties.cod_finca}<br>Cultivo: ${feature.properties.cultivo}<br>Área: ${parseFloat(feature.properties.has).toFixed(2).replace(".", ",")} ha`)
+                                    .openOn(map);
+                            });
+                        }
+                    });
+                    map.addLayer(layer);
+                    return layer;
+                });
+        }
+
+        // Cargar los archivos GeoJSON y asignarlos a capas
+        Promise.all([
+            loadGeoJson('./usos.geojson', {
+                color: '#4CAF50',
+                weight: 1,
+                opacity: 0.8,
+                fillOpacity: 0.3
+            }).then(layer => usosLayer = layer),
+            loadGeoJson('./fincasssss.geojson', {
+                color: '#8B4513',
+                weight: 1.5,
+                opacity: 1,
+                fillOpacity: 0 // Sin relleno para la capa de fincas
+            }).then(layer => fincasLayer = layer)
+        ]).then(() => {
+            populateAnexoTable();
         });
+
+        function toggleLayer(layer) {
+            if (map.hasLayer(layer)) {
+                map.removeLayer(layer);
+            } else {
+                map.addLayer(layer);
+            }
+        }
+
+        function populateAnexoTable() {
+            const cultivoSummary = {};
+
+            combinedData.features.forEach(feature => {
+                const cultivo = feature.properties.cultivo || "Desconocido";
+                const has = parseFloat(feature.properties.has) || 0;
+                cultivoSummary[cultivo] = (cultivoSummary[cultivo] || 0) + has;
+            });
+
+            const anexoTableBody = document.getElementById('anexoTable').querySelector('tbody');
+            anexoTableBody.innerHTML = ''; 
+
+            for (const [cultivo, areaTotal] of Object.entries(cultivoSummary)) {
+                const row = document.createElement('tr');
+                row.innerHTML = `<td>${cultivo}</td><td>${areaTotal.toFixed(2).replace(".", ",")}</td>`;
+                anexoTableBody.appendChild(row);
+            }
+        }
+
+        document.getElementById("searchField").addEventListener("keydown", function (event) {
+            if (event.key === "Enter") buscarFinca();
+        });
+
+        function buscarFinca() {
+            const codFinca = document.getElementById("searchField").value.trim().toUpperCase();
+            const fincaFeatures = combinedData.features.filter(feature => feature.properties.cod_finca.toUpperCase() === codFinca);
+
+            if (fincaFeatures.length === 0) {
+                alert("Finca no encontrada");
+                document.getElementById("infoContainer").style.display = "none";
+                return;
+            }
+
+            const fincaData = fincaFeatures[0].properties;
+            document.getElementById("fincaCodigo").textContent = fincaData.cod_finca;
+            document.getElementById("fincaPropietario").textContent = fincaData.proprietari || "No especificado";
+            document.getElementById("fincaNombre").textContent = fincaData.nom_finca_ || "No especificado";
+
+            const areaTotal = fincaFeatures.reduce((acc, feature) => acc + parseFloat(feature.properties.has || 0), 0);
+            document.getElementById("fincaAreaTotal").textContent = areaTotal.toFixed(2).replace(".", ",");
+
+            const bounds = L.geoJSON(fincaFeatures).getBounds();
+            map.fitBounds(bounds);
+
+            const cultivoSummary = {};
+            fincaFeatures.forEach(feature => {
+                const cultivo = feature.properties.cultivo || "Desconocido";
+                const has = parseFloat(feature.properties.has) || 0;
+                cultivoSummary[cultivo] = (cultivoSummary[cultivo] || 0) + has;
+            });
+
+            const summaryTableBody = document.getElementById("summaryTable").querySelector("tbody");
+            summaryTableBody.innerHTML = ""; 
+            for (const [cultivo, hasTotal] of Object.entries(cultivoSummary)) {
+                const row = document.createElement("tr");
+                row.innerHTML = `<td>${cultivo}</td><td>${hasTotal.toFixed(2).replace(".", ",")}</td>`;
+                summaryTableBody.appendChild(row);
+            }
+
+            document.getElementById("infoContainer").style.display = "block"; 
+        }
+
+        function toggleAnexo() {
+            const anexoContainer = document.getElementById('anexoContainer');
+            anexoContainer.style.display = anexoContainer.style.display === 'none' ? 'block' : 'none';
+        }
+
+        function exportToExcel() {
+            const summaryTable = document.getElementById("summaryTable");
+            const wb = XLSX.utils.table_to_book(summaryTable, { sheet: "Resumen de Cultivos" });
+            XLSX.writeFile(wb, `Resumen_Finca_${document.getElementById("fincaCodigo").textContent}.xlsx`);
+        }
     </script>
 </body>
 </html>
