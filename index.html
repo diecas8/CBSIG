@@ -9,7 +9,6 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.3/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        /* Estilos generales */
         body {
             font-family: Arial, sans-serif;
             margin: 0;
@@ -17,7 +16,9 @@
             height: 100vh;
             overflow: hidden;
         }
-        #map { flex-grow: 1; }
+        #map {
+            flex-grow: 1;
+        }
         #sidebar {
             width: 300px;
             padding: 10px;
@@ -27,15 +28,23 @@
             text-align: center;
         }
         #credits {
-            position: fixed;
-            bottom: 10px;
-            right: 10px;
             font-size: 0.8em;
-            background-color: rgba(255, 255, 255, 0.8);
-            padding: 5px 10px;
-            border-radius: 5px;
+            margin-top: 10px;
         }
-        .chartContainer { display: none; }
+        #chartContainer {
+            margin-top: 10px;
+            display: none;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        th, td {
+            border: 1px solid #ccc;
+            padding: 5px;
+            text-align: left;
+        }
     </style>
 </head>
 <body>
@@ -45,14 +54,23 @@
         <div>Predios cadenas productivas Copaiba y Meliponas</div>
         <input type="text" id="searchField" placeholder="Ingrese Código de Finca" style="width: 100%; margin-top: 10px;">
         <button onclick="exportToExcel()" style="width: 100%; margin-top: 10px;">Exportar a Excel</button>
+
+        <!-- Contenedor de Gráfico -->
+        <div id="chartContainer">
+            <h4>Distribución de Cultivos</h4>
+            <canvas id="cultivosChart"></canvas>
+        </div>
+
         <div id="credits">Geoportal elaborado por Diego Castaño P.</div>
     </div>
 
     <script>
         let map = L.map('map').setView([5.0, -72.0], 7);
-        let baseMapLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
-        let geoJsonLayer, fincaLayer, rutasLayer;
+        let baseMapLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; OpenStreetMap contributors'
+        }).addTo(map);
 
+        let geoJsonLayer, fincaLayer, rutasLayer, chartInstance;
         const colorsByCultivo = {
             "Palma aceite": "#FFC107",
             "Bosque de galería": "#8B4513",
@@ -66,10 +84,9 @@
             "Pasto enmalezado": "#CDDC39"
         };
 
-        // Cargar capas GeoJSON
         function cargarCapas() {
             fetch('https://diecas8.github.io/CGSI/usos.geojson')
-                .then(res => res.json())
+                .then(response => response.json())
                 .then(data => {
                     geoJsonLayer = L.geoJSON(data, {
                         style: feature => ({
@@ -85,7 +102,7 @@
                 .catch(err => console.error("Error cargando usos.geojson:", err));
 
             fetch('https://diecas8.github.io/CGSI/fincasssss.geojson')
-                .then(res => res.json())
+                .then(response => response.json())
                 .then(data => {
                     fincaLayer = L.geoJSON(data, {
                         style: { color: "#8B4513", weight: 1.5, fillOpacity: 0 }
@@ -94,7 +111,7 @@
                 .catch(err => console.error("Error cargando fincasssss.geojson:", err));
 
             fetch('https://diecas8.github.io/CGSI/Rutas.geojson')
-                .then(res => res.json())
+                .then(response => response.json())
                 .then(data => {
                     rutasLayer = L.geoJSON(data, {
                         style: { color: "#FF5733", weight: 2, dashArray: '5,5' }
@@ -102,12 +119,11 @@
                 })
                 .catch(err => console.error("Error cargando Rutas.geojson:", err));
         }
-        
+
         cargarCapas();
 
-        // Función de búsqueda por código de finca
-        document.getElementById("searchField").addEventListener("keydown", function (e) {
-            if (e.key === "Enter") buscarFinca();
+        document.getElementById("searchField").addEventListener("keydown", function(event) {
+            if (event.key === "Enter") buscarFinca();
         });
 
         function buscarFinca() {
@@ -118,26 +134,51 @@
                     if (cod_finca === codFinca) {
                         map.fitBounds(layer.getBounds());
                         layer.openPopup();
+                        actualizarGrafico({ [cultivo]: has });
                     }
                 });
             }
         }
 
-        // Exportar datos a Excel
+        function actualizarGrafico(data) {
+            const areaTotal = Object.values(data).reduce((acc, val) => acc + val, 0);
+            const labels = Object.keys(data).map(cultivo => `${cultivo} (${((data[cultivo] / areaTotal) * 100).toFixed(1)}%)`);
+            const values = Object.values(data);
+            const colors = labels.map(cultivo => colorsByCultivo[cultivo.split(" ")[0]] || "#CCCCCC");
+
+            if (chartInstance) chartInstance.destroy();
+
+            const ctx = document.getElementById('cultivosChart').getContext('2d');
+            chartInstance = new Chart(ctx, {
+                type: 'pie',
+                data: {
+                    labels,
+                    datasets: [{
+                        data: values,
+                        backgroundColor: colors
+                    }]
+                },
+                options: { responsive: true }
+            });
+
+            document.getElementById("chartContainer").style.display = "block";
+        }
+
         function exportToExcel() {
-            let wb = XLSX.utils.book_new();
-            let ws_data = [["Cultivo", "Área (ha)"]]; // Cabecera
+            const ws_data = [["Cultivo", "Área (ha)"]];
             if (geoJsonLayer) {
                 geoJsonLayer.eachLayer(layer => {
                     const { cultivo, has } = layer.feature.properties;
                     ws_data.push([cultivo, has]);
                 });
             }
-            let ws = XLSX.utils.aoa_to_sheet(ws_data);
+            const wb = XLSX.utils.book_new();
+            const ws = XLSX.utils.aoa_to_sheet(ws_data);
             XLSX.utils.book_append_sheet(wb, ws, "Resumen de Cultivos");
             XLSX.writeFile(wb, "Resumen_Cultivos.xlsx");
         }
     </script>
 </body>
 </html>
+
 
