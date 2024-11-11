@@ -293,9 +293,6 @@
             const areaTotal = fincaFeatures.reduce((acc, feature) => acc + parseFloat(feature.properties.has || 0), 0);
             document.getElementById("fincaAreaTotal").textContent = areaTotal.toFixed(2).replace(".", ",");
 
-            const bounds = L.geoJSON(fincaFeatures).getBounds();
-            map.fitBounds(bounds);
-
             const cultivoSummary = {};
             fincaFeatures.forEach(feature => {
                 const cultivo = feature.properties.cultivo || "Desconocido";
