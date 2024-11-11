@@ -103,7 +103,6 @@
     </style>
 </head>
 <body>
-    <!-- Encabezado con logo y título -->
     <div id="header">
         <img src="CBS.png" alt="Logo del Geoportal">
         UBICACIÓN DE PREDIOS COPAIBA Y MELIPONAS
@@ -115,14 +114,12 @@
             <h2>Información del Predio</h2>
             <input type="text" id="searchField" placeholder="Ingrese Código de Finca y presione Enter" style="width: 100%; margin-bottom: 10px;" />
             
-            <!-- Selector de mapa base -->
             <select id="baseMapSelect" onchange="changeBaseMap()">
                 <option value="osm">OpenStreetMap</option>
                 <option value="satellite">Satélite</option>
                 <option value="terrain">Terreno</option>
             </select>
 
-            <!-- Selector de capas -->
             <label for="layerSelect">Capas disponibles:</label><br>
             <input type="checkbox" id="usosLayerCheckbox" onchange="toggleLayer(usosLayer)"> Usos<br>
             <input type="checkbox" id="fincasLayerCheckbox" onchange="toggleLayer(fincasLayer)"> Fincas<br>
@@ -150,7 +147,6 @@
                 </div>
             </div>
 
-            <!-- Botón y contenedor del anexo -->
             <button id="anexoButton" onclick="toggleAnexo()">Mostrar Datos Consolidados</button>
             <div id="anexoContainer">
                 <h3>Datos Consolidados por Cultivo</h3>
@@ -226,7 +222,6 @@
                 });
         }
 
-        // Cargar los archivos GeoJSON y asignarlos a capas
         Promise.all([
             loadGeoJson('./usos.geojson', {
                 color: '#4CAF50',
@@ -254,7 +249,6 @@
 
         function populateAnexoTable() {
             const cultivoSummary = {};
-
             combinedData.features.forEach(feature => {
                 const cultivo = feature.properties.cultivo || "Desconocido";
                 const has = parseFloat(feature.properties.has) || 0;
@@ -324,4 +318,5 @@
     </script>
 </body>
 </html>
+
 
