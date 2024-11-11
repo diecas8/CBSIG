@@ -25,9 +25,6 @@
             background-color: #f7f7f7;
             box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
             overflow-y: auto;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
         }
         #logo {
             max-width: 80%;
@@ -39,7 +36,6 @@
             padding: 10px;
             border-radius: 5px;
             display: none;
-            width: 100%;
         }
         #tableContainer {
             margin-top: 20px;
@@ -68,13 +64,9 @@
             width: 100%;
             padding: 5px;
         }
-        #chartContainer {
+        .chartContainer {
             margin-top: 20px;
             display: none;
-        }
-        #chartContainer canvas {
-            width: 100% !important;
-            height: auto !important;
         }
         #anexoContainer {
             display: none;
@@ -83,7 +75,6 @@
             margin-top: 20px;
             max-height: 400px;
             overflow-y: auto;
-            width: 100%;
         }
         #anexoButton {
             margin-top: 20px;
@@ -113,6 +104,11 @@
             <option value="terrain">Terreno</option>
         </select>
 
+        <!-- Selector de capas -->
+        <label for="layerSelect">Capas disponibles:</label><br>
+        <input type="checkbox" id="usosLayerCheckbox" onchange="toggleLayer(usosLayer)"> Usos<br>
+        <input type="checkbox" id="fincasLayerCheckbox" onchange="toggleLayer(fincasLayer)"> Fincas<br>
+
         <button id="exportButton" onclick="exportToExcel()">Exportar a Excel</button>
         
         <div id="infoContainer">
@@ -136,38 +132,41 @@
             </div>
         </div>
 
-        <!-- Contenedor del gráfico -->
-        <div id="chartContainer">
-            <h4>Distribución de Cultivos</h4>
-            <canvas id="cultivoChart"></canvas>
-        </div>
-
         <!-- Botón y contenedor del anexo -->
         <button id="anexoButton" onclick="toggleAnexo()">Mostrar Datos Consolidados</button>
         <div id="anexoContainer">
-            <h3>Área Total de Todos los Cultivos</h3>
+            <h3>Datos Consolidados por Cultivo</h3>
             <table id="anexoTable">
                 <thead>
                     <tr>
-                        <th>Descripción</th>
+                        <th>Cultivo</th>
                         <th>Área Total (ha)</th>
                     </tr>
                 </thead>
-                <tbody>
-                    <tr>
-                        <td>Total de Hectáreas de Cultivos</td>
-                        <td id="totalCultivoArea">0</td>
-                    </tr>
-                </tbody>
+                <tbody></tbody>
             </table>
         </div>
     </div>
 
     <script>
-        // Inicialización de Leaflet y configuración del mapa
-        const map = L.map('map').setView([5.0, -72.0], 7);
+        let usosLayer, fincasLayer;
+        let activePopup;
+        let combinedData = { features: [] };  // Datos combinados para la tabla consolidada
+        
+        const colorsByCultivo = {
+            "Palma aceite": "#FFC107",
+            "Bosque de galería": "#8B4513",
+            "Pasto limpio": "#4CAF50",
+            "Humedal": "#1E90FF",
+            "Otros": "#E91E63",
+            "Infraestructura": "#9C27B0",
+            "Cítricos": "#FF5722",
+            "Cabras": "#795548",
+            "Pasto arbolado": "#00BCD4",
+            "Pasto enmalezado": "#CDDC39"
+        };
 
-        // Cargar mapa base de OpenStreetMap
+        const map = L.map('map').setView([5.0, -72.0], 7);
         let baseMapLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '&copy; OpenStreetMap contributors'
         }).addTo(map);
@@ -186,38 +185,121 @@
             baseMapLayer.addTo(map);
         }
 
-        // Función para cargar y mostrar archivos GeoJSON en el mapa
-        function loadGeoJson(url, styleOptions) {
-            fetch(url)
+        function loadGeoJson(url, layerName) {
+            return fetch(url)
                 .then(response => response.json())
                 .then(data => {
-                    L.geoJSON(data, {
-                        style: styleOptions,
+                    combinedData.features = combinedData.features.concat(data.features);
+                    const layer = L.geoJSON(data, {
+                        style: feature => ({
+                            color: colorsByCultivo[feature.properties.cultivo] || "#000000",
+                            weight: 1,
+                            fillOpacity: 0.5
+                        }),
                         onEachFeature: (feature, layer) => {
-                            if (feature.properties && feature.properties.name) {
-                                layer.bindPopup(feature.properties.name);
-                            }
+                            layer.on('click', () => {
+                                if (activePopup) activePopup.remove();
+                                activePopup = L.popup()
+                                    .setLatLng(layer.getBounds().getCenter())
+                                    .setContent(`Código de Finca: ${feature.properties.cod_finca}<br>Cultivo: ${feature.properties.cultivo}<br>Área: ${parseFloat(feature.properties.has).toFixed(2).replace(".", ",")} ha`)
+                                    .openOn(map);
+                            });
                         }
-                    }).addTo(map);
-                })
-                .catch(error => console.error("Error al cargar GeoJSON:", error));
+                    });
+                    map.addLayer(layer);
+                    return layer;
+                });
         }
 
-        // Cargar capa de fincas
-        loadGeoJson('fincasssss.geojson', {
-            color: '#8B4513',
-            weight: 1.5,
-            opacity: 1,
-            fillOpacity: 0.4
+        // Cargar los archivos GeoJSON y asignarlos a capas
+        Promise.all([
+            loadGeoJson('./usos.geojson').then(layer => usosLayer = layer),
+            loadGeoJson('./fincasssss.geojson').then(layer => fincasLayer = layer)
+        ]).then(() => {
+            populateAnexoTable(); // Llenar la tabla de anexo con datos consolidados por cultivo
         });
 
-        // Cargar capa de usos
-        loadGeoJson('usos.geojson', {
-            color: '#4CAF50',
-            weight: 1,
-            opacity: 0.8,
-            fillOpacity: 0.3
+        function toggleLayer(layer) {
+            if (map.hasLayer(layer)) {
+                map.removeLayer(layer);
+            } else {
+                map.addLayer(layer);
+            }
+        }
+
+        function populateAnexoTable() {
+            const cultivoSummary = {};
+
+            // Agrupar hectáreas por tipo de cultivo
+            combinedData.features.forEach(feature => {
+                const cultivo = feature.properties.cultivo || "Desconocido";
+                const has = parseFloat(feature.properties.has) || 0;
+                cultivoSummary[cultivo] = (cultivoSummary[cultivo] || 0) + has;
+            });
+
+            const anexoTableBody = document.getElementById('anexoTable').querySelector('tbody');
+            anexoTableBody.innerHTML = ''; 
+
+            for (const [cultivo, areaTotal] of Object.entries(cultivoSummary)) {
+                const row = document.createElement('tr');
+                row.innerHTML = `<td>${cultivo}</td><td>${areaTotal.toFixed(2).replace(".", ",")}</td>`;
+                anexoTableBody.appendChild(row);
+            }
+        }
+
+        document.getElementById("searchField").addEventListener("keydown", function (event) {
+            if (event.key === "Enter") buscarFinca();
         });
+
+        function buscarFinca() {
+            const codFinca = document.getElementById("searchField").value.trim().toUpperCase();
+            const fincaFeatures = combinedData.features.filter(feature => feature.properties.cod_finca.toUpperCase() === codFinca);
+
+            if (fincaFeatures.length === 0) {
+                alert("Finca no encontrada");
+                document.getElementById("infoContainer").style.display = "none";
+                return;
+            }
+
+            const fincaData = fincaFeatures[0].properties;
+            document.getElementById("fincaCodigo").textContent = fincaData.cod_finca;
+            document.getElementById("fincaPropietario").textContent = fincaData.proprietari || "No especificado";
+            document.getElementById("fincaNombre").textContent = fincaData.nom_finca_ || "No especificado";
+
+            const areaTotal = fincaFeatures.reduce((acc, feature) => acc + parseFloat(feature.properties.has || 0), 0);
+            document.getElementById("fincaAreaTotal").textContent = areaTotal.toFixed(2).replace(".", ",");
+
+            const bounds = L.geoJSON(fincaFeatures).getBounds();
+            map.fitBounds(bounds);
+
+            const cultivoSummary = {};
+            fincaFeatures.forEach(feature => {
+                const cultivo = feature.properties.cultivo || "Desconocido";
+                const has = parseFloat(feature.properties.has) || 0;
+                cultivoSummary[cultivo] = (cultivoSummary[cultivo] || 0) + has;
+            });
+
+            const summaryTableBody = document.getElementById("summaryTable").querySelector("tbody");
+            summaryTableBody.innerHTML = ""; 
+            for (const [cultivo, hasTotal] of Object.entries(cultivoSummary)) {
+                const row = document.createElement("tr");
+                row.innerHTML = `<td>${cultivo}</td><td>${hasTotal.toFixed(2).replace(".", ",")}</td>`;
+                summaryTableBody.appendChild(row);
+            }
+
+            document.getElementById("infoContainer").style.display = "block"; 
+        }
+
+        function toggleAnexo() {
+            const anexoContainer = document.getElementById('anexoContainer');
+            anexoContainer.style.display = anexoContainer.style.display === 'none' ? 'block' : 'none';
+        }
+
+        function exportToExcel() {
+            const summaryTable = document.getElementById("summaryTable");
+            const wb = XLSX.utils.table_to_book(summaryTable, { sheet: "Resumen de Cultivos" });
+            XLSX.writeFile(wb, `Resumen_Finca_${document.getElementById("fincaCodigo").textContent}.xlsx`);
+        }
     </script>
 </body>
 </html>
