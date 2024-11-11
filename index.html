@@ -25,6 +25,11 @@
             font-size: 1.5em;
             font-weight: bold;
         }
+        #header img {
+            max-width: 200px;
+            vertical-align: middle;
+            margin-right: 10px;
+        }
         #mapContainer {
             display: flex;
             flex-grow: 1;
@@ -38,10 +43,6 @@
             background-color: #f7f7f7;
             box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
             overflow-y: auto;
-        }
-        #logo {
-            max-width: 80%;
-            margin-bottom: 20px;
         }
         #infoContainer {
             margin-top: 10px;
@@ -102,15 +103,15 @@
     </style>
 </head>
 <body>
-    <!-- Encabezado del mapa -->
-    <div id="header">UBICACIÓN DE PREDIOS COPAIBA Y MELIPONAS</div>
+    <!-- Encabezado con logo y título -->
+    <div id="header">
+        <img src="CBS.png" alt="Logo del Geoportal">
+        UBICACIÓN DE PREDIOS COPAIBA Y MELIPONAS
+    </div>
 
     <div id="mapContainer">
         <div id="map"></div>
         <div id="sidebar">
-            <!-- Logo del geoportal -->
-            <img id="logo" src="CBS.png" alt="Logo del Geoportal">
-
             <h2>Información del Predio</h2>
             <input type="text" id="searchField" placeholder="Ingrese Código de Finca y presione Enter" style="width: 100%; margin-bottom: 10px;" />
             
