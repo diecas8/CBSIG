@@ -55,7 +55,7 @@
             border-radius: 5px;
             cursor: pointer;
         }
-        .chartContainer {
+        #chartContainer {
             margin-top: 10px;
             display: none;
         }
@@ -63,17 +63,20 @@
             margin: 5px 0;
             line-height: 1.2;
         }
+        #credits {
+            margin-top: 10px;
+            font-size: 0.8em;
+            text-align: center;
+            color: #777;
+        }
     </style>
 </head>
 <body>
-    <button id="menuButton" onclick="toggleSidebar()">☰</button>
     <div id="map"></div>
     <div id="sidebar">
-        <!-- Logo y Título -->
         <img id="logo" src="CBS.png" alt="Logo" style="width: 100%; margin-bottom: 10px;">
         <div style="text-align: center; font-size: 1.2em; font-weight: bold; margin-bottom: 10px;">Predios cadenas productivas Copaiba y Meliponas</div>
 
-        <h2>Información del Predio</h2>
         <input type="text" id="searchField" placeholder="Ingrese Código de Finca y presione Enter" style="width: 100%; margin-bottom: 10px;" />
         
         <button id="exportButton" onclick="exportToExcel()">Exportar a Excel</button>
@@ -85,8 +88,7 @@
             <p class="summary-item"><strong>Nombre de la Finca:</strong> <span id="fincaNombre"></span></p>
             <p class="summary-item"><strong>Área Total de la Finca:</strong> <span id="fincaAreaTotal"></span> ha</p>
             
-            <!-- Contenedor de Gráfico -->
-            <div class="chartContainer" id="chartContainer">
+            <div id="chartContainer">
                 <h4>Distribución de Cultivos</h4>
                 <canvas id="cultivosChart"></canvas>
             </div>
@@ -104,12 +106,12 @@
                 </table>
             </div>
         </div>
+        <div id="credits">Geoportal elaborado por Diego Castaño P.</div>
     </div>
 
     <script>
         let geoJsonLayer;
-        let activePopup;
-        let chartInstance; 
+        let chartInstance;
         const colorsByCultivo = {
             "Palma aceite": "#FFC107",
             "Bosque de galería": "#8B4513",
@@ -124,14 +126,9 @@
         };
         
         const map = L.map('map').setView([5.0, -72.0], 7);
-        let baseMapLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '&copy; OpenStreetMap contributors'
         }).addTo(map);
-
-        function toggleSidebar() {
-            const sidebar = document.getElementById('sidebar');
-            sidebar.style.display = sidebar.style.display === 'none' ? 'block' : 'none';
-        }
 
         fetch('https://diecas8.github.io/CGSI/usos.geojson')
             .then(response => response.json())
@@ -144,8 +141,7 @@
                     }),
                     onEachFeature: (feature, layer) => {
                         layer.on('click', () => {
-                            if (activePopup) activePopup.remove();
-                            activePopup = L.popup()
+                            L.popup()
                                 .setLatLng(layer.getBounds().getCenter())
                                 .setContent(`Código de Finca: ${feature.properties.cod_finca}<br>Cultivo: ${feature.properties.cultivo}<br>Área: ${parseFloat(feature.properties.has).toFixed(2).replace(".", ",")} ha`)
                                 .openOn(map);
@@ -174,7 +170,6 @@
 
             const areaTotal = fincaFeatures.reduce((acc, feature) => acc + parseFloat(feature.properties.has || 0), 0);
             document.getElementById("fincaAreaTotal").textContent = areaTotal.toFixed(2).replace(".", ",");
-            map.fitBounds(L.geoJSON(fincaFeatures).getBounds());
 
             const cultivoSummary = {};
             fincaFeatures.forEach(feature => {
@@ -193,12 +188,11 @@
             document.getElementById("infoContainer").style.display = "block";
 
             renderChart(cultivoSummary, areaTotal);
-            flashFeature(fincaFeatures);
         }
 
         function renderChart(cultivoSummary, areaTotal) {
             document.getElementById("chartContainer").style.display = "block";
-            if (chartInstance) chartInstance.destroy(); // Destruir el gráfico previo si existe
+            if (chartInstance) chartInstance.destroy();
             const ctx = document.getElementById('cultivosChart').getContext('2d');
             chartInstance = new Chart(ctx, {
                 type: 'pie',
@@ -206,42 +200,5 @@
                     labels: Object.keys(cultivoSummary).map(cultivo => `${cultivo} (${((cultivoSummary[cultivo] / areaTotal) * 100).toFixed(1)}%)`),
                     datasets: [{
                         data: Object.values(cultivoSummary),
-                        backgroundColor: Object.keys(cultivoSummary).map(cultivo => colorsByCultivo[cultivo] || "#CCCCCC")
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    plugins: {
-                        tooltip: {
-                            callbacks: {
-                                label: function(context) {
-                                    const label = context.label || '';
-                                    const value = context.raw || 0;
-                                    return `${label}: ${value.toFixed(2).replace(".", ",")} ha`;
-                                }
-                            }
-                        }
-                    }
-                }
-            });
-        }
-
-        function flashFeature(fincaFeatures) {
-            const fincaLayer = L.geoJSON(fincaFeatures, {
-                style: { color: '#FFD700', weight: 3, fillOpacity: 0.5 }
-            }).addTo(map);
-            setTimeout(() => {
-                map.removeLayer(fincaLayer);
-            }, 1500); // Destello de 1.5 segundos
-        }
-
-        function exportToExcel() {
-            const summaryTable = document.getElementById("summaryTable");
-            const wb = XLSX.utils.table_to_book(summaryTable, { sheet: "Resumen de Cultivos" });
-            XLSX.writeFile(wb, `Resumen_Finca_${document.getElementById("fincaCodigo").textContent}.xlsx`);
-        }
-    </script>
-</body>
-</html>
-
+                        backgroundColor: Object.keys(cultivoSummary).map(cultivo => colorsByCult
 
