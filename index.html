@@ -155,6 +155,7 @@
         let activePopup;
         let chartInstance;
         let highlightLayer;
+        let lastHighlightedLayer;
 
         const colorsByCultivo = {
             "Palma aceite": "#FFC107",
@@ -190,21 +191,13 @@
                         color: colorsByCultivo[feature.properties.cultivo] || "#000000",
                         weight: 1,
                         fillOpacity: 0.5
-                    }),
-                    onEachFeature: (feature, layer) => {
-                        layer.on('click', () => {
-                            if (activePopup) activePopup.remove();
-                            activePopup = L.popup()
-                                .setLatLng(layer.getBounds().getCenter())
-                                .setContent(`Código de Finca: ${feature.properties.cod_finca}<br>Cultivo: ${feature.properties.cultivo}<br>Área: ${parseFloat(feature.properties.has).toFixed(2).replace(".", ",")} ha`)
-                                .openOn(map);
-                        });
-                    }
+                    })
                 });
                 layersControl.addOverlay(geoJsonLayer, "Usos");
                 geoJsonLayer.addTo(map);
                 window.geoData = data;
-            });
+            })
+            .catch(error => console.error("Error al cargar usos.geojson:", error));
 
         // Cargar capa de fincas
         fetch('https://diecas8.github.io/CGSI/fincasssss.geojson')
@@ -215,20 +208,12 @@
                         color: "#8B4513",
                         weight: 1.5,
                         fillOpacity: 0
-                    },
-                    onEachFeature: (feature, layer) => {
-                        if (feature.properties && feature.properties.nom_finca_) {
-                            layer.bindTooltip(`${feature.properties.cod_finca} - ${feature.properties.nom_finca_}`, {
-                                permanent: true,
-                                direction: "center",
-                                className: "finca-label"
-                            });
-                        }
                     }
                 });
                 layersControl.addOverlay(fincaLayer, "Fincas");
                 fincaLayer.addTo(map);
-            });
+            })
+            .catch(error => console.error("Error al cargar fincasssss.geojson:", error));
 
         // Cargar capa de rutas
         fetch('https://diecas8.github.io/CGSI/Rutas.geojson')
@@ -243,7 +228,8 @@
                 });
                 layersControl.addOverlay(rutasLayer, "Rutas");
                 rutasLayer.addTo(map);
-            });
+            })
+            .catch(error => console.error("Error al cargar Rutas.geojson:", error));
 
         document.getElementById("searchField").addEventListener("keydown", function (event) {
             if (event.key === "Enter" && window.geoData) buscarFinca();
@@ -264,7 +250,7 @@
 
             const areaTotal = fincaFeatures.reduce((acc, feature) => acc + parseFloat(feature.properties.has || 0), 0);
             document.getElementById("fincaAreaTotal").textContent = areaTotal.toFixed(2).replace(".", ",");
-            
+
             if (highlightLayer) map.removeLayer(highlightLayer); 
             highlightLayer = L.geoJSON(fincaFeatures, {
                 style: { color: "blue", weight: 3, dashArray: '3', fillOpacity: 0 }
@@ -306,8 +292,35 @@
                         backgroundColor: Object.keys(cultivoSummary).map(cultivo => colorsByCultivo[cultivo] || "#CCCCCC")
                     }]
                 },
-                options: { responsive: true }
+                options: {
+                    responsive: true,
+                    onClick: (event, elements) => {
+                        if (elements.length > 0) {
+                            const chartIndex = elements[0].index;
+                            const selectedCultivo = Object.keys(cultivoSummary)[chartIndex];
+                            highlightMapLayerByCultivo(selectedCultivo);
+                        }
+                    }
+                }
             });
+        }
+
+        function highlightMapLayerByCultivo(cultivo) {
+            if (lastHighlightedLayer) {
+                map.removeLayer(lastHighlightedLayer);
+            }
+            
+            lastHighlightedLayer = L.geoJSON(window.geoData, {
+                filter: feature => feature.properties.cultivo === cultivo,
+                style: {
+                    color: "red",
+                    weight: 3,
+                    dashArray: '3',
+                    fillOpacity: 0.5
+                }
+            }).addTo(map);
+
+            map.fitBounds(lastHighlightedLayer.getBounds());
         }
 
         function exportToExcel() {
