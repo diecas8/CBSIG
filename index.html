@@ -125,7 +125,7 @@
     <script>
         let geoJsonLayer;
         let activePopup;
-        let chartInstance; // Variable para almacenar la instancia del gráfico
+        let chartInstance; 
         const colorsByCultivo = {
             "Palma aceite": "#FFC107",
             "Bosque de galería": "#8B4513",
@@ -223,6 +223,7 @@
             document.getElementById("infoContainer").style.display = "block";
 
             renderChart(cultivoSummary, areaTotal);
+            flashFeature(fincaFeatures);
         }
 
         function renderChart(cultivoSummary, areaTotal) {
@@ -255,6 +256,15 @@
             });
         }
 
+        function flashFeature(fincaFeatures) {
+            const fincaLayer = L.geoJSON(fincaFeatures, {
+                style: { color: '#FFD700', weight: 3, fillOpacity: 0.5 }
+            }).addTo(map);
+            setTimeout(() => {
+                map.removeLayer(fincaLayer);
+            }, 1500); // Destello de 1.5 segundos
+        }
+
         function exportToExcel() {
             const summaryTable = document.getElementById("summaryTable");
             const wb = XLSX.utils.table_to_book(summaryTable, { sheet: "Resumen de Cultivos" });
@@ -263,5 +273,4 @@
     </script>
 </body>
 </html>
-
 
