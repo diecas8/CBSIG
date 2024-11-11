@@ -200,5 +200,32 @@
                     labels: Object.keys(cultivoSummary).map(cultivo => `${cultivo} (${((cultivoSummary[cultivo] / areaTotal) * 100).toFixed(1)}%)`),
                     datasets: [{
                         data: Object.values(cultivoSummary),
-                        backgroundColor: Object.keys(cultivoSummary).map(cultivo => colorsByCult
+                        backgroundColor: Object.keys(cultivoSummary).map(cultivo => colorsByCultivo[cultivo] || "#CCCCCC")
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const label = context.label || '';
+                                    const value = context.raw || 0;
+                                    return `${label}: ${value.toFixed(2).replace(".", ",")} ha`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function exportToExcel() {
+            const summaryTable = document.getElementById("summaryTable");
+            const wb = XLSX.utils.table_to_book(summaryTable, { sheet: "Resumen de Cultivos" });
+            XLSX.writeFile(wb, `Resumen_Finca_${document.getElementById("fincaCodigo").textContent}.xlsx`);
+        }
+    </script>
+</body>
+</html>
 
