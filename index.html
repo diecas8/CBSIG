@@ -55,11 +55,6 @@
             border-radius: 5px;
             cursor: pointer;
         }
-        #baseMapSelect, #themeSelect {
-            margin-bottom: 10px;
-            width: 100%;
-            padding: 5px;
-        }
         .chartContainer {
             margin-top: 10px;
             display: none;
@@ -80,17 +75,6 @@
 
         <h2>Información del Predio</h2>
         <input type="text" id="searchField" placeholder="Ingrese Código de Finca y presione Enter" style="width: 100%; margin-bottom: 10px;" />
-        
-        <select id="baseMapSelect" onchange="changeBaseMap()">
-            <option value="osm">OpenStreetMap</option>
-            <option value="satellite">Satélite</option>
-            <option value="terrain">Terreno</option>
-        </select>
-        
-        <select id="themeSelect" onchange="changeTheme()">
-            <option value="light">Tema Claro</option>
-            <option value="dark">Tema Oscuro</option>
-        </select>
         
         <button id="exportButton" onclick="exportToExcel()">Exportar a Excel</button>
         
@@ -144,26 +128,12 @@
             attribution: '&copy; OpenStreetMap contributors'
         }).addTo(map);
 
-        function changeBaseMap() {
-            const selectedMap = document.getElementById('baseMapSelect').value;
-            if (baseMapLayer) map.removeLayer(baseMapLayer);
-
-            if (selectedMap === 'satellite') {
-                baseMapLayer = L.tileLayer('https://{s}.google.com/vt?x={x}&y={y}&z={z}&s=Ga', { maxZoom: 20, attribution: 'Map data © Google' });
-            } else if (selectedMap === 'terrain') {
-                baseMapLayer = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', { maxZoom: 17, attribution: '&copy; OpenStreetMap contributors &copy; OpenTopoMap' });
-            } else {
-                baseMapLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenStreetMap contributors' });
-            }
-            baseMapLayer.addTo(map);
-        }
-
         function toggleSidebar() {
             const sidebar = document.getElementById('sidebar');
             sidebar.style.display = sidebar.style.display === 'none' ? 'block' : 'none';
         }
 
-        fetch('usos.geojson')
+        fetch('https://diecas8.github.io/CGSI/usos.geojson')
             .then(response => response.json())
             .then(data => {
                 geoJsonLayer = L.geoJSON(data, {
@@ -273,4 +243,5 @@
     </script>
 </body>
 </html>
+
 
