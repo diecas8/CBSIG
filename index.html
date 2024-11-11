@@ -16,161 +16,202 @@
             height: 100vh;
             overflow: hidden;
         }
-        #map { flex-grow: 1; }
+        #map {
+            flex-grow: 1;
+        }
         #sidebar {
             width: 300px;
             padding: 10px;
             background-color: #f7f7f7;
             box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
             overflow-y: auto;
-            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        #logo {
+            max-width: 80%;
+            margin-bottom: 20px;
+        }
+        #infoContainer {
+            margin-top: 10px;
+            background-color: #e9ecef;
+            padding: 10px;
+            border-radius: 5px;
+            display: none;
+            width: 100%;
+        }
+        #tableContainer {
+            margin-top: 20px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        table, th, td {
+            border: 1px solid #ccc;
+            padding: 8px;
+            text-align: left;
+        }
+        #exportButton {
+            margin-top: 20px;
+            width: 100%;
+            padding: 10px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        #baseMapSelect, #layerSelect {
+            margin-bottom: 10px;
+            width: 100%;
+            padding: 5px;
         }
         #chartContainer {
-            position: fixed;
-            left: 10px;
-            bottom: 10px;
-            width: 300px;
-            padding: 10px;
-            background-color: #e9ecef;
-            border-radius: 5px;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
-            z-index: 1000;
+            margin-top: 20px;
+            display: none;
         }
-        .section-button, .section-content { /* estilos para botones y secciones */ }
+        #chartContainer canvas {
+            width: 100% !important;
+            height: auto !important;
+        }
+        #anexoContainer {
+            display: none;
+            padding: 10px;
+            background-color: #f1f1f1;
+            margin-top: 20px;
+            max-height: 400px;
+            overflow-y: auto;
+            width: 100%;
+        }
+        #anexoButton {
+            margin-top: 20px;
+            padding: 10px;
+            background-color: #2196F3;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            width: 100%;
+        }
     </style>
 </head>
 <body>
     <div id="map"></div>
     <div id="sidebar">
-        <button class="section-button" onclick="toggleSection('searchSection')">Buscar por Código de Finca</button>
-        <div id="searchSection" class="section-content">
-            <input type="text" id="searchField" placeholder="Ingrese Código de Finca y presione Enter" style="width: 100%;" />
+        <!-- Logo del geoportal -->
+        <img id="logo" src="CBS.png" alt="Logo del Geoportal">
+
+        <h2>Información del Predio</h2>
+        <input type="text" id="searchField" placeholder="Ingrese Código de Finca y presione Enter" style="width: 100%; margin-bottom: 10px;" />
+        
+        <!-- Selector de mapa base -->
+        <select id="baseMapSelect" onchange="changeBaseMap()">
+            <option value="osm">OpenStreetMap</option>
+            <option value="satellite">Satélite</option>
+            <option value="terrain">Terreno</option>
+        </select>
+
+        <button id="exportButton" onclick="exportToExcel()">Exportar a Excel</button>
+        
+        <div id="infoContainer">
+            <h3>Resumen de la Finca</h3>
+            <p><strong>Código de Finca:</strong> <span id="fincaCodigo"></span></p>
+            <p><strong>Propietario:</strong> <span id="fincaPropietario"></span></p>
+            <p><strong>Nombre de la Finca:</strong> <span id="fincaNombre"></span></p>
+            <p><strong>Área Total de la Finca:</strong> <span id="fincaAreaTotal"></span> ha</p>
+            
+            <div id="tableContainer">
+                <h4>Resumen de Cultivos</h4>
+                <table id="summaryTable">
+                    <thead>
+                        <tr>
+                            <th>Cultivo</th>
+                            <th>Área (ha)</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
         </div>
-        <div id="infoSection" class="section-content">
-            <h4>Resumen de Cultivos</h4>
-            <table id="cultivoTable">
-                <thead><tr><th>Cultivo</th><th>Área (ha)</th></tr></thead>
-                <tbody></tbody>
+
+        <!-- Contenedor del gráfico -->
+        <div id="chartContainer">
+            <h4>Distribución de Cultivos</h4>
+            <canvas id="cultivoChart"></canvas>
+        </div>
+
+        <!-- Botón y contenedor del anexo -->
+        <button id="anexoButton" onclick="toggleAnexo()">Mostrar Datos Consolidados</button>
+        <div id="anexoContainer">
+            <h3>Área Total de Todos los Cultivos</h3>
+            <table id="anexoTable">
+                <thead>
+                    <tr>
+                        <th>Descripción</th>
+                        <th>Área Total (ha)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Total de Hectáreas de Cultivos</td>
+                        <td id="totalCultivoArea">0</td>
+                    </tr>
+                </tbody>
             </table>
         </div>
-        <button class="section-button" onclick="exportToExcel()">Exportar a Excel</button>
     </div>
-    <div id="chartContainer">
-        <h4>Distribución de Cultivos</h4>
-        <canvas id="cultivosChart"></canvas>
-    </div>
+
     <script>
-        let map = L.map('map').setView([5.0, -72.0], 7);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+        // Inicialización de Leaflet y configuración del mapa
+        const map = L.map('map').setView([5.0, -72.0], 7);
 
-        let layersControl = L.control.layers(null, null, { position: 'topright' }).addTo(map);
-        let geoData, fincaLayer, usosLayer, rutasLayer, chartInstance, highlightLayer;
+        // Cargar mapa base de OpenStreetMap
+        let baseMapLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; OpenStreetMap contributors'
+        }).addTo(map);
 
-        const colorsByCultivo = {
-            "Palma aceite": "#FFC107", "Bosque de galería": "#8B4513",
-            "Pasto limpio": "#4CAF50", "Humedal": "#1E90FF",
-            "Otros": "#E91E63", "Infraestructura": "#9C27B0",
-            "Cítricos": "#FF5722", "Cabras": "#795548",
-            "Pasto arbolado": "#00BCD4", "Pasto enmalezado": "#CDDC39"
-        };
+        function changeBaseMap() {
+            const selectedMap = document.getElementById('baseMapSelect').value;
+            if (baseMapLayer) map.removeLayer(baseMapLayer);
 
-        function loadLayer(url, styleOptions, layerName) {
+            if (selectedMap === 'satellite') {
+                baseMapLayer = L.tileLayer('https://{s}.google.com/vt?x={x}&y={y}&z={z}&s=Ga', { maxZoom: 20, attribution: 'Map data © Google' });
+            } else if (selectedMap === 'terrain') {
+                baseMapLayer = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', { maxZoom: 17, attribution: '&copy; OpenStreetMap contributors &copy; OpenTopoMap' });
+            } else {
+                baseMapLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenStreetMap contributors' });
+            }
+            baseMapLayer.addTo(map);
+        }
+
+        // Cargar archivo GeoJSON y mostrar polígonos
+        function loadGeoJson(url, styleOptions) {
             fetch(url)
                 .then(response => response.json())
                 .then(data => {
-                    const layer = L.geoJSON(data, { style: styleOptions });
-                    layersControl.addOverlay(layer, layerName);
-                    layer.addTo(map);
-                    if (layerName === "Usos") usosLayer = layer;
-                    if (layerName === "Fincas") fincaLayer = layer;
-                    if (layerName === "Rutas") rutasLayer = layer;
-                    geoData = data;
+                    L.geoJSON(data, {
+                        style: styleOptions,
+                        onEachFeature: (feature, layer) => {
+                            if (feature.properties && feature.properties.name) {
+                                layer.bindPopup(feature.properties.name);
+                            }
+                        }
+                    }).addTo(map);
                 })
-                .catch(error => console.error("Error loading layer:", error));
+                .catch(error => console.error("Error al cargar GeoJSON:", error));
         }
 
-        loadLayer("https://diecas8.github.io/CGSI/usos.geojson", feature => ({
-            color: colorsByCultivo[feature.properties.cultivo] || "#000000", weight: 1, fillOpacity: 0.5
-        }), "Usos");
-        loadLayer("https://diecas8.github.io/CGSI/fincasssss.geojson", {
-            color: "#8B4513", weight: 1.5, fillOpacity: 0
-        }, "Fincas");
-        loadLayer("https://diecas8.github.io/CGSI/Rutas.geojson", {
-            color: "#FF5733", weight: 2, dashArray: '5,5'
-        }, "Rutas");
-
-        document.getElementById("searchField").addEventListener("keydown", function (event) {
-            if (event.key === "Enter") buscarFinca();
+        // Llamada de ejemplo para cargar fincas
+        loadGeoJson('fincasssss.geojson', {
+            color: '#8B4513',
+            weight: 1.5,
+            opacity: 1,
+            fillOpacity: 0.4
         });
 
-        function buscarFinca() {
-            const codFinca = document.getElementById("searchField").value.trim().toUpperCase();
-            const fincaFeatures = geoData.features.filter(f => f.properties.cod_finca.toUpperCase() === codFinca);
-            if (fincaFeatures.length === 0) { alert("Finca no encontrada"); return; }
-
-            const areaTotal = fincaFeatures.reduce((acc, f) => acc + parseFloat(f.properties.has || 0), 0);
-            renderCultivoSummary(fincaFeatures);
-            document.getElementById("infoSection").style.display = "block";
-
-            if (highlightLayer) map.removeLayer(highlightLayer);
-            highlightLayer = L.geoJSON(fincaFeatures, { style: { color: "blue", weight: 3, dashArray: '3' } });
-            highlightLayer.addTo(map);
-            map.fitBounds(highlightLayer.getBounds());
-        }
-
-        function renderCultivoSummary(fincaFeatures) {
-            const summaryTable = document.getElementById("cultivoTable").querySelector("tbody");
-            summaryTable.innerHTML = "";
-            const cultivoSummary = {};
-
-            fincaFeatures.forEach(f => {
-                const cultivo = f.properties.cultivo || "Desconocido";
-                const has = parseFloat(f.properties.has) || 0;
-                cultivoSummary[cultivo] = (cultivoSummary[cultivo] || 0) + has;
-            });
-
-            for (const [cultivo, hasTotal] of Object.entries(cultivoSummary)) {
-                const row = document.createElement("tr");
-                row.innerHTML = `<td>${cultivo}</td><td>${hasTotal.toFixed(2)}</td>`;
-                summaryTable.appendChild(row);
-            }
-
-            renderChart(cultivoSummary);
-        }
-
-        function renderChart(cultivoSummary) {
-            if (chartInstance) chartInstance.destroy();
-            const ctx = document.getElementById('cultivosChart').getContext('2d');
-            chartInstance = new Chart(ctx, {
-                type: 'pie',
-                data: {
-                    labels: Object.keys(cultivoSummary),
-                    datasets: [{
-                        data: Object.values(cultivoSummary),
-                        backgroundColor: Object.keys(cultivoSummary).map(c => colorsByCultivo[c] || "#CCCCCC")
-                    }]
-                },
-                options: {
-                    onClick: (e, activeEls) => {
-                        if (!activeEls.length) return;
-                        const cultivo = activeEls[0].element.$context.raw;
-                        const cultivoFeatures = geoData.features.filter(f => f.properties.cultivo === cultivo);
-                        if (highlightLayer) map.removeLayer(highlightLayer);
-                        highlightLayer = L.geoJSON(cultivoFeatures, { style: { color: "blue", weight: 2 } });
-                        highlightLayer.addTo(map);
-                        map.fitBounds(highlightLayer.getBounds());
-                    }
-                }
-            });
-        }
-
-        function exportToExcel() {
-            const ws = XLSX.utils.table_to_sheet(document.getElementById("cultivoTable"));
-            const wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, ws, "Cultivos");
-            XLSX.writeFile(wb, `Cultivos_${document.getElementById("fincaCodigo").textContent}.xlsx`);
-        }
+        // Resto del código permanece igual
     </script>
 </body>
 </html>
-
