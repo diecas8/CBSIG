@@ -186,7 +186,7 @@
             baseMapLayer.addTo(map);
         }
 
-        // Cargar archivo GeoJSON y mostrar polígonos
+        // Función para cargar y mostrar archivos GeoJSON en el mapa
         function loadGeoJson(url, styleOptions) {
             fetch(url)
                 .then(response => response.json())
@@ -203,7 +203,7 @@
                 .catch(error => console.error("Error al cargar GeoJSON:", error));
         }
 
-        // Llamada de ejemplo para cargar fincas
+        // Cargar capa de fincas
         loadGeoJson('fincasssss.geojson', {
             color: '#8B4513',
             weight: 1.5,
@@ -211,8 +211,13 @@
             fillOpacity: 0.4
         });
 
-        // Resto del código permanece igual
+        // Cargar capa de usos
+        loadGeoJson('usos.geojson', {
+            color: '#4CAF50',
+            weight: 1,
+            opacity: 0.8,
+            fillOpacity: 0.3
+        });
     </script>
 </body>
 </html>
-
