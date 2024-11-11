@@ -34,7 +34,7 @@
             display: none;
         }
         #tableContainer {
-            margin-top: 20px;
+            margin-top: 10px;
         }
         table {
             width: 100%;
@@ -42,13 +42,13 @@
         }
         table, th, td {
             border: 1px solid #ccc;
-            padding: 8px;
+            padding: 5px;
             text-align: left;
         }
         #exportButton {
-            margin-top: 20px;
+            margin-top: 10px;
             width: 100%;
-            padding: 10px;
+            padding: 8px;
             background-color: #4CAF50;
             color: white;
             border: none;
@@ -61,39 +61,12 @@
             padding: 5px;
         }
         .chartContainer {
-            margin-top: 20px;
+            margin-top: 10px;
             display: none;
         }
-        #logo {
-            max-width: 100%;
-            margin-bottom: 10px;
-        }
-        #title {
-            text-align: center;
-            font-size: 1.2em;
-            font-weight: bold;
-            margin-bottom: 10px;
-        }
-        @media (max-width: 768px) {
-            #sidebar {
-                display: none;
-                position: absolute;
-                z-index: 1000;
-                background-color: white;
-                height: 100vh;
-            }
-            #menuButton {
-                position: absolute;
-                top: 10px;
-                left: 10px;
-                z-index: 1100;
-                background-color: #4CAF50;
-                color: white;
-                padding: 10px;
-                border: none;
-                border-radius: 5px;
-                cursor: pointer;
-            }
+        .summary-item {
+            margin: 5px 0;
+            line-height: 1.2;
         }
     </style>
 </head>
@@ -102,13 +75,12 @@
     <div id="map"></div>
     <div id="sidebar">
         <!-- Logo y Título -->
-        <img id="logo" src="CBS.png" alt="Logo">
-        <div id="title">Predios cadenas productivas Copaiba y Meliponas</div>
+        <img id="logo" src="CBS.png" alt="Logo" style="width: 100%; margin-bottom: 10px;">
+        <div style="text-align: center; font-size: 1.2em; font-weight: bold; margin-bottom: 10px;">Predios cadenas productivas Copaiba y Meliponas</div>
 
         <h2>Información del Predio</h2>
         <input type="text" id="searchField" placeholder="Ingrese Código de Finca y presione Enter" style="width: 100%; margin-bottom: 10px;" />
         
-        <!-- Selector de Mapa Base y Tema -->
         <select id="baseMapSelect" onchange="changeBaseMap()">
             <option value="osm">OpenStreetMap</option>
             <option value="satellite">Satélite</option>
@@ -124,10 +96,10 @@
         
         <div id="infoContainer">
             <h3>Resumen de la Finca</h3>
-            <p><strong>Código de Finca:</strong> <span id="fincaCodigo"></span></p>
-            <p><strong>Propietario:</strong> <span id="fincaPropietario"></span></p>
-            <p><strong>Nombre de la Finca:</strong> <span id="fincaNombre"></span></p>
-            <p><strong>Área Total de la Finca:</strong> <span id="fincaAreaTotal"></span> ha</p>
+            <p class="summary-item"><strong>Código de Finca:</strong> <span id="fincaCodigo"></span></p>
+            <p class="summary-item"><strong>Propietario:</strong> <span id="fincaPropietario"></span></p>
+            <p class="summary-item"><strong>Nombre de la Finca:</strong> <span id="fincaNombre"></span></p>
+            <p class="summary-item"><strong>Área Total de la Finca:</strong> <span id="fincaAreaTotal"></span> ha</p>
             
             <!-- Contenedor de Gráfico -->
             <div class="chartContainer" id="chartContainer">
@@ -154,16 +126,16 @@
         let geoJsonLayer;
         let activePopup;
         const colorsByCultivo = {
-            "Palma aceite": "#FFC107",       // Amarillo oscuro
-            "Bosque de galería": "#8B4513",  // Marrón
-            "Pasto limpio": "#4CAF50",       // Verde brillante
-            "Humedal": "#1E90FF",            // Azul brillante
-            "Otros": "#E91E63",              // Rosa
-            "Infraestructura": "#9C27B0",    // Púrpura
-            "Cítricos": "#FF5722",           // Naranja
-            "Cabras": "#795548",             // Marrón oscuro
-            "Pasto arbolado": "#00BCD4",     // Azul claro
-            "Pasto enmalezado": "#CDDC39"    // Verde lima
+            "Palma aceite": "#FFC107",
+            "Bosque de galería": "#8B4513",
+            "Pasto limpio": "#4CAF50",
+            "Humedal": "#1E90FF",
+            "Otros": "#E91E63",
+            "Infraestructura": "#9C27B0",
+            "Cítricos": "#FF5722",
+            "Cabras": "#795548",
+            "Pasto arbolado": "#00BCD4",
+            "Pasto enmalezado": "#CDDC39"
         };
         
         const map = L.map('map').setView([5.0, -72.0], 7);
@@ -183,12 +155,6 @@
                 baseMapLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenStreetMap contributors' });
             }
             baseMapLayer.addTo(map);
-        }
-
-        function changeTheme() {
-            const theme = document.getElementById('themeSelect').value;
-            document.body.style.backgroundColor = theme === 'dark' ? '#333' : '#f7f7f7';
-            document.body.style.color = theme === 'dark' ? 'white' : 'black';
         }
 
         function toggleSidebar() {
@@ -255,23 +221,34 @@
             }
             document.getElementById("infoContainer").style.display = "block";
 
-            renderChart(cultivoSummary);
+            renderChart(cultivoSummary, areaTotal);
         }
 
-        function renderChart(cultivoSummary) {
+        function renderChart(cultivoSummary, areaTotal) {
             document.getElementById("chartContainer").style.display = "block";
             const ctx = document.getElementById('cultivosChart').getContext('2d');
             new Chart(ctx, {
                 type: 'pie',
                 data: {
-                    labels: Object.keys(cultivoSummary),
+                    labels: Object.keys(cultivoSummary).map(cultivo => `${cultivo} (${((cultivoSummary[cultivo] / areaTotal) * 100).toFixed(1)}%)`),
                     datasets: [{
                         data: Object.values(cultivoSummary),
                         backgroundColor: Object.keys(cultivoSummary).map(cultivo => colorsByCultivo[cultivo] || "#CCCCCC")
                     }]
                 },
                 options: {
-                    responsive: true
+                    responsive: true,
+                    plugins: {
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const label = context.label || '';
+                                    const value = context.raw || 0;
+                                    return `${label}: ${value.toFixed(2).replace(".", ",")} ha`;
+                                }
+                            }
+                        }
+                    }
                 }
             });
         }
@@ -284,3 +261,4 @@
     </script>
 </body>
 </html>
+
