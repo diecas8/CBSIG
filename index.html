@@ -45,6 +45,7 @@
             background-color: white;
             position: absolute;
             width: calc(100% - 20px);
+            z-index: 10;
         }
         .suggestion-item {
             padding: 5px;
@@ -62,6 +63,7 @@
             <strong>Filtrar por Código de Finca</strong><br>
             <input type="text" id="codigoFinca" placeholder="Ingrese código de finca" oninput="mostrarSugerencias()" />
             <div id="suggestions" class="suggestions"></div>
+            <button onclick="filtrarPorFinca()">Filtrar</button>
         </div>
         <div id="summary" class="summary"></div>
         <div class="chart-container">
@@ -76,10 +78,9 @@
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
-        // Crear el mapa y variables iniciales
         var map = L.map('map').setView([0, 0], 2);
         var usosLayer;
-        var todosCodigosFinca = []; // Lista de todos los códigos de finca para la sugerencia
+        var todosCodigosFinca = [];
 
         // Cargar la capa de usos y almacenar los códigos de finca
         fetch("usos.geojson")
@@ -95,16 +96,16 @@
                 }).addTo(map);
             });
 
-        // Mostrar sugerencias mientras el usuario escribe
+        // Mostrar sugerencias de código de finca mientras se escribe
         function mostrarSugerencias() {
             const input = document.getElementById("codigoFinca").value.toLowerCase();
             const suggestionsDiv = document.getElementById("suggestions");
-            suggestionsDiv.innerHTML = ''; // Limpiar sugerencias previas
+            suggestionsDiv.innerHTML = '';
 
             if (input.length > 0) {
                 const suggestions = todosCodigosFinca
                     .filter(codigo => codigo.toLowerCase().includes(input))
-                    .slice(0, 5); // Limitar el número de sugerencias
+                    .slice(0, 5); // Limitar las sugerencias a 5
 
                 suggestions.forEach(codigo => {
                     const div = document.createElement("div");
@@ -112,7 +113,7 @@
                     div.textContent = codigo;
                     div.onclick = function() {
                         document.getElementById("codigoFinca").value = codigo;
-                        suggestionsDiv.innerHTML = ''; // Limpiar sugerencias después de seleccionar
+                        suggestionsDiv.innerHTML = '';
                         filtrarPorFinca(); // Ejecutar la función de filtrado
                     };
                     suggestionsDiv.appendChild(div);
@@ -120,10 +121,10 @@
             }
         }
 
-        // Función para filtrar y mostrar resultados
+        // Función original de filtrado
         function filtrarPorFinca() {
             var codigoFinca = document.getElementById("codigoFinca").value.trim().toLowerCase();
-            // Tu lógica de filtrado existente aquí
+            // Lógica de filtrado existente aquí
         }
     </script>
 </body>
