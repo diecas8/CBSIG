@@ -5,18 +5,7 @@
     <title>Geoportal con Filtrado</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 0;
-        }
-
-        #map {
-            height: 100vh;
-            width: 75%;
-            float: right;
-        }
-
+        #map { height: 100vh; width: 75%; float: right; }
         .sidebar {
             width: 25%;
             float: left;
@@ -27,50 +16,14 @@
             overflow-y: auto;
             border-right: 1px solid #ddd;
         }
-
-        .logo {
-            width: 150px;
-            display: block;
-            margin: 0 auto 20px;
-        }
-
-        .filter {
-            margin-top: 20px;
-        }
-
-        .filter label, .filter select {
-            display: block;
-            margin: 10px 0;
-            font-size: 14px;
-        }
-
-        .filter select {
-            width: 100%;
-            padding: 8px;
-            font-size: 14px;
-        }
-
+        .logo { width: 150px; display: block; margin: 0 auto 20px; }
+        .filter label, .filter select { display: block; margin: 10px 0; font-size: 14px; }
+        .filter select { width: 100%; padding: 8px; font-size: 14px; }
         .filter button {
-            background-color: #007bff;
-            color: white;
-            padding: 10px 20px;
-            border: none;
-            cursor: pointer;
-            font-size: 14px;
-            border-radius: 5px;
-            width: 100%;
+            background-color: #007bff; color: white; padding: 10px 20px; border: none;
+            cursor: pointer; font-size: 14px; border-radius: 5px; width: 100%;
         }
-
-        .filter button:hover {
-            background-color: #0056b3;
-        }
-
-        .footer {
-            text-align: center;
-            font-size: 12px;
-            margin-top: 20px;
-            color: #888;
-        }
+        .footer { text-align: center; font-size: 12px; margin-top: 20px; color: #888; }
     </style>
 </head>
 <body>
@@ -85,74 +38,90 @@
             <button onclick="filtrarPorFinca()">Filtrar</button>
         </div>
         <div class="footer">
-            Creado por: Diego Castaño P. <br>
-            Geoportal de la Corporación Biocomercio Sostenible
+            Creado por: Diego Castaño P. <br> Geoportal de la Corporación Biocomercio Sostenible
         </div>
     </div>
     <div id="map"></div>
 
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
     <script>
-        // Crear el mapa con un mapa base predeterminado
         var map = L.map('map').setView([4.5709, -74.2973], 6); // Coordenadas centradas en Colombia
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 18 }).addTo(map);
+        var capas = [];
+        var codigosFinca = new Set();
 
-        // Agregar mapa base
-        var osmBase = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            maxZoom: 18,
-            attribution: '© OpenStreetMap contributors'
-        }).addTo(map);
-
-        var bounds = L.latLngBounds();
-        var layerControl = L.control.layers(null, null, { collapsed: false }).addTo(map);
-        var capas = []; // Array para almacenar todas las capas cargadas
-        var codigosFinca = new Set(); // Conjunto para almacenar los códigos de finca únicos
-
-        // Función genérica para cargar GeoJSON
-        function cargarGeoJSON(url, nombreCapa, estilo, popupCallback) {
+        function cargarGeoJSON(url, nombreCapa, estilo) {
             fetch(url)
                 .then(response => {
-                    if (!response.ok) {
-                        throw new Error(`Error al cargar ${url}: ${response.statusText}`);
-                    }
+                    if (!response.ok) throw new Error(`Error al cargar ${url}`);
+                    console.log(`Cargando ${nombreCapa}: ${url}`);
                     return response.json();
                 })
                 .then(data => {
                     var layer = L.geoJSON(data, {
                         style: estilo,
                         onEachFeature: (feature, layer) => {
-                            popupCallback(feature, layer);
                             if (feature.properties && feature.properties.Cod_finca) {
-                                codigosFinca.add(feature.properties.Cod_finca); // Agregar código de finca al conjunto
+                                codigosFinca.add(feature.properties.Cod_finca);
                             }
+                            layer.bindPopup(
+                                `<strong>Código de Finca:</strong> ${feature.properties.Cod_finca || 'N/A'}<br>
+                                <strong>Descripción:</strong> ${feature.properties.descripcion || 'N/A'}`
+                            );
                         }
                     });
                     layer.addTo(map);
-                    layerControl.addOverlay(layer, nombreCapa);
-                    bounds.extend(layer.getBounds());
-                    capas.push(layer); // Agregar capa al array de capas
-                    actualizarListaCodigos(); // Actualizar la lista de códigos
+                    capas.push(layer);
+                    actualizarListaCodigos();
                 })
-                .catch(error => console.error(`Error cargando ${nombreCapa}:`, error));
+                .catch(error => console.error(`Error en ${nombreCapa}:`, error));
         }
 
-        // Cargar Datos_predio.geojson
-        cargarGeoJSON(
-            "Datos_predio.geojson",
-            "Datos del Predio",
-            { color: '#FF6347', fillOpacity: 0.5 },
-            (feature, layer) => {
-                if (feature.properties) {
-                    layer.bindPopup(
-                        `<strong>Predio:</strong> ${feature.properties.nombre || 'N/A'}<br>
-                         <strong>Código de Finca:</strong> ${feature.properties.Cod_finca || 'N/A'}<br>
-                         <strong>Área:</strong> ${feature.properties.area || 'N/A'} ha`
-                    );
-                }
-            }
-        );
+        function actualizarListaCodigos() {
+            var select = document.getElementById("codigoFincaSelect");
+            select.innerHTML = `<option value="">Seleccione un código</option>`; // Reiniciar opciones
+            codigosFinca.forEach(codigo => {
+                var option = document.createElement("option");
+                option.value = codigo;
+                option.textContent = codigo;
+                select.appendChild(option);
+            });
+        }
 
-        // Ajustar el mapa a los límites de las capas cargadas
-        setTimeout(() => map.fitBounds(bounds), 1000);
+        function filtrarPorFinca() {
+            var codigoFinca = document.getElementById("codigoFincaSelect").value;
+            if (!codigoFinca) {
+                alert("Por favor, seleccione un código de finca.");
+                return;
+            }
+            capas.forEach(capa => {
+                capa.eachLayer(layer => {
+                    if (layer.feature.properties.Cod_finca === codigoFinca) {
+                        layer.setStyle({ color: 'yellow', weight: 3 });
+                        map.fitBounds(layer.getBounds());
+                    } else {
+                        layer.setStyle({ opacity: 0.2, fillOpacity: 0.1 });
+                    }
+                });
+            });
+        }
+
+        // Cargar las capas GeoJSON desde rutas absolutas
+        cargarGeoJSON(
+            "https://diecas8.github.io/CGSI/Datos_predio.geojson",
+            "Datos Predio",
+            { color: '#FF6347', fillOpacity: 0.5 }
+        );
+        cargarGeoJSON(
+            "https://diecas8.github.io/CGSI/HMP_LINEA.geojson",
+            "Líneas HMP",
+            { color: '#4682B4', weight: 2 }
+        );
+        cargarGeoJSON(
+            "https://diecas8.github.io/CGSI/HMP_POLI.geojson",
+            "Polígonos HMP",
+            { color: '#3CB371', fillOpacity: 0.4 }
+        );
     </script>
 </body>
 </html>
