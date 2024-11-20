@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Geoportal</title>
+    <title>Geoportal con Filtrado</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
     <style>
         #map { height: 600px; width: 75%; float: right; }
@@ -20,6 +20,10 @@
             display: block;
             margin: 0 auto 10px;
         }
+        .filter {
+            margin-top: 20px;
+            text-align: center;
+        }
         .credits {
             text-align: center;
             margin-top: 10px;
@@ -31,6 +35,11 @@
 <body>
     <div class="sidebar">
         <img src="CBS.png" class="logo" alt="Logo">
+        <div class="filter">
+            <strong>Filtrar por Código de Finca</strong><br>
+            <input type="text" id="codigoFinca" placeholder="Ingrese código de finca" />
+            <button onclick="filtrarPorFinca()">Filtrar</button>
+        </div>
         <div class="credits">
             <strong>Creado por:</strong> Diego Castaño P.
         </div>
@@ -51,6 +60,8 @@
         var bounds = L.latLngBounds();
         var layerControl = L.control.layers(null, null, { collapsed: false }).addTo(map);
 
+        var capas = []; // Array para almacenar todas las capas cargadas
+
         // Función genérica para cargar GeoJSON
         function cargarGeoJSON(url, nombreCapa, estilo, popupCallback) {
             fetch(url)
@@ -68,6 +79,7 @@
                     layer.addTo(map);
                     layerControl.addOverlay(layer, nombreCapa);
                     bounds.extend(layer.getBounds());
+                    capas.push(layer); // Agregar capa al array de capas
                 })
                 .catch(error => console.error(`Error cargando ${nombreCapa}:`, error));
         }
@@ -76,7 +88,7 @@
         cargarGeoJSON(
             "Datos_predio.geojson",
             "Datos del Predio",
-            { color: '#FF6347', fillOpacity: 0.5 }, // Estilo para polígonos
+            { color: '#FF6347', fillOpacity: 0.5 },
             (feature, layer) => {
                 if (feature.properties) {
                     layer.bindPopup(
@@ -91,7 +103,7 @@
         cargarGeoJSON(
             "HMP_LINEA.geojson",
             "Líneas HMP",
-            { color: '#4682B4', weight: 2 }, // Estilo para líneas
+            { color: '#4682B4', weight: 2 },
             (feature, layer) => {
                 if (feature.properties) {
                     layer.bindPopup(
@@ -105,7 +117,7 @@
         cargarGeoJSON(
             "HMP_POLI.geojson",
             "Polígonos HMP",
-            { color: '#3CB371', fillOpacity: 0.4 }, // Estilo para polígonos
+            { color: '#3CB371', fillOpacity: 0.4 },
             (feature, layer) => {
                 if (feature.properties) {
                     layer.bindPopup(
@@ -115,6 +127,30 @@
                 }
             }
         );
+
+        // Función para filtrar las capas por cod_finca
+        function filtrarPorFinca() {
+            var codigoFinca = document.getElementById("codigoFinca").value.trim();
+
+            if (!codigoFinca) {
+                alert("Por favor, ingrese un código de finca.");
+                return;
+            }
+
+            capas.forEach(capa => {
+                capa.eachLayer(layer => {
+                    if (layer.feature.properties.cod_finca === codigoFinca) {
+                        layer.setStyle({ color: 'yellow', weight: 3 }); // Resaltar geometría
+                        map.addLayer(layer); // Asegurarse de que esté visible
+                        bounds.extend(layer.getBounds());
+                    } else {
+                        layer.setStyle({ opacity: 0.2, fillOpacity: 0.1 }); // Atenuar geometrías no coincidentes
+                    }
+                });
+            });
+
+            map.fitBounds(bounds); // Ajustar el mapa a los límites de las capas filtradas
+        }
 
         // Ajustar el mapa a los límites de las capas cargadas
         setTimeout(() => map.fitBounds(bounds), 1000);
