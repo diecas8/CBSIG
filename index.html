@@ -28,7 +28,7 @@
 </head>
 <body>
     <div class="sidebar">
-        <img src="./CBS.png" class="logo" alt="Logo de la Corporación Biocomercio Sostenible">
+        <img src="./CBS.png" class="logo" alt="Logo">
         <div class="filter">
             <h3>Filtrar por Código de Finca</h3>
             <label for="codigoFincaSelect">Seleccione un Código de Finca:</label>
@@ -38,18 +38,28 @@
             <button onclick="filtrarPorFinca()">Filtrar</button>
         </div>
         <div class="footer">
-            Creado por: Diego Castaño P. <br> Geoportal de la Corporación Biocomercio Sostenible
+            Creado por: Diego Castaño P.
         </div>
     </div>
     <div id="map"></div>
 
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
     <script>
+        // Crear el mapa con un mapa base predeterminado
         var map = L.map('map').setView([4.5709, -74.2973], 6); // Coordenadas centradas en Colombia
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 18 }).addTo(map);
+
+        // Agregar un mapa base desde OpenStreetMap
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 18,
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
+
+        // Variables globales para almacenar capas, límites y códigos de finca
         var capas = [];
+        var bounds = L.latLngBounds();
         var codigosFinca = new Set();
 
+        // Función para cargar GeoJSON
         function cargarGeoJSON(url, nombreCapa, estilo) {
             fetch(url)
                 .then(response => {
@@ -61,7 +71,7 @@
                         style: estilo,
                         onEachFeature: (feature, layer) => {
                             if (feature.properties && feature.properties.Cod_finca) {
-                                codigosFinca.add(feature.properties.Cod_finca);
+                                codigosFinca.add(feature.properties.Cod_finca); // Guardar códigos únicos
                             }
                             layer.bindPopup(
                                 `<strong>Código de Finca:</strong> ${feature.properties.Cod_finca || 'N/A'}<br>
@@ -69,13 +79,15 @@
                             );
                         }
                     });
-                    layer.addTo(map);
-                    capas.push(layer);
-                    actualizarListaCodigos();
+                    layer.addTo(map); // Añadir capa al mapa
+                    capas.push(layer); // Guardar capa
+                    bounds.extend(layer.getBounds()); // Ajustar los límites del mapa
+                    actualizarListaCodigos(); // Actualizar lista desplegable
                 })
-                .catch(error => console.error(`Error en ${nombreCapa}:`, error));
+                .catch(error => console.error(`Error cargando ${nombreCapa}:`, error));
         }
 
+        // Función para actualizar la lista desplegable
         function actualizarListaCodigos() {
             var select = document.getElementById("codigoFincaSelect");
             select.innerHTML = `<option value="">Seleccione un código</option>`; // Reiniciar opciones
@@ -87,19 +99,21 @@
             });
         }
 
+        // Función para filtrar por código de finca
         function filtrarPorFinca() {
             var codigoFinca = document.getElementById("codigoFincaSelect").value;
             if (!codigoFinca) {
                 alert("Por favor, seleccione un código de finca.");
                 return;
             }
+
             capas.forEach(capa => {
                 capa.eachLayer(layer => {
                     if (layer.feature.properties.Cod_finca === codigoFinca) {
-                        layer.setStyle({ color: 'yellow', weight: 3 });
-                        map.fitBounds(layer.getBounds());
+                        layer.setStyle({ color: 'yellow', weight: 3 }); // Resaltar geometría
+                        map.fitBounds(layer.getBounds()); // Ajustar mapa
                     } else {
-                        layer.setStyle({ opacity: 0.2, fillOpacity: 0.1 });
+                        layer.setStyle({ opacity: 0.2, fillOpacity: 0.1 }); // Atenuar geometrías no seleccionadas
                     }
                 });
             });
@@ -109,18 +123,23 @@
         cargarGeoJSON(
             "./Datos_predio.geojson",
             "Datos Predio",
-            { color: '#FF6347', fillOpacity: 0.5 }
+            { color: '#FF6347', fillOpacity: 0.5 } // Estilo para polígonos
         );
+
         cargarGeoJSON(
             "./HMP_LINEA.geojson",
             "Líneas HMP",
-            { color: '#4682B4', weight: 2 }
+            { color: '#4682B4', weight: 2 } // Estilo para líneas
         );
+
         cargarGeoJSON(
             "./HMP_POLI.geojson",
             "Polígonos HMP",
-            { color: '#3CB371', fillOpacity: 0.4 }
+            { color: '#3CB371', fillOpacity: 0.4 } // Estilo para polígonos
         );
+
+        // Ajustar el mapa a los límites de las capas cargadas
+        setTimeout(() => map.fitBounds(bounds), 1000);
     </script>
 </body>
 </html>
