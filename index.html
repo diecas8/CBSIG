@@ -16,7 +16,7 @@
             overflow-y: auto;
         }
         .logo {
-            width: 100px;
+            width: 150px;
             display: block;
             margin: 0 auto 10px;
         }
@@ -40,7 +40,7 @@
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
     <script>
         // Crear el mapa con un mapa base predeterminado
-        var map = L.map('map').setView([0, 0], 2);
+        var map = L.map('map').setView([4.5709, -74.2973], 6); // Coordenadas centradas en Colombia
 
         // Agregar mapa base
         var osmBase = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -54,7 +54,12 @@
         // Función genérica para cargar GeoJSON
         function cargarGeoJSON(url, nombreCapa, estilo, popupCallback) {
             fetch(url)
-                .then(response => response.json())
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`Error al cargar ${url}: ${response.statusText}`);
+                    }
+                    return response.json();
+                })
                 .then(data => {
                     var layer = L.geoJSON(data, {
                         style: estilo,
@@ -73,10 +78,12 @@
             "Datos del Predio",
             { color: '#FF6347', fillOpacity: 0.5 }, // Estilo para polígonos
             (feature, layer) => {
-                layer.bindPopup(
-                    `<strong>Predio:</strong> ${feature.properties.nombre || 'N/A'}<br>
-                     <strong>Área:</strong> ${feature.properties.area || 'N/A'} ha`
-                );
+                if (feature.properties) {
+                    layer.bindPopup(
+                        `<strong>Predio:</strong> ${feature.properties.nombre || 'N/A'}<br>
+                         <strong>Área:</strong> ${feature.properties.area || 'N/A'} ha`
+                    );
+                }
             }
         );
 
@@ -86,9 +93,11 @@
             "Líneas HMP",
             { color: '#4682B4', weight: 2 }, // Estilo para líneas
             (feature, layer) => {
-                layer.bindPopup(
-                    `<strong>Línea:</strong> ${feature.properties.descripcion || 'N/A'}`
-                );
+                if (feature.properties) {
+                    layer.bindPopup(
+                        `<strong>Línea:</strong> ${feature.properties.descripcion || 'N/A'}`
+                    );
+                }
             }
         );
 
@@ -98,15 +107,17 @@
             "Polígonos HMP",
             { color: '#3CB371', fillOpacity: 0.4 }, // Estilo para polígonos
             (feature, layer) => {
-                layer.bindPopup(
-                    `<strong>Polígono:</strong> ${feature.properties.descripcion || 'N/A'}<br>
-                     <strong>Área:</strong> ${feature.properties.area || 'N/A'} ha`
-                );
+                if (feature.properties) {
+                    layer.bindPopup(
+                        `<strong>Polígono:</strong> ${feature.properties.descripcion || 'N/A'}<br>
+                         <strong>Área:</strong> ${feature.properties.area || 'N/A'} ha`
+                    );
+                }
             }
         );
 
         // Ajustar el mapa a los límites de las capas cargadas
-        setTimeout(() => map.fitBounds(bounds), 500);
+        setTimeout(() => map.fitBounds(bounds), 1000);
     </script>
 </body>
 </html>
