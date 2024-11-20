@@ -54,7 +54,6 @@
             fetch(url)
                 .then(response => {
                     if (!response.ok) throw new Error(`Error al cargar ${url}`);
-                    console.log(`Cargando ${nombreCapa}: ${url}`);
                     return response.json();
                 })
                 .then(data => {
@@ -106,19 +105,19 @@
             });
         }
 
-        // Cargar las capas GeoJSON desde rutas absolutas
+        // Cargar las capas GeoJSON desde rutas relativas
         cargarGeoJSON(
-            "https://diecas8.github.io/CGSI/Datos_predio.geojson",
+            "./Datos_predio.geojson",
             "Datos Predio",
             { color: '#FF6347', fillOpacity: 0.5 }
         );
         cargarGeoJSON(
-            "https://diecas8.github.io/CGSI/HMP_LINEA.geojson",
+            "./HMP_LINEA.geojson",
             "Líneas HMP",
             { color: '#4682B4', weight: 2 }
         );
         cargarGeoJSON(
-            "https://diecas8.github.io/CGSI/HMP_POLI.geojson",
+            "./HMP_POLI.geojson",
             "Polígonos HMP",
             { color: '#3CB371', fillOpacity: 0.4 }
         );
