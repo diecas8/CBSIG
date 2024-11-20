@@ -45,16 +45,14 @@
 
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
     <script>
-        // Crear el mapa con un mapa base predeterminado
+        // Crear el mapa base
         var map = L.map('map').setView([4.5709, -74.2973], 6); // Coordenadas centradas en Colombia
-
-        // Agregar un mapa base desde OpenStreetMap
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             maxZoom: 18,
             attribution: '© OpenStreetMap contributors'
         }).addTo(map);
 
-        // Variables globales para almacenar capas, límites y códigos de finca
+        // Variables globales
         var capas = [];
         var bounds = L.latLngBounds();
         var codigosFinca = new Set();
@@ -64,18 +62,21 @@
             fetch(url)
                 .then(response => {
                     if (!response.ok) throw new Error(`Error al cargar ${url}`);
+                    console.log(`Cargando ${nombreCapa}: ${url}`);
                     return response.json();
                 })
                 .then(data => {
                     var layer = L.geoJSON(data, {
                         style: estilo,
                         onEachFeature: (feature, layer) => {
-                            if (feature.properties && feature.properties.Cod_finca) {
-                                codigosFinca.add(feature.properties.Cod_finca); // Guardar códigos únicos
+                            if (feature.properties && feature.properties.Cod_vivien) {
+                                codigosFinca.add(feature.properties.Cod_vivien); // Guardar códigos únicos
                             }
                             layer.bindPopup(
-                                `<strong>Código de Finca:</strong> ${feature.properties.Cod_finca || 'N/A'}<br>
-                                <strong>Descripción:</strong> ${feature.properties.descripcion || 'N/A'}`
+                                `<strong>Código Vivienda:</strong> ${feature.properties.Cod_vivien || 'N/A'}<br>
+                                <strong>Propietario:</strong> ${feature.properties.Propietari || 'N/A'}<br>
+                                <strong>Municipio:</strong> ${feature.properties.Municipio || 'N/A'}<br>
+                                <strong>Vereda:</strong> ${feature.properties.Vereda || 'N/A'}`
                             );
                         }
                     });
@@ -103,13 +104,13 @@
         function filtrarPorFinca() {
             var codigoFinca = document.getElementById("codigoFincaSelect").value;
             if (!codigoFinca) {
-                alert("Por favor, seleccione un código de finca.");
+                alert("Por favor, seleccione un código.");
                 return;
             }
 
             capas.forEach(capa => {
                 capa.eachLayer(layer => {
-                    if (layer.feature.properties.Cod_finca === codigoFinca) {
+                    if (layer.feature.properties.Cod_vivien === codigoFinca) {
                         layer.setStyle({ color: 'yellow', weight: 3 }); // Resaltar geometría
                         map.fitBounds(layer.getBounds()); // Ajustar mapa
                     } else {
@@ -119,11 +120,11 @@
             });
         }
 
-        // Cargar las capas GeoJSON desde rutas relativas
+        // Cargar las capas GeoJSON
         cargarGeoJSON(
-            "./Datos_predio.geojson",
-            "Datos Predio",
-            { color: '#FF6347', fillOpacity: 0.5 } // Estilo para polígonos
+            "./HMP_POLI.geojson",
+            "Polígonos HMP",
+            { color: '#FF8C00', fillOpacity: 0.5 } // Estilo para polígonos
         );
 
         cargarGeoJSON(
@@ -133,9 +134,9 @@
         );
 
         cargarGeoJSON(
-            "./HMP_POLI.geojson",
-            "Polígonos HMP",
-            { color: '#3CB371', fillOpacity: 0.4 } // Estilo para polígonos
+            "./Datos_predio.geojson",
+            "Predios",
+            { color: '#DC143C', fillOpacity: 0.8, radius: 5 } // Estilo para puntos
         );
 
         // Ajustar el mapa a los límites de las capas cargadas
