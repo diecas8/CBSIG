@@ -19,20 +19,17 @@
             transform: translateX(-50%);
             z-index: 1000;
             background: rgba(255, 255, 255, 0.9);
-            padding: 5px 10px;
+            padding: 5px;
             border-radius: 8px;
             font-size: 14px;
             box-shadow: 0 0 5px rgba(0, 0, 0, 0.2);
             display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        #header h1 {
-            font-size: 16px;
-            margin: 0;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 5px;
         }
         #header button {
-            font-size: 14px;
+            font-size: 12px;
             padding: 5px 8px;
             border: none;
             border-radius: 5px;
@@ -76,12 +73,11 @@
 </head>
 <body>
     <div id="header">
-        <h1>Geoportal de Lotes</h1>
         <button onclick="saveToLocal()">Guardar Lotes</button>
         <button onclick="loadFromLocal()">Cargar Lotes</button>
         <button onclick="exportData()">Exportar GeoJSON</button>
-        <button onclick="exportSingleLote()">Exportar Lote por Código</button>
-        <button onclick="centerOnUser()">Ir a Mi Ubicación</button>
+        <button onclick="exportSingleLote()">Exportar Lote</button>
+        <button onclick="centerOnUser()">Ubicarme</button>
     </div>
     <div id="map"></div>
     <div id="modal">
@@ -95,7 +91,7 @@
             <option value="Rastrojo">Rastrojo</option>
             <option value="Semestrales">Semestrales</option>
             <option value="Guadua">Guadua</option>
-            <option value="Area en descanso">Area en descanso</option>
+            <option value="Área en descanso">Área en descanso</option>
             <option value="Forestales">Forestales</option>
         </select>
         <button onclick="confirmCultivo()">Confirmar</button>
@@ -112,7 +108,20 @@
             'OpenStreetMap': L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                 maxZoom: 19,
                 attribution: 'Map data © OpenStreetMap contributors'
-            }).addTo(map)
+            }).addTo(map),
+            'Google Satélite': L.tileLayer('https://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', {
+                subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
+                maxZoom: 20,
+                attribution: 'Map data © Google'
+            }),
+            'ESRI Satélite': L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+                maxZoom: 19,
+                attribution: 'Tiles © ESRI & contributors'
+            }),
+            'ESRI Topográfico': L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}', {
+                maxZoom: 19,
+                attribution: 'Tiles © ESRI & contributors'
+            })
         };
 
         L.control.layers(baseMaps).addTo(map);
@@ -151,12 +160,10 @@
             const nombreCultivo = cultivoSelect.value;
 
             const codigoFinca = prompt("Ingrese el código de la finca:") || "Sin definir";
-            const codigoCultivo = prompt("Ingrese el código del cultivo:") || "Sin definir";
             const areaCultivo = L.GeometryUtil.geodesicArea(currentLayer.getLatLngs()[0]) / 10000;
 
             currentLayer.properties = {
                 codigo_finca: codigoFinca,
-                codigo_cultivo: codigoCultivo,
                 nombre_cultivo: nombreCultivo,
                 area_cultivo: areaCultivo.toFixed(2),
                 tipo: "Lote"
@@ -165,7 +172,6 @@
             currentLayer.setStyle({ color: 'orange', fillOpacity: 0.5 });
             currentLayer.bindPopup(`
                 <strong>Código de Finca:</strong> ${codigoFinca}<br>
-                <strong>Código de Cultivo:</strong> ${codigoCultivo}<br>
                 <strong>Nombre del Cultivo:</strong> ${nombreCultivo}<br>
                 <strong>Área del Cultivo:</strong> ${areaCultivo.toFixed(2)} ha
             `);
@@ -201,7 +207,6 @@
                     layer.setStyle({ color: 'orange', fillOpacity: 0.5 });
                     layer.bindPopup(`
                         <strong>Código de Finca:</strong> ${feature.properties.codigo_finca}<br>
-                        <strong>Código de Cultivo:</strong> ${feature.properties.codigo_cultivo}<br>
                         <strong>Nombre del Cultivo:</strong> ${feature.properties.nombre_cultivo}<br>
                         <strong>Área del Cultivo:</strong> ${feature.properties.area_cultivo} ha
                     `);
@@ -223,20 +228,20 @@
             URL.revokeObjectURL(url);
         }
 
-        // Exportar un lote por su código de cultivo
+        // Exportar un lote
         function exportSingleLote() {
             const loteData = loteLayer.toGeoJSON();
-            const codigoCultivo = prompt("Ingrese el código del cultivo del lote a exportar:");
-            if (!codigoCultivo) {
-                alert("Debe ingresar un código de cultivo válido.");
+            const codigoFinca = prompt("Ingrese el código de la finca del lote a exportar:");
+            if (!codigoFinca) {
+                alert("Debe ingresar un código válido.");
                 return;
             }
 
             const singleLote = loteData.features.find(
-                (feature) => feature.properties.codigo_cultivo === codigoCultivo
+                (feature) => feature.properties.codigo_finca === codigoFinca
             );
             if (!singleLote) {
-                alert(`No se encontró ningún lote con el código de cultivo: ${codigoCultivo}`);
+                alert(`No se encontró ningún lote con el código de finca: ${codigoFinca}`);
                 return;
             }
 
@@ -249,7 +254,7 @@
             const url = URL.createObjectURL(blob);
             const a = document.createElement("a");
             a.href = url;
-            a.download = `lote_${codigoCultivo}.geojson`;
+            a.download = `lote_${codigoFinca}.geojson`;
             a.click();
             URL.revokeObjectURL(url);
         }
