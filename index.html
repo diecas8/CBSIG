@@ -18,157 +18,127 @@
         <h1>Geoportal Usos de Suelo</h1>
         <p><strong>Geoportal creado por:</strong> Diego Castaño</p>
         <button onclick="exportAll()">Exportar Todo a GeoJSON</button>
-        <input type="text" id="fincaFilter" placeholder="Digite cod_finca">
-        <button onclick="exportByFinca()">Exportar por Finca</button>
         <div id="summary"></div>
     </div>
     <div id="map"></div>
 
     <script>
-        // Crear el mapa y agregar mapas base
-        const map = L.map('map').setView([4.5, -74], 6); // Ajustar coordenadas iniciales
+        const map = L.map('map').setView([4.5, -74], 6);
 
-        const baseLayers = {
-            'OpenStreetMap': L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                maxZoom: 19,
-                attribution: 'Map data © <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors'
-            }).addTo(map),
-            'Satelital': L.tileLayer('https://mt{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', {
-                subdomains: ['0', '1', '2', '3'],
-                attribution: 'Map data © Google',
-                maxZoom: 20
-            }),
-            'Topográfico': L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
-                attribution: 'Map data © <a href="https://opentopomap.org">OpenTopoMap</a>',
-                maxZoom: 17
-            })
-        };
-        L.control.layers(baseLayers).addTo(map);
+        // Capas base
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: 'Map data © OpenStreetMap contributors'
+        }).addTo(map);
 
-        // Feature Group para almacenar los polígonos
-        const drawnItems = new L.FeatureGroup();
-        map.addLayer(drawnItems);
+        // Grupo para almacenar las fincas y subdivisiones
+        const fincaLayer = new L.FeatureGroup().addTo(map);
+        const cultivoLayer = new L.FeatureGroup().addTo(map);
 
-        // Agregar control de dibujo
+        // Control de dibujo
         const drawControl = new L.Control.Draw({
-            edit: {
-                featureGroup: drawnItems
-            },
             draw: {
                 polyline: false,
                 marker: false,
                 circle: false,
-                circlemarker: false
+                circlemarker: false,
+                polygon: {
+                    allowIntersection: false,
+                    shapeOptions: { color: 'green' }
+                }
+            },
+            edit: {
+                featureGroup: fincaLayer
             }
         });
         map.addControl(drawControl);
 
-        // Función para calcular el área en hectáreas
-        function calculateArea(layer) {
-            const area = L.GeometryUtil.geodesicArea(layer.getLatLngs()[0]) / 10000; // Convertir m² a hectáreas
-            return area.toFixed(2);
-        }
-
-        // Manejar evento de creación de polígonos
+        // Crear una finca
         map.on(L.Draw.Event.CREATED, function (e) {
             const layer = e.layer;
-            const areaHectares = calculateArea(layer);
 
-            // Solicitar datos al usuario
             const cod_finca = prompt("Ingrese el código de finca:");
-            const cultivo = prompt("Ingrese el tipo de cultivo:");
-            const propietario = prompt("Ingrese el propietario:");
-            const proyecto = prompt("Ingrese el proyecto asociado:");
+            const propietario = prompt("Ingrese el nombre del propietario:");
+            const proyecto = prompt("Ingrese el nombre del proyecto:");
+            const area = L.GeometryUtil.geodesicArea(layer.getLatLngs()[0]) / 10000; // Área en hectáreas
 
-            // Agregar propiedades al polígono
             layer.properties = {
                 cod_finca: cod_finca,
-                cultivo: cultivo,
-                area: areaHectares,
                 propietario: propietario,
-                proyecto: proyecto
+                proyecto: proyecto,
+                area: area.toFixed(2),
+                tipo: "Finca" // Tipo de elemento
             };
 
-            // Estilo del polígono
-            layer.setStyle({
-                color: 'blue',
-                fillColor: 'rgba(0,0,255,0.4)',
-                weight: 2
-            });
-
-            // Mostrar popup con atributos
-            const popupContent = `
-                <strong>Código Finca:</strong> ${cod_finca}<br>
-                <strong>Cultivo:</strong> ${cultivo}<br>
-                <strong>Área (ha):</strong> ${areaHectares}<br>
+            // Estilo y popup
+            layer.setStyle({ color: 'blue', fillOpacity: 0.3 });
+            layer.bindPopup(`
+                <strong>Finca:</strong> ${cod_finca}<br>
                 <strong>Propietario:</strong> ${propietario}<br>
-                <strong>Proyecto:</strong> ${proyecto}
-            `;
-            layer.bindPopup(popupContent);
+                <strong>Proyecto:</strong> ${proyecto}<br>
+                <strong>Área:</strong> ${area.toFixed(2)} ha
+            `);
 
-            drawnItems.addLayer(layer);
-            updateSummary();
+            fincaLayer.addLayer(layer);
         });
 
-        // Función para exportar todos los polígonos a GeoJSON
+        // Dividir la finca en cultivos
+        map.on('click', function (e) {
+            const clickedLayer = fincaLayer.getLayers().find(layer => layer.contains(e.latlng));
+
+            if (clickedLayer) {
+                const cultivoLayerTemp = new L.Draw.Polygon(map, {
+                    allowIntersection: false,
+                    shapeOptions: { color: 'orange' }
+                });
+
+                cultivoLayerTemp.enable();
+
+                cultivoLayerTemp.on('created', function (ev) {
+                    const subLayer = ev.layer;
+                    const area = L.GeometryUtil.geodesicArea(subLayer.getLatLngs()[0]) / 10000; // Área en hectáreas
+                    const cultivo = prompt("Ingrese el tipo de cultivo:");
+
+                    subLayer.properties = {
+                        cod_finca: clickedLayer.properties.cod_finca,
+                        propietario: clickedLayer.properties.propietario,
+                        proyecto: clickedLayer.properties.proyecto,
+                        cultivo: cultivo,
+                        area: area.toFixed(2),
+                        tipo: "Cultivo"
+                    };
+
+                    // Estilo y popup
+                    subLayer.setStyle({ color: 'orange', fillOpacity: 0.5 });
+                    subLayer.bindPopup(`
+                        <strong>Finca:</strong> ${clickedLayer.properties.cod_finca}<br>
+                        <strong>Cultivo:</strong> ${cultivo}<br>
+                        <strong>Área:</strong> ${area.toFixed(2)} ha<br>
+                        <strong>Propietario:</strong> ${clickedLayer.properties.propietario}<br>
+                        <strong>Proyecto:</strong> ${clickedLayer.properties.proyecto}
+                    `);
+
+                    cultivoLayer.addLayer(subLayer);
+                });
+            }
+        });
+
+        // Exportar los datos
         function exportAll() {
-            const data = drawnItems.toGeoJSON();
-            const blob = new Blob([JSON.stringify(data)], { type: "application/json" });
+            const fincaData = fincaLayer.toGeoJSON();
+            const cultivoData = cultivoLayer.toGeoJSON();
+            const allData = {
+                type: "FeatureCollection",
+                features: [...fincaData.features, ...cultivoData.features]
+            };
+
+            const blob = new Blob([JSON.stringify(allData)], { type: "application/json" });
             const url = URL.createObjectURL(blob);
             const a = document.createElement("a");
             a.href = url;
-            a.download = "usos_de_suelo.geojson";
+            a.download = "geoportal_usos_suelo.geojson";
             a.click();
             URL.revokeObjectURL(url);
-        }
-
-        // Función para exportar polígonos por código de finca
-        function exportByFinca() {
-            const cod_finca = document.getElementById("fincaFilter").value;
-            if (!cod_finca) {
-                alert("Por favor ingrese un código de finca.");
-                return;
-            }
-
-            const data = drawnItems.toGeoJSON();
-            const filtered = data.features.filter(f => f.properties.cod_finca === cod_finca);
-
-            if (filtered.length === 0) {
-                alert("No se encontraron polígonos para el código de finca ingresado.");
-                return;
-            }
-
-            const blob = new Blob([JSON.stringify({ type: "FeatureCollection", features: filtered })], { type: "application/json" });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement("a");
-            a.href = url;
-            a.download = `usos_de_suelo_${cod_finca}.geojson`;
-            a.click();
-            URL.revokeObjectURL(url);
-        }
-
-        // Función para mostrar un resumen por finca
-        function updateSummary() {
-            const data = drawnItems.toGeoJSON();
-            const summary = {};
-
-            data.features.forEach(feature => {
-                const finca = feature.properties.cod_finca;
-                const area = parseFloat(feature.properties.area);
-
-                if (!summary[finca]) {
-                    summary[finca] = { area: 0, count: 0 };
-                }
-                summary[finca].area += area;
-                summary[finca].count += 1;
-            });
-
-            let html = "<h3>Resumen por Finca</h3><ul>";
-            for (const finca in summary) {
-                html += `<li>Finca ${finca}: ${summary[finca].count} polígonos, ${summary[finca].area.toFixed(2)} ha</li>`;
-            }
-            html += "</ul>";
-            document.getElementById("summary").innerHTML = html;
         }
     </script>
 </body>
