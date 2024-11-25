@@ -9,33 +9,76 @@
     <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
     <script src="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.js"></script>
     <style>
-        #map { height: 90vh; }
-        #controls { padding: 10px; background: #f9f9f9; }
+        body, html { margin: 0; padding: 0; height: 100%; }
+        #map { height: 100vh; }
+        #header {
+            position: absolute;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1000;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 10px 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.2);
+        }
+        #header h1 {
+            margin: 0;
+            font-size: 18px;
+        }
+        #header p {
+            margin: 0;
+            font-size: 12px;
+        }
+        .leaflet-control-layers {
+            max-height: 80vh;
+            overflow-y: auto;
+        }
     </style>
 </head>
 <body>
-    <div id="controls">
+    <div id="header">
         <h1>Geoportal Usos de Suelo</h1>
         <p><strong>Geoportal creado por:</strong> Diego Castaño</p>
         <button onclick="exportAll()">Exportar Todo a GeoJSON</button>
-        <div id="summary"></div>
     </div>
     <div id="map"></div>
 
     <script>
         const map = L.map('map').setView([4.5, -74], 6);
 
-        // Capas base
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            maxZoom: 19,
-            attribution: 'Map data © OpenStreetMap contributors'
-        }).addTo(map);
+        // Mapas base
+        const baseMaps = {
+            'OpenStreetMap': L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19,
+                attribution: 'Map data © OpenStreetMap contributors'
+            }).addTo(map),
+            'Google Satélite': L.tileLayer('https://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', {
+                subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
+                maxZoom: 20,
+                attribution: 'Map data © Google'
+            }),
+            'Google Híbrido': L.tileLayer('https://{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {
+                subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
+                maxZoom: 20,
+                attribution: 'Map data © Google'
+            }),
+            'ESRI Satélite': L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+                maxZoom: 19,
+                attribution: 'Tiles © ESRI & contributors'
+            }),
+            'ESRI Topográfico': L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}', {
+                maxZoom: 19,
+                attribution: 'Tiles © ESRI & contributors'
+            })
+        };
 
-        // Grupo para almacenar las fincas y subdivisiones
+        L.control.layers(baseMaps).addTo(map);
+
+        // Capas de dibujo
         const fincaLayer = new L.FeatureGroup().addTo(map);
         const cultivoLayer = new L.FeatureGroup().addTo(map);
 
-        // Control de dibujo
         const drawControl = new L.Control.Draw({
             draw: {
                 polyline: false,
@@ -67,10 +110,9 @@
                 propietario: propietario,
                 proyecto: proyecto,
                 area: area.toFixed(2),
-                tipo: "Finca" // Tipo de elemento
+                tipo: "Finca"
             };
 
-            // Estilo y popup
             layer.setStyle({ color: 'blue', fillOpacity: 0.3 });
             layer.bindPopup(`
                 <strong>Finca:</strong> ${cod_finca}<br>
@@ -108,7 +150,6 @@
                         tipo: "Cultivo"
                     };
 
-                    // Estilo y popup
                     subLayer.setStyle({ color: 'orange', fillOpacity: 0.5 });
                     subLayer.bindPopup(`
                         <strong>Finca:</strong> ${clickedLayer.properties.cod_finca}<br>
@@ -123,7 +164,7 @@
             }
         });
 
-        // Exportar los datos
+        // Exportar datos
         function exportAll() {
             const fincaData = fincaLayer.toGeoJSON();
             const cultivoData = cultivoLayer.toGeoJSON();
