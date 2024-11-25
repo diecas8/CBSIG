@@ -3,11 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>División de Fincas en Lotes</title>
+    <title>División de Polígonos en Lotes</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css">
     <link rel="stylesheet" href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css">
     <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
     <script src="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@turf/turf"></script> <!-- Turf.js para análisis geoespacial -->
     <style>
         body, html { margin: 0; padding: 0; height: 100%; }
         #map { height: 100vh; }
@@ -26,7 +27,7 @@
 </head>
 <body>
     <div id="header">
-        <h1>División de Fincas en Lotes</h1>
+        <h1>División de Polígonos en Lotes</h1>
         <button onclick="exportData()">Exportar Todo a GeoJSON</button>
     </div>
     <div id="map"></div>
@@ -35,32 +36,10 @@
         const map = L.map('map').setView([4.5, -74], 6);
 
         // Mapas base
-        const baseMaps = {
-            'OpenStreetMap': L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                maxZoom: 19,
-                attribution: 'Map data © OpenStreetMap contributors'
-            }).addTo(map),
-            'Google Satélite': L.tileLayer('https://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', {
-                subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
-                maxZoom: 20,
-                attribution: 'Map data © Google'
-            }),
-            'Google Híbrido': L.tileLayer('https://{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {
-                subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
-                maxZoom: 20,
-                attribution: 'Map data © Google'
-            }),
-            'ESRI Satélite': L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-                maxZoom: 19,
-                attribution: 'Tiles © ESRI & contributors'
-            }),
-            'ESRI Topográfico': L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}', {
-                maxZoom: 19,
-                attribution: 'Tiles © ESRI & contributors'
-            })
-        };
-
-        L.control.layers(baseMaps).addTo(map);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: 'Map data © OpenStreetMap contributors'
+        }).addTo(map);
 
         // Grupos de capas
         const fincaLayer = new L.FeatureGroup().addTo(map);
@@ -83,6 +62,8 @@
             }
         });
         map.addControl(drawControl);
+
+        let selectedFinca = null; // Polígono seleccionado para dividir
 
         // Crear una finca
         map.on(L.Draw.Event.CREATED, function (e) {
@@ -114,43 +95,56 @@
 
         // Seleccionar finca para dividir
         map.on('click', function (e) {
-            const selectedFinca = fincaLayer.getLayers().find(layer => layer.contains(e.latlng));
+            const clickedLayer = fincaLayer.getLayers().find(layer => layer.contains(e.latlng));
 
+            if (clickedLayer) {
+                selectedFinca = clickedLayer;
+                alert("Finca seleccionada. Ahora puede dibujar lotes dentro de esta finca.");
+            }
+        });
+
+        // Dibujar lotes dentro de la finca seleccionada
+        map.on(L.Draw.Event.CREATED, function (e) {
             if (selectedFinca) {
-                alert("Seleccionó una finca. Dibuje lotes dentro de esta finca.");
+                const loteLayerItem = e.layer;
 
-                const loteDrawControl = new L.Draw.Polygon(map, {
-                    allowIntersection: false,
-                    shapeOptions: { color: 'orange' }
-                });
+                // Convertir a GeoJSON para verificación
+                const selectedFincaGeoJSON = selectedFinca.toGeoJSON();
+                const loteGeoJSON = loteLayerItem.toGeoJSON();
 
-                loteDrawControl.enable();
+                // Verificar si el lote está contenido dentro de la finca
+                const isInside = turf.booleanWithin(loteGeoJSON, selectedFincaGeoJSON);
 
-                loteDrawControl.on('created', function (ev) {
-                    const loteLayerItem = ev.layer;
-                    const area = L.GeometryUtil.geodesicArea(loteLayerItem.getLatLngs()[0]) / 10000; // Área en hectáreas
-                    const cultivo = prompt("Ingrese el tipo de cultivo para este lote:");
+                if (!isInside) {
+                    alert("El lote dibujado no está dentro de la finca seleccionada.");
+                    return;
+                }
 
-                    loteLayerItem.properties = {
-                        cod_finca: selectedFinca.properties.cod_finca,
-                        propietario: selectedFinca.properties.propietario,
-                        proyecto: selectedFinca.properties.proyecto,
-                        cultivo: cultivo,
-                        area: area.toFixed(2),
-                        tipo: "Lote"
-                    };
+                // Si está dentro, agregar atributos al lote
+                const area = L.GeometryUtil.geodesicArea(loteLayerItem.getLatLngs()[0]) / 10000; // Área en hectáreas
+                const cultivo = prompt("Ingrese el tipo de cultivo para este lote:");
 
-                    loteLayerItem.setStyle({ color: 'orange', fillOpacity: 0.5 });
-                    loteLayerItem.bindPopup(`
-                        <strong>Finca:</strong> ${selectedFinca.properties.cod_finca}<br>
-                        <strong>Cultivo:</strong> ${cultivo}<br>
-                        <strong>Área:</strong> ${area.toFixed(2)} ha<br>
-                        <strong>Propietario:</strong> ${selectedFinca.properties.propietario}<br>
-                        <strong>Proyecto:</strong> ${selectedFinca.properties.proyecto}
-                    `);
+                loteLayerItem.properties = {
+                    cod_finca: selectedFinca.properties.cod_finca,
+                    propietario: selectedFinca.properties.propietario,
+                    proyecto: selectedFinca.properties.proyecto,
+                    cultivo: cultivo,
+                    area: area.toFixed(2),
+                    tipo: "Lote"
+                };
 
-                    loteLayer.addLayer(loteLayerItem);
-                });
+                loteLayerItem.setStyle({ color: 'orange', fillOpacity: 0.5 });
+                loteLayerItem.bindPopup(`
+                    <strong>Finca:</strong> ${selectedFinca.properties.cod_finca}<br>
+                    <strong>Cultivo:</strong> ${cultivo}<br>
+                    <strong>Área:</strong> ${area.toFixed(2)} ha<br>
+                    <strong>Propietario:</strong> ${selectedFinca.properties.propietario}<br>
+                    <strong>Proyecto:</strong> ${selectedFinca.properties.proyecto}
+                `);
+
+                loteLayer.addLayer(loteLayerItem);
+            } else {
+                alert("Por favor, seleccione una finca primero.");
             }
         });
 
