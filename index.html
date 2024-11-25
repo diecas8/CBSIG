@@ -43,6 +43,23 @@
         #header button:hover {
             background-color: #0056b3;
         }
+        #modal {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 2000;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            width: 300px;
+        }
+        #modal select, #modal button {
+            width: 100%;
+            margin-top: 10px;
+        }
         #footer {
             position: absolute;
             bottom: 10px;
@@ -67,6 +84,22 @@
         <button onclick="centerOnUser()">Ir a Mi Ubicación</button>
     </div>
     <div id="map"></div>
+    <div id="modal">
+        <h3>Seleccione el Nombre del Cultivo</h3>
+        <select id="cultivoSelect">
+            <option value="Café">Café</option>
+            <option value="Plátano">Plátano</option>
+            <option value="Pasto">Pasto</option>
+            <option value="Aguacate">Aguacate</option>
+            <option value="Bosque">Bosque</option>
+            <option value="Rastrojo">Rastrojo</option>
+            <option value="Semestrales">Semestrales</option>
+            <option value="Guadua">Guadua</option>
+            <option value="Area en descanso">Area en descanso</option>
+            <option value="Forestales">Forestales</option>
+        </select>
+        <button onclick="confirmCultivo()">Confirmar</button>
+    </div>
     <div id="footer">
         Geoportal creado por Diego Castaño
     </div>
@@ -79,22 +112,15 @@
             'OpenStreetMap': L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                 maxZoom: 19,
                 attribution: 'Map data © OpenStreetMap contributors'
-            }).addTo(map),
-            'Google Satélite': L.tileLayer('https://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', {
-                subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
-                maxZoom: 20,
-                attribution: 'Map data © Google'
-            }),
-            'ESRI Satélite': L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-                maxZoom: 19,
-                attribution: 'Tiles © ESRI & contributors'
-            })
+            }).addTo(map)
         };
 
         L.control.layers(baseMaps).addTo(map);
 
-        // Capa para los lotes
         const loteLayer = new L.FeatureGroup().addTo(map);
+        const modal = document.getElementById('modal');
+        const cultivoSelect = document.getElementById('cultivoSelect');
+        let currentLayer = null;
 
         // Control de dibujo
         const drawControl = new L.Control.Draw({
@@ -114,38 +140,21 @@
         });
         map.addControl(drawControl);
 
-        // Crear un lote
-        map.on(L.Draw.Event.CREATED, function (e) {
-            const layer = e.layer;
+        // Abrir modal de selección de cultivo
+        function openCultivoModal(layer) {
+            currentLayer = layer;
+            modal.style.display = 'block';
+        }
 
-            // Solicitar atributos del lote
+        // Confirmar el cultivo seleccionado
+        function confirmCultivo() {
+            const nombreCultivo = cultivoSelect.value;
+
             const codigoFinca = prompt("Ingrese el código de la finca:") || "Sin definir";
             const codigoCultivo = prompt("Ingrese el código del cultivo:") || "Sin definir";
+            const areaCultivo = L.GeometryUtil.geodesicArea(currentLayer.getLatLngs()[0]) / 10000;
 
-            const cultivos = [
-                "Café", "Plátano", "Pasto", "Aguacate", "Bosque", "Rastrojo",
-                "Semestrales", "Guadua", "Area en descanso", "Forestales"
-            ];
-            let nombreCultivo = prompt(
-                "Seleccione el nombre del cultivo:\n" +
-                cultivos.map((c, i) => `${i + 1}. ${c}`).join("\n")
-            );
-            if (nombreCultivo) {
-                const index = parseInt(nombreCultivo) - 1;
-                if (index >= 0 && index < cultivos.length) {
-                    nombreCultivo = cultivos[index];
-                } else {
-                    alert("Opción no válida. Se asignará 'Sin definir'.");
-                    nombreCultivo = "Sin definir";
-                }
-            } else {
-                nombreCultivo = "Sin definir";
-            }
-
-            const areaCultivo = L.GeometryUtil.geodesicArea(layer.getLatLngs()[0]) / 10000;
-
-            // Agregar atributos al lote
-            layer.properties = {
+            currentLayer.properties = {
                 codigo_finca: codigoFinca,
                 codigo_cultivo: codigoCultivo,
                 nombre_cultivo: nombreCultivo,
@@ -153,15 +162,21 @@
                 tipo: "Lote"
             };
 
-            layer.setStyle({ color: 'orange', fillOpacity: 0.5 });
-            layer.bindPopup(`
+            currentLayer.setStyle({ color: 'orange', fillOpacity: 0.5 });
+            currentLayer.bindPopup(`
                 <strong>Código de Finca:</strong> ${codigoFinca}<br>
                 <strong>Código de Cultivo:</strong> ${codigoCultivo}<br>
                 <strong>Nombre del Cultivo:</strong> ${nombreCultivo}<br>
                 <strong>Área del Cultivo:</strong> ${areaCultivo.toFixed(2)} ha
             `);
 
-            loteLayer.addLayer(layer);
+            loteLayer.addLayer(currentLayer);
+            modal.style.display = 'none';
+        }
+
+        // Crear un lote
+        map.on(L.Draw.Event.CREATED, function (e) {
+            openCultivoModal(e.layer);
         });
 
         // Guardar los lotes en LocalStorage
