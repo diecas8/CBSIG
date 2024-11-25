@@ -43,24 +43,14 @@
         #header button:hover {
             background-color: #0056b3;
         }
-        @media (max-width: 768px) {
-            #header {
-                font-size: 12px;
-                flex-direction: column;
-                padding: 5px;
-            }
-            #header h1 {
-                font-size: 14px;
-            }
-            #map { height: calc(100vh - 60px); }
-        }
     </style>
 </head>
 <body>
     <div id="header">
         <h1>Geoportal de Lotes</h1>
+        <button onclick="saveToLocal()">Guardar Lotes</button>
+        <button onclick="loadFromLocal()">Cargar Lotes</button>
         <button onclick="exportData()">Exportar GeoJSON</button>
-        <button onclick="centerOnUser()">Ubicarme</button>
     </div>
     <div id="map"></div>
 
@@ -68,35 +58,12 @@
         const map = L.map('map').setView([4.5, -74], 6);
 
         // Mapas base
-        const baseMaps = {
-            'OpenStreetMap': L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                maxZoom: 19,
-                attribution: 'Map data © OpenStreetMap contributors'
-            }).addTo(map),
-            'Google Satélite': L.tileLayer('https://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', {
-                subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
-                maxZoom: 20,
-                attribution: 'Map data © Google'
-            }),
-            'Google Híbrido': L.tileLayer('https://{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {
-                subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
-                maxZoom: 20,
-                attribution: 'Map data © Google'
-            }),
-            'ESRI Satélite': L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-                maxZoom: 19,
-                attribution: 'Tiles © ESRI & contributors'
-            }),
-            'ESRI Topográfico': L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}', {
-                maxZoom: 19,
-                attribution: 'Tiles © ESRI & contributors'
-            })
-        };
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: 'Map data © OpenStreetMap contributors'
+        }).addTo(map);
 
-        L.control.layers(baseMaps).addTo(map);
-
-        // Capas para dibujar
-        const fincaLayer = new L.FeatureGroup().addTo(map);
+        // Capa para los lotes
         const loteLayer = new L.FeatureGroup().addTo(map);
 
         // Control de dibujo
@@ -108,135 +75,85 @@
                 circlemarker: false,
                 polygon: {
                     allowIntersection: false,
-                    shapeOptions: { color: 'green' }
+                    shapeOptions: { color: 'orange' }
                 }
             },
             edit: {
-                featureGroup: fincaLayer
+                featureGroup: loteLayer
             }
         });
         map.addControl(drawControl);
 
-        let selectedFinca = null; // Polígono seleccionado para dividir
-
-        // Crear una finca
+        // Crear un lote
         map.on(L.Draw.Event.CREATED, function (e) {
             const layer = e.layer;
 
             // Solicitar datos
-            const cod_finca = prompt("Ingrese el código de finca:") || "Sin definir";
-            const propietario = prompt("Ingrese el nombre del propietario:") || "Sin definir";
-            const proyecto = prompt("Ingrese el proyecto:") || "Sin definir";
+            const cultivo = prompt("Ingrese el tipo de cultivo para este lote:") || "Sin definir";
             const area = L.GeometryUtil.geodesicArea(layer.getLatLngs()[0]) / 10000; // Área en hectáreas
 
             // Agregar atributos
             layer.properties = {
-                cod_finca: cod_finca,
-                propietario: propietario,
-                proyecto: proyecto,
+                cultivo: cultivo,
                 area: area.toFixed(2),
-                tipo: "Finca"
+                tipo: "Lote"
             };
 
-            layer.setStyle({ color: 'blue', fillOpacity: 0.3 });
+            layer.setStyle({ color: 'orange', fillOpacity: 0.5 });
             layer.bindPopup(`
-                <strong>Finca:</strong> ${cod_finca}<br>
-                <strong>Propietario:</strong> ${propietario}<br>
-                <strong>Proyecto:</strong> ${proyecto}<br>
+                <strong>Cultivo:</strong> ${cultivo}<br>
                 <strong>Área:</strong> ${area.toFixed(2)} ha
             `);
 
-            fincaLayer.addLayer(layer);
+            loteLayer.addLayer(layer);
         });
 
-        // Seleccionar finca para dividir
-        map.on('click', function (e) {
-            const clickedLayer = fincaLayer.getLayers().find(layer => layer.contains(e.latlng));
-
-            if (clickedLayer) {
-                selectedFinca = clickedLayer;
-                alert("Finca seleccionada. Ahora puede dibujar lotes dentro de esta finca.");
-            }
-        });
-
-        // Dibujar lotes dentro de la finca seleccionada
-        map.on(L.Draw.Event.CREATED, function (e) {
-            if (selectedFinca) {
-                const loteLayerItem = e.layer;
-
-                // Convertir a GeoJSON para verificar si está dentro de la finca
-                const selectedFincaGeoJSON = selectedFinca.toGeoJSON();
-                const loteGeoJSON = loteLayerItem.toGeoJSON();
-
-                const isInside = turf.booleanWithin(loteGeoJSON, selectedFincaGeoJSON);
-                if (!isInside) {
-                    alert("El lote dibujado no está dentro de la finca seleccionada.");
-                    return;
-                }
-
-                const area = L.GeometryUtil.geodesicArea(loteLayerItem.getLatLngs()[0]) / 10000; // Área en hectáreas
-                const cultivo = prompt("Ingrese el tipo de cultivo para este lote:") || "Sin definir";
-
-                loteLayerItem.properties = {
-                    cod_finca: selectedFinca.properties.cod_finca,
-                    propietario: selectedFinca.properties.propietario,
-                    proyecto: selectedFinca.properties.proyecto,
-                    cultivo: cultivo,
-                    area: area.toFixed(2),
-                    tipo: "Lote"
-                };
-
-                loteLayerItem.setStyle({ color: 'orange', fillOpacity: 0.5 });
-                loteLayerItem.bindPopup(`
-                    <strong>Finca:</strong> ${selectedFinca.properties.cod_finca}<br>
-                    <strong>Cultivo:</strong> ${cultivo}<br>
-                    <strong>Área:</strong> ${area.toFixed(2)} ha<br>
-                    <strong>Propietario:</strong> ${selectedFinca.properties.propietario}<br>
-                    <strong>Proyecto:</strong> ${selectedFinca.properties.proyecto}
-                `);
-
-                loteLayer.addLayer(loteLayerItem);
-            } else {
-                alert("Por favor, seleccione una finca primero.");
-            }
-        });
-
-        // Función para exportar datos
-        function exportData() {
-            const fincaData = fincaLayer.toGeoJSON();
+        // Guardar los lotes en LocalStorage
+        function saveToLocal() {
             const loteData = loteLayer.toGeoJSON();
-            const allData = {
-                type: "FeatureCollection",
-                features: [...fincaData.features, ...loteData.features]
-            };
 
-            const blob = new Blob([JSON.stringify(allData)], { type: "application/json" });
+            localStorage.setItem("loteData", JSON.stringify(loteData));
+            alert("Lotes guardados localmente.");
+        }
+
+        // Cargar los lotes desde LocalStorage
+        function loadFromLocal() {
+            const savedData = localStorage.getItem("loteData");
+            if (!savedData) {
+                alert("No hay lotes guardados.");
+                return;
+            }
+
+            // Limpiar capas actuales
+            loteLayer.clearLayers();
+
+            // Cargar lotes guardados
+            const loteGeoJSON = JSON.parse(savedData);
+            L.geoJSON(loteGeoJSON, {
+                onEachFeature: function (feature, layer) {
+                    layer.setStyle({ color: 'orange', fillOpacity: 0.5 });
+                    layer.bindPopup(`
+                        <strong>Cultivo:</strong> ${feature.properties.cultivo}<br>
+                        <strong>Área:</strong> ${feature.properties.area} ha
+                    `);
+                    loteLayer.addLayer(layer);
+                }
+            });
+
+            alert("Lotes cargados correctamente.");
+        }
+
+        // Exportar datos a GeoJSON
+        function exportData() {
+            const loteData = loteLayer.toGeoJSON();
+
+            const blob = new Blob([JSON.stringify(loteData)], { type: "application/json" });
             const url = URL.createObjectURL(blob);
             const a = document.createElement("a");
             a.href = url;
-            a.download = "geoportal_finca_lotes.geojson";
+            a.download = "lotes.geojson";
             a.click();
             URL.revokeObjectURL(url);
-        }
-
-        // Función para centrar en la ubicación del usuario
-        function centerOnUser() {
-            if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(
-                    function (position) {
-                        const userLat = position.coords.latitude;
-                        const userLng = position.coords.longitude;
-
-                        map.setView([userLat, userLng], 16);
-                        L.marker([userLat, userLng]).addTo(map).bindPopup("Estás aquí").openPopup();
-                    },
-                    function () {
-                        alert("No se pudo obtener tu ubicación. Activa el GPS.");
-                    }
-                );
-            } else {
-                alert("Tu navegador no soporta geolocalización.");
-            }
         }
     </script>
 </body>
