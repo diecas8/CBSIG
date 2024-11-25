@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>División de Polígonos en Lotes</title>
+    <title>Geoportal de Lotes</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css">
     <link rel="stylesheet" href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css">
     <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
@@ -19,31 +19,48 @@
             transform: translateX(-50%);
             z-index: 1000;
             background: rgba(255, 255, 255, 0.9);
-            padding: 10px 20px;
+            padding: 5px 10px;
             border-radius: 8px;
+            font-size: 14px;
             box-shadow: 0 0 5px rgba(0, 0, 0, 0.2);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        #header h1 {
+            font-size: 16px;
+            margin: 0;
+        }
+        #header button {
+            font-size: 14px;
+            padding: 5px 8px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            background-color: #007bff;
+            color: white;
+        }
+        #header button:hover {
+            background-color: #0056b3;
         }
         @media (max-width: 768px) {
-            #map { height: calc(100vh - 50px); }
             #header {
-                top: 0;
-                width: 100%;
-                left: 0;
-                transform: none;
-                text-align: center;
-                font-size: 14px;
-                padding: 10px 5px;
+                font-size: 12px;
+                flex-direction: column;
+                padding: 5px;
             }
-            h1 { font-size: 16px; margin: 0; }
-            button { font-size: 14px; padding: 5px 10px; }
+            #header h1 {
+                font-size: 14px;
+            }
+            #map { height: calc(100vh - 60px); }
         }
     </style>
 </head>
 <body>
     <div id="header">
-        <h1>División de Polígonos en Lotes</h1>
-        <button onclick="exportData()">Exportar Todo</button>
-        <button onclick="centerOnUser()">Ir a Mi Ubicación</button>
+        <h1>Geoportal de Lotes</h1>
+        <button onclick="exportData()">Exportar GeoJSON</button>
+        <button onclick="centerOnUser()">Ubicarme</button>
     </div>
     <div id="map"></div>
 
@@ -78,28 +95,138 @@
 
         L.control.layers(baseMaps).addTo(map);
 
-        // Solicitar ubicación del dispositivo
-        if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition(
-                function (position) {
-                    const userLat = position.coords.latitude;
-                    const userLng = position.coords.longitude;
-                    map.setView([userLat, userLng], 16);
-                    L.marker([userLat, userLng]).addTo(map).bindPopup("Estás aquí").openPopup();
-                },
-                function () {
-                    alert("No se pudo obtener tu ubicación. Activa el GPS.");
+        // Capas para dibujar
+        const fincaLayer = new L.FeatureGroup().addTo(map);
+        const loteLayer = new L.FeatureGroup().addTo(map);
+
+        // Control de dibujo
+        const drawControl = new L.Control.Draw({
+            draw: {
+                polyline: false,
+                marker: false,
+                circle: false,
+                circlemarker: false,
+                polygon: {
+                    allowIntersection: false,
+                    shapeOptions: { color: 'green' }
                 }
-            );
+            },
+            edit: {
+                featureGroup: fincaLayer
+            }
+        });
+        map.addControl(drawControl);
+
+        let selectedFinca = null; // Polígono seleccionado para dividir
+
+        // Crear una finca
+        map.on(L.Draw.Event.CREATED, function (e) {
+            const layer = e.layer;
+
+            // Solicitar datos
+            const cod_finca = prompt("Ingrese el código de finca:") || "Sin definir";
+            const propietario = prompt("Ingrese el nombre del propietario:") || "Sin definir";
+            const proyecto = prompt("Ingrese el proyecto:") || "Sin definir";
+            const area = L.GeometryUtil.geodesicArea(layer.getLatLngs()[0]) / 10000; // Área en hectáreas
+
+            // Agregar atributos
+            layer.properties = {
+                cod_finca: cod_finca,
+                propietario: propietario,
+                proyecto: proyecto,
+                area: area.toFixed(2),
+                tipo: "Finca"
+            };
+
+            layer.setStyle({ color: 'blue', fillOpacity: 0.3 });
+            layer.bindPopup(`
+                <strong>Finca:</strong> ${cod_finca}<br>
+                <strong>Propietario:</strong> ${propietario}<br>
+                <strong>Proyecto:</strong> ${proyecto}<br>
+                <strong>Área:</strong> ${area.toFixed(2)} ha
+            `);
+
+            fincaLayer.addLayer(layer);
+        });
+
+        // Seleccionar finca para dividir
+        map.on('click', function (e) {
+            const clickedLayer = fincaLayer.getLayers().find(layer => layer.contains(e.latlng));
+
+            if (clickedLayer) {
+                selectedFinca = clickedLayer;
+                alert("Finca seleccionada. Ahora puede dibujar lotes dentro de esta finca.");
+            }
+        });
+
+        // Dibujar lotes dentro de la finca seleccionada
+        map.on(L.Draw.Event.CREATED, function (e) {
+            if (selectedFinca) {
+                const loteLayerItem = e.layer;
+
+                // Convertir a GeoJSON para verificar si está dentro de la finca
+                const selectedFincaGeoJSON = selectedFinca.toGeoJSON();
+                const loteGeoJSON = loteLayerItem.toGeoJSON();
+
+                const isInside = turf.booleanWithin(loteGeoJSON, selectedFincaGeoJSON);
+                if (!isInside) {
+                    alert("El lote dibujado no está dentro de la finca seleccionada.");
+                    return;
+                }
+
+                const area = L.GeometryUtil.geodesicArea(loteLayerItem.getLatLngs()[0]) / 10000; // Área en hectáreas
+                const cultivo = prompt("Ingrese el tipo de cultivo para este lote:") || "Sin definir";
+
+                loteLayerItem.properties = {
+                    cod_finca: selectedFinca.properties.cod_finca,
+                    propietario: selectedFinca.properties.propietario,
+                    proyecto: selectedFinca.properties.proyecto,
+                    cultivo: cultivo,
+                    area: area.toFixed(2),
+                    tipo: "Lote"
+                };
+
+                loteLayerItem.setStyle({ color: 'orange', fillOpacity: 0.5 });
+                loteLayerItem.bindPopup(`
+                    <strong>Finca:</strong> ${selectedFinca.properties.cod_finca}<br>
+                    <strong>Cultivo:</strong> ${cultivo}<br>
+                    <strong>Área:</strong> ${area.toFixed(2)} ha<br>
+                    <strong>Propietario:</strong> ${selectedFinca.properties.propietario}<br>
+                    <strong>Proyecto:</strong> ${selectedFinca.properties.proyecto}
+                `);
+
+                loteLayer.addLayer(loteLayerItem);
+            } else {
+                alert("Por favor, seleccione una finca primero.");
+            }
+        });
+
+        // Función para exportar datos
+        function exportData() {
+            const fincaData = fincaLayer.toGeoJSON();
+            const loteData = loteLayer.toGeoJSON();
+            const allData = {
+                type: "FeatureCollection",
+                features: [...fincaData.features, ...loteData.features]
+            };
+
+            const blob = new Blob([JSON.stringify(allData)], { type: "application/json" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = "geoportal_finca_lotes.geojson";
+            a.click();
+            URL.revokeObjectURL(url);
         }
 
-        // Función para centrar en el usuario
+        // Función para centrar en la ubicación del usuario
         function centerOnUser() {
             if (navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition(
                     function (position) {
                         const userLat = position.coords.latitude;
                         const userLng = position.coords.longitude;
+
                         map.setView([userLat, userLng], 16);
                         L.marker([userLat, userLng]).addTo(map).bindPopup("Estás aquí").openPopup();
                     },
@@ -110,11 +237,6 @@
             } else {
                 alert("Tu navegador no soporta geolocalización.");
             }
-        }
-
-        function exportData() {
-            // Aquí se exportarían los datos
-            alert("Exportando datos...");
         }
     </script>
 </body>
