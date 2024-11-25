@@ -36,10 +36,32 @@
         const map = L.map('map').setView([4.5, -74], 6);
 
         // Mapas base
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            maxZoom: 19,
-            attribution: 'Map data © OpenStreetMap contributors'
-        }).addTo(map);
+        const baseMaps = {
+            'OpenStreetMap': L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19,
+                attribution: 'Map data © OpenStreetMap contributors'
+            }).addTo(map),
+            'Google Satélite': L.tileLayer('https://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', {
+                subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
+                maxZoom: 20,
+                attribution: 'Map data © Google'
+            }),
+            'Google Híbrido': L.tileLayer('https://{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {
+                subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
+                maxZoom: 20,
+                attribution: 'Map data © Google'
+            }),
+            'ESRI Satélite': L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+                maxZoom: 19,
+                attribution: 'Tiles © ESRI & contributors'
+            }),
+            'ESRI Topográfico': L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}', {
+                maxZoom: 19,
+                attribution: 'Tiles © ESRI & contributors'
+            })
+        };
+
+        L.control.layers(baseMaps).addTo(map);
 
         // Grupos de capas
         const fincaLayer = new L.FeatureGroup().addTo(map);
