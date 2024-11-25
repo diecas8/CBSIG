@@ -8,7 +8,7 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css">
     <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
     <script src="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@turf/turf"></script> <!-- Turf.js para análisis geoespacial -->
+    <script src="https://cdn.jsdelivr.net/npm/@turf/turf"></script>
     <style>
         body, html { margin: 0; padding: 0; height: 100%; }
         #map { height: 100vh; }
@@ -91,11 +91,13 @@
         map.on(L.Draw.Event.CREATED, function (e) {
             const layer = e.layer;
 
-            const cod_finca = prompt("Ingrese el código de finca:");
-            const propietario = prompt("Ingrese el nombre del propietario:");
-            const proyecto = prompt("Ingrese el proyecto:");
+            // Solicitar los datos
+            const cod_finca = prompt("Ingrese el código de finca:") || "Sin definir";
+            const propietario = prompt("Ingrese el nombre del propietario:") || "Sin definir";
+            const proyecto = prompt("Ingrese el proyecto:") || "Sin definir";
             const area = L.GeometryUtil.geodesicArea(layer.getLatLngs()[0]) / 10000; // Área en hectáreas
 
+            // Agregar atributos
             layer.properties = {
                 cod_finca: cod_finca,
                 propietario: propietario,
@@ -144,7 +146,7 @@
 
                 // Si está dentro, agregar atributos al lote
                 const area = L.GeometryUtil.geodesicArea(loteLayerItem.getLatLngs()[0]) / 10000; // Área en hectáreas
-                const cultivo = prompt("Ingrese el tipo de cultivo para este lote:");
+                const cultivo = prompt("Ingrese el tipo de cultivo para este lote:") || "Sin definir";
 
                 loteLayerItem.properties = {
                     cod_finca: selectedFinca.properties.cod_finca,
