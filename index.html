@@ -1,146 +1,148 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Geoportal con Filtrado</title>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Geoportal Usos de Suelo</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css">
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.js"></script>
     <style>
-        #map { height: 100vh; width: 75%; float: right; }
-        .sidebar {
-            width: 25%;
-            float: left;
-            background-color: #f8f9fa;
-            padding: 20px;
-            box-sizing: border-box;
-            height: 100vh;
-            overflow-y: auto;
-            border-right: 1px solid #ddd;
-        }
-        .logo { width: 150px; display: block; margin: 0 auto 20px; }
-        .filter label, .filter select { display: block; margin: 10px 0; font-size: 14px; }
-        .filter select { width: 100%; padding: 8px; font-size: 14px; }
-        .filter button {
-            background-color: #007bff; color: white; padding: 10px 20px; border: none;
-            cursor: pointer; font-size: 14px; border-radius: 5px; width: 100%;
-        }
-        .footer { text-align: center; font-size: 12px; margin-top: 20px; color: #888; }
+        #map { height: 90vh; }
+        #controls { padding: 10px; background: #f9f9f9; }
     </style>
 </head>
 <body>
-    <div class="sidebar">
-        <img src="./CBS.png" class="logo" alt="Logo">
-        <div class="filter">
-            <h3>Filtrar por Código de Finca</h3>
-            <label for="codigoFincaSelect">Seleccione un Código de Finca:</label>
-            <select id="codigoFincaSelect">
-                <option value="">Seleccione un código</option>
-            </select>
-            <button onclick="filtrarPorFinca()">Filtrar</button>
-        </div>
-        <div class="footer">
-            Creado por: Diego Castaño P.
-        </div>
+    <div id="controls">
+        <h1>Geoportal Usos de Suelo</h1>
+        <p><strong>Geoportal creado por:</strong> Diego Castaño</p>
+        <button onclick="exportAll()">Exportar Todo a GeoJSON</button>
+        <input type="text" id="fincaFilter" placeholder="Digite cod_finca">
+        <button onclick="exportByFinca()">Exportar por Finca</button>
+        <div id="summary"></div>
     </div>
     <div id="map"></div>
 
-    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
     <script>
-        // Crear el mapa base
-        var map = L.map('map').setView([4.5709, -74.2973], 6); // Coordenadas centradas en Colombia
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            maxZoom: 18,
-            attribution: '© OpenStreetMap contributors'
-        }).addTo(map);
+        // Crear el mapa y agregar mapas base
+        const map = L.map('map').setView([0, 0], 2);
 
-        // Variables globales
-        var capas = [];
-        var bounds = L.latLngBounds();
-        var codigosFinca = new Set();
+        const baseLayers = {
+            'OSM': L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map),
+            'Satelital': L.tileLayer('https://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', { subdomains: ['mt0', 'mt1', 'mt2', 'mt3'], maxZoom: 20 }),
+            'Topográfico': L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', { maxZoom: 17 })
+        };
+        L.control.layers(baseLayers).addTo(map);
 
-        // Función para cargar GeoJSON
-        function cargarGeoJSON(url, nombreCapa, estilo) {
-            fetch(url)
-                .then(response => {
-                    if (!response.ok) throw new Error(`Error al cargar ${url}`);
-                    console.log(`Cargando ${nombreCapa}: ${url}`);
-                    return response.json();
-                })
-                .then(data => {
-                    var layer = L.geoJSON(data, {
-                        style: estilo,
-                        onEachFeature: (feature, layer) => {
-                            if (feature.properties && feature.properties.Cod_vivien) {
-                                codigosFinca.add(feature.properties.Cod_vivien); // Guardar códigos únicos
-                            }
-                            layer.bindPopup(
-                                `<strong>Código Vivienda:</strong> ${feature.properties.Cod_vivien || 'N/A'}<br>
-                                <strong>Propietario:</strong> ${feature.properties.Propietari || 'N/A'}<br>
-                                <strong>Municipio:</strong> ${feature.properties.Municipio || 'N/A'}<br>
-                                <strong>Vereda:</strong> ${feature.properties.Vereda || 'N/A'}`
-                            );
-                        }
-                    });
-                    layer.addTo(map); // Añadir capa al mapa
-                    capas.push(layer); // Guardar capa
-                    bounds.extend(layer.getBounds()); // Ajustar los límites del mapa
-                    actualizarListaCodigos(); // Actualizar lista desplegable
-                })
-                .catch(error => console.error(`Error cargando ${nombreCapa}:`, error));
+        // Feature Group para almacenar los polígonos
+        const drawnItems = new L.FeatureGroup();
+        map.addLayer(drawnItems);
+
+        // Agregar control de dibujo
+        const drawControl = new L.Control.Draw({
+            edit: {
+                featureGroup: drawnItems
+            },
+            draw: {
+                polyline: false,
+                marker: false,
+                circle: false,
+                circlemarker: false
+            }
+        });
+        map.addControl(drawControl);
+
+        // Función para calcular el área en hectáreas
+        function calculateArea(layer) {
+            const area = L.GeometryUtil.geodesicArea(layer.getLatLngs()[0]) / 10000; // Convertir m² a hectáreas
+            return area.toFixed(2);
         }
 
-        // Función para actualizar la lista desplegable
-        function actualizarListaCodigos() {
-            var select = document.getElementById("codigoFincaSelect");
-            select.innerHTML = `<option value="">Seleccione un código</option>`; // Reiniciar opciones
-            codigosFinca.forEach(codigo => {
-                var option = document.createElement("option");
-                option.value = codigo;
-                option.textContent = codigo;
-                select.appendChild(option);
-            });
+        // Manejar evento de creación de polígonos
+        map.on(L.Draw.Event.CREATED, function (e) {
+            const layer = e.layer;
+            const areaHectares = calculateArea(layer);
+
+            // Solicitar datos al usuario
+            const cod_finca = prompt("Ingrese el código de finca:");
+            const cultivo = prompt("Ingrese el tipo de cultivo:");
+            const propietario = prompt("Ingrese el propietario:");
+            const proyecto = prompt("Ingrese el proyecto asociado:");
+
+            // Agregar propiedades al polígono
+            layer.properties = {
+                cod_finca: cod_finca,
+                cultivo: cultivo,
+                area: areaHectares,
+                propietario: propietario,
+                proyecto: proyecto
+            };
+
+            drawnItems.addLayer(layer);
+            updateSummary();
+        });
+
+        // Función para exportar todos los polígonos a GeoJSON
+        function exportAll() {
+            const data = drawnItems.toGeoJSON();
+            const blob = new Blob([JSON.stringify(data)], { type: "application/json" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = "usos_de_suelo.geojson";
+            a.click();
+            URL.revokeObjectURL(url);
         }
 
-        // Función para filtrar por código de finca
-        function filtrarPorFinca() {
-            var codigoFinca = document.getElementById("codigoFincaSelect").value;
-            if (!codigoFinca) {
-                alert("Por favor, seleccione un código.");
+        // Función para exportar polígonos por código de finca
+        function exportByFinca() {
+            const cod_finca = document.getElementById("fincaFilter").value;
+            if (!cod_finca) {
+                alert("Por favor ingrese un código de finca.");
                 return;
             }
 
-            capas.forEach(capa => {
-                capa.eachLayer(layer => {
-                    if (layer.feature.properties.Cod_vivien === codigoFinca) {
-                        layer.setStyle({ color: 'yellow', weight: 3 }); // Resaltar geometría
-                        map.fitBounds(layer.getBounds()); // Ajustar mapa
-                    } else {
-                        layer.setStyle({ opacity: 0.2, fillOpacity: 0.1 }); // Atenuar geometrías no seleccionadas
-                    }
-                });
-            });
+            const data = drawnItems.toGeoJSON();
+            const filtered = data.features.filter(f => f.properties.cod_finca === cod_finca);
+
+            if (filtered.length === 0) {
+                alert("No se encontraron polígonos para el código de finca ingresado.");
+                return;
+            }
+
+            const blob = new Blob([JSON.stringify({ type: "FeatureCollection", features: filtered })], { type: "application/json" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = `usos_de_suelo_${cod_finca}.geojson`;
+            a.click();
+            URL.revokeObjectURL(url);
         }
 
-        // Cargar las capas GeoJSON
-        cargarGeoJSON(
-            "./HMP_POLI.geojson",
-            "Polígonos HMP",
-            { color: '#FF8C00', fillOpacity: 0.5 } // Estilo para polígonos
-        );
+        // Función para mostrar un resumen por finca
+        function updateSummary() {
+            const data = drawnItems.toGeoJSON();
+            const summary = {};
 
-        cargarGeoJSON(
-            "./HMP_LINEA.geojson",
-            "Líneas HMP",
-            { color: '#4682B4', weight: 2 } // Estilo para líneas
-        );
+            data.features.forEach(feature => {
+                const finca = feature.properties.cod_finca;
+                const area = parseFloat(feature.properties.area);
 
-        cargarGeoJSON(
-            "./Datos_predio.geojson",
-            "Predios",
-            { color: '#DC143C', fillOpacity: 0.8, radius: 5 } // Estilo para puntos
-        );
+                if (!summary[finca]) {
+                    summary[finca] = { area: 0, count: 0 };
+                }
+                summary[finca].area += area;
+                summary[finca].count += 1;
+            });
 
-        // Ajustar el mapa a los límites de las capas cargadas
-        setTimeout(() => map.fitBounds(bounds), 1000);
+            let html = "<h3>Resumen por Finca</h3><ul>";
+            for (const finca in summary) {
+                html += `<li>Finca ${finca}: ${summary[finca].count} polígonos, ${summary[finca].area.toFixed(2)} ha</li>`;
+            }
+            html += "</ul>";
+            document.getElementById("summary").innerHTML = html;
+        }
     </script>
 </body>
 </html>
