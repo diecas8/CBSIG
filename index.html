@@ -63,6 +63,7 @@
         <button onclick="saveToLocal()">Guardar Lotes</button>
         <button onclick="loadFromLocal()">Cargar Lotes</button>
         <button onclick="exportData()">Exportar GeoJSON</button>
+        <button onclick="exportSingleLote()">Exportar Lote por Código</button>
         <button onclick="centerOnUser()">Ir a Mi Ubicación</button>
     </div>
     <div id="map"></div>
@@ -84,16 +85,7 @@
                 maxZoom: 20,
                 attribution: 'Map data © Google'
             }),
-            'Google Híbrido': L.tileLayer('https://{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {
-                subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
-                maxZoom: 20,
-                attribution: 'Map data © Google'
-            }),
             'ESRI Satélite': L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-                maxZoom: 19,
-                attribution: 'Tiles © ESRI & contributors'
-            }),
-            'ESRI Topográfico': L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}', {
                 maxZoom: 19,
                 attribution: 'Tiles © ESRI & contributors'
             })
@@ -126,21 +118,47 @@
         map.on(L.Draw.Event.CREATED, function (e) {
             const layer = e.layer;
 
-            // Solicitar datos
-            const cultivo = prompt("Ingrese el tipo de cultivo para este lote:") || "Sin definir";
-            const area = L.GeometryUtil.geodesicArea(layer.getLatLngs()[0]) / 10000; // Área en hectáreas
+            // Solicitar atributos del lote
+            const codigoFinca = prompt("Ingrese el código de la finca:") || "Sin definir";
+            const codigoCultivo = prompt("Ingrese el código del cultivo:") || "Sin definir";
 
-            // Agregar atributos
+            const cultivos = [
+                "Café", "Plátano", "Pasto", "Aguacate", "Bosque", "Rastrojo",
+                "Semestrales", "Guadua", "Area en descanso", "Forestales"
+            ];
+            let nombreCultivo = prompt(
+                "Seleccione el nombre del cultivo:\n" +
+                cultivos.map((c, i) => `${i + 1}. ${c}`).join("\n")
+            );
+            if (nombreCultivo) {
+                const index = parseInt(nombreCultivo) - 1;
+                if (index >= 0 && index < cultivos.length) {
+                    nombreCultivo = cultivos[index];
+                } else {
+                    alert("Opción no válida. Se asignará 'Sin definir'.");
+                    nombreCultivo = "Sin definir";
+                }
+            } else {
+                nombreCultivo = "Sin definir";
+            }
+
+            const areaCultivo = L.GeometryUtil.geodesicArea(layer.getLatLngs()[0]) / 10000;
+
+            // Agregar atributos al lote
             layer.properties = {
-                cultivo: cultivo,
-                area: area.toFixed(2),
+                codigo_finca: codigoFinca,
+                codigo_cultivo: codigoCultivo,
+                nombre_cultivo: nombreCultivo,
+                area_cultivo: areaCultivo.toFixed(2),
                 tipo: "Lote"
             };
 
             layer.setStyle({ color: 'orange', fillOpacity: 0.5 });
             layer.bindPopup(`
-                <strong>Cultivo:</strong> ${cultivo}<br>
-                <strong>Área:</strong> ${area.toFixed(2)} ha
+                <strong>Código de Finca:</strong> ${codigoFinca}<br>
+                <strong>Código de Cultivo:</strong> ${codigoCultivo}<br>
+                <strong>Nombre del Cultivo:</strong> ${nombreCultivo}<br>
+                <strong>Área del Cultivo:</strong> ${areaCultivo.toFixed(2)} ha
             `);
 
             loteLayer.addLayer(layer);
@@ -149,7 +167,6 @@
         // Guardar los lotes en LocalStorage
         function saveToLocal() {
             const loteData = loteLayer.toGeoJSON();
-
             localStorage.setItem("loteData", JSON.stringify(loteData));
             alert("Lotes guardados localmente.");
         }
@@ -162,29 +179,26 @@
                 return;
             }
 
-            // Limpiar capas actuales
             loteLayer.clearLayers();
-
-            // Cargar lotes guardados
             const loteGeoJSON = JSON.parse(savedData);
             L.geoJSON(loteGeoJSON, {
                 onEachFeature: function (feature, layer) {
                     layer.setStyle({ color: 'orange', fillOpacity: 0.5 });
                     layer.bindPopup(`
-                        <strong>Cultivo:</strong> ${feature.properties.cultivo}<br>
-                        <strong>Área:</strong> ${feature.properties.area} ha
+                        <strong>Código de Finca:</strong> ${feature.properties.codigo_finca}<br>
+                        <strong>Código de Cultivo:</strong> ${feature.properties.codigo_cultivo}<br>
+                        <strong>Nombre del Cultivo:</strong> ${feature.properties.nombre_cultivo}<br>
+                        <strong>Área del Cultivo:</strong> ${feature.properties.area_cultivo} ha
                     `);
                     loteLayer.addLayer(layer);
                 }
             });
-
             alert("Lotes cargados correctamente.");
         }
 
-        // Exportar datos a GeoJSON
+        // Exportar todos los lotes a GeoJSON
         function exportData() {
             const loteData = loteLayer.toGeoJSON();
-
             const blob = new Blob([JSON.stringify(loteData)], { type: "application/json" });
             const url = URL.createObjectURL(blob);
             const a = document.createElement("a");
@@ -194,14 +208,44 @@
             URL.revokeObjectURL(url);
         }
 
-        // Función para centrar en la ubicación del usuario
+        // Exportar un lote por su código de cultivo
+        function exportSingleLote() {
+            const loteData = loteLayer.toGeoJSON();
+            const codigoCultivo = prompt("Ingrese el código del cultivo del lote a exportar:");
+            if (!codigoCultivo) {
+                alert("Debe ingresar un código de cultivo válido.");
+                return;
+            }
+
+            const singleLote = loteData.features.find(
+                (feature) => feature.properties.codigo_cultivo === codigoCultivo
+            );
+            if (!singleLote) {
+                alert(`No se encontró ningún lote con el código de cultivo: ${codigoCultivo}`);
+                return;
+            }
+
+            const singleLoteGeoJSON = {
+                type: "FeatureCollection",
+                features: [singleLote],
+            };
+
+            const blob = new Blob([JSON.stringify(singleLoteGeoJSON)], { type: "application/json" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = `lote_${codigoCultivo}.geojson`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        // Centrar en la ubicación del usuario
         function centerOnUser() {
             if (navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition(
                     function (position) {
                         const userLat = position.coords.latitude;
                         const userLng = position.coords.longitude;
-
                         map.setView([userLat, userLng], 16);
                         L.marker([userLat, userLng]).addTo(map).bindPopup("Estás aquí").openPopup();
                     },
