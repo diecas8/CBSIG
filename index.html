@@ -26,12 +26,22 @@
 
     <script>
         // Crear el mapa y agregar mapas base
-        const map = L.map('map').setView([0, 0], 2);
+        const map = L.map('map').setView([4.5, -74], 6); // Ajustar coordenadas iniciales
 
         const baseLayers = {
-            'OSM': L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map),
-            'Satelital': L.tileLayer('https://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', { subdomains: ['mt0', 'mt1', 'mt2', 'mt3'], maxZoom: 20 }),
-            'Topográfico': L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', { maxZoom: 17 })
+            'OpenStreetMap': L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19,
+                attribution: 'Map data © <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors'
+            }).addTo(map),
+            'Satelital': L.tileLayer('https://mt{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', {
+                subdomains: ['0', '1', '2', '3'],
+                attribution: 'Map data © Google',
+                maxZoom: 20
+            }),
+            'Topográfico': L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
+                attribution: 'Map data © <a href="https://opentopomap.org">OpenTopoMap</a>',
+                maxZoom: 17
+            })
         };
         L.control.layers(baseLayers).addTo(map);
 
@@ -78,6 +88,23 @@
                 propietario: propietario,
                 proyecto: proyecto
             };
+
+            // Estilo del polígono
+            layer.setStyle({
+                color: 'blue',
+                fillColor: 'rgba(0,0,255,0.4)',
+                weight: 2
+            });
+
+            // Mostrar popup con atributos
+            const popupContent = `
+                <strong>Código Finca:</strong> ${cod_finca}<br>
+                <strong>Cultivo:</strong> ${cultivo}<br>
+                <strong>Área (ha):</strong> ${areaHectares}<br>
+                <strong>Propietario:</strong> ${propietario}<br>
+                <strong>Proyecto:</strong> ${proyecto}
+            `;
+            layer.bindPopup(popupContent);
 
             drawnItems.addLayer(layer);
             updateSummary();
