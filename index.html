@@ -43,6 +43,18 @@
         #header button:hover {
             background-color: #0056b3;
         }
+        #footer {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            z-index: 1000;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-size: 12px;
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.2);
+            text-align: right;
+        }
     </style>
 </head>
 <body>
@@ -54,15 +66,40 @@
         <button onclick="centerOnUser()">Ir a Mi Ubicación</button>
     </div>
     <div id="map"></div>
+    <div id="footer">
+        Geoportal creado por Diego Castaño
+    </div>
 
     <script>
         const map = L.map('map').setView([4.5, -74], 6);
 
         // Mapas base
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            maxZoom: 19,
-            attribution: 'Map data © OpenStreetMap contributors'
-        }).addTo(map);
+        const baseMaps = {
+            'OpenStreetMap': L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19,
+                attribution: 'Map data © OpenStreetMap contributors'
+            }).addTo(map),
+            'Google Satélite': L.tileLayer('https://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', {
+                subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
+                maxZoom: 20,
+                attribution: 'Map data © Google'
+            }),
+            'Google Híbrido': L.tileLayer('https://{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {
+                subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
+                maxZoom: 20,
+                attribution: 'Map data © Google'
+            }),
+            'ESRI Satélite': L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+                maxZoom: 19,
+                attribution: 'Tiles © ESRI & contributors'
+            }),
+            'ESRI Topográfico': L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}', {
+                maxZoom: 19,
+                attribution: 'Tiles © ESRI & contributors'
+            })
+        };
+
+        L.control.layers(baseMaps).addTo(map);
 
         // Capa para los lotes
         const loteLayer = new L.FeatureGroup().addTo(map);
