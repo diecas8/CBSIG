@@ -3,183 +3,96 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Geoportal Usos de Suelo</title>
+    <title>Dividir Polígonos</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css">
     <link rel="stylesheet" href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css">
     <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
     <script src="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Turf.js/6.5.0/turf.min.js"></script>
     <style>
-        body, html { margin: 0; padding: 0; height: 100%; }
         #map { height: 100vh; }
-        #header {
-            position: absolute;
-            top: 10px;
-            left: 50%;
-            transform: translateX(-50%);
-            z-index: 1000;
-            background: rgba(255, 255, 255, 0.9);
-            padding: 10px 20px;
-            border-radius: 8px;
-            box-shadow: 0 0 5px rgba(0, 0, 0, 0.2);
-        }
-        #header h1 {
-            margin: 0;
-            font-size: 18px;
-        }
-        #header p {
-            margin: 0;
-            font-size: 12px;
-        }
-        .leaflet-control-layers {
-            max-height: 80vh;
-            overflow-y: auto;
-        }
     </style>
 </head>
 <body>
-    <div id="header">
-        <h1>Geoportal Usos de Suelo</h1>
-        <p><strong>Geoportal creado por:</strong> Diego Castaño</p>
-        <button onclick="exportAll()">Exportar Todo a GeoJSON</button>
-    </div>
     <div id="map"></div>
-
     <script>
         const map = L.map('map').setView([4.5, -74], 6);
 
-        // Mapas base
-        const baseMaps = {
-            'OpenStreetMap': L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                maxZoom: 19,
-                attribution: 'Map data © OpenStreetMap contributors'
-            }).addTo(map),
-            'Google Satélite': L.tileLayer('https://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', {
-                subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
-                maxZoom: 20,
-                attribution: 'Map data © Google'
-            }),
-            'Google Híbrido': L.tileLayer('https://{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {
-                subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
-                maxZoom: 20,
-                attribution: 'Map data © Google'
-            }),
-            'ESRI Satélite': L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-                maxZoom: 19,
-                attribution: 'Tiles © ESRI & contributors'
-            }),
-            'ESRI Topográfico': L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}', {
-                maxZoom: 19,
-                attribution: 'Tiles © ESRI & contributors'
-            })
-        };
+        // Capas base
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: 'Map data © OpenStreetMap contributors'
+        }).addTo(map);
 
-        L.control.layers(baseMaps).addTo(map);
-
-        // Capas de dibujo
-        const fincaLayer = new L.FeatureGroup().addTo(map);
-        const cultivoLayer = new L.FeatureGroup().addTo(map);
+        // Grupo para almacenar polígonos
+        const drawnItems = new L.FeatureGroup().addTo(map);
 
         const drawControl = new L.Control.Draw({
             draw: {
-                polyline: false,
-                marker: false,
+                polyline: true, // Activamos para que se puedan dibujar líneas de corte
+                polygon: true,
                 circle: false,
-                circlemarker: false,
-                polygon: {
-                    allowIntersection: false,
-                    shapeOptions: { color: 'green' }
-                }
+                marker: false,
+                circlemarker: false
             },
             edit: {
-                featureGroup: fincaLayer
+                featureGroup: drawnItems
             }
         });
         map.addControl(drawControl);
 
-        // Crear una finca
+        let selectedPolygon = null; // Variable para almacenar el polígono seleccionado
+
+        // Manejar creación de polígonos y líneas
         map.on(L.Draw.Event.CREATED, function (e) {
             const layer = e.layer;
 
-            const cod_finca = prompt("Ingrese el código de finca:");
-            const propietario = prompt("Ingrese el nombre del propietario:");
-            const proyecto = prompt("Ingrese el nombre del proyecto:");
-            const area = L.GeometryUtil.geodesicArea(layer.getLatLngs()[0]) / 10000; // Área en hectáreas
-
-            layer.properties = {
-                cod_finca: cod_finca,
-                propietario: propietario,
-                proyecto: proyecto,
-                area: area.toFixed(2),
-                tipo: "Finca"
-            };
-
-            layer.setStyle({ color: 'blue', fillOpacity: 0.3 });
-            layer.bindPopup(`
-                <strong>Finca:</strong> ${cod_finca}<br>
-                <strong>Propietario:</strong> ${propietario}<br>
-                <strong>Proyecto:</strong> ${proyecto}<br>
-                <strong>Área:</strong> ${area.toFixed(2)} ha
-            `);
-
-            fincaLayer.addLayer(layer);
-        });
-
-        // Dividir la finca en cultivos
-        map.on('click', function (e) {
-            const clickedLayer = fincaLayer.getLayers().find(layer => layer.contains(e.latlng));
-
-            if (clickedLayer) {
-                const cultivoLayerTemp = new L.Draw.Polygon(map, {
-                    allowIntersection: false,
-                    shapeOptions: { color: 'orange' }
-                });
-
-                cultivoLayerTemp.enable();
-
-                cultivoLayerTemp.on('created', function (ev) {
-                    const subLayer = ev.layer;
-                    const area = L.GeometryUtil.geodesicArea(subLayer.getLatLngs()[0]) / 10000; // Área en hectáreas
-                    const cultivo = prompt("Ingrese el tipo de cultivo:");
-
-                    subLayer.properties = {
-                        cod_finca: clickedLayer.properties.cod_finca,
-                        propietario: clickedLayer.properties.propietario,
-                        proyecto: clickedLayer.properties.proyecto,
-                        cultivo: cultivo,
-                        area: area.toFixed(2),
-                        tipo: "Cultivo"
-                    };
-
-                    subLayer.setStyle({ color: 'orange', fillOpacity: 0.5 });
-                    subLayer.bindPopup(`
-                        <strong>Finca:</strong> ${clickedLayer.properties.cod_finca}<br>
-                        <strong>Cultivo:</strong> ${cultivo}<br>
-                        <strong>Área:</strong> ${area.toFixed(2)} ha<br>
-                        <strong>Propietario:</strong> ${clickedLayer.properties.propietario}<br>
-                        <strong>Proyecto:</strong> ${clickedLayer.properties.proyecto}
-                    `);
-
-                    cultivoLayer.addLayer(subLayer);
-                });
+            if (layer instanceof L.Polygon) {
+                layer.bindPopup("Polígono creado. Haz clic para seleccionarlo.");
+                drawnItems.addLayer(layer);
+            } else if (layer instanceof L.Polyline) {
+                if (selectedPolygon) {
+                    dividePolygon(selectedPolygon, layer);
+                } else {
+                    alert("Por favor, selecciona un polígono antes de dibujar una línea.");
+                }
             }
         });
 
-        // Exportar datos
-        function exportAll() {
-            const fincaData = fincaLayer.toGeoJSON();
-            const cultivoData = cultivoLayer.toGeoJSON();
-            const allData = {
-                type: "FeatureCollection",
-                features: [...fincaData.features, ...cultivoData.features]
-            };
+        // Seleccionar un polígono haciendo clic
+        map.on('click', function (e) {
+            drawnItems.eachLayer(function (layer) {
+                if (layer instanceof L.Polygon && layer.contains(e.latlng)) {
+                    selectedPolygon = layer;
+                    alert("Polígono seleccionado. Ahora puedes dibujar una línea para dividirlo.");
+                }
+            });
+        });
 
-            const blob = new Blob([JSON.stringify(allData)], { type: "application/json" });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement("a");
-            a.href = url;
-            a.download = "geoportal_usos_suelo.geojson";
-            a.click();
-            URL.revokeObjectURL(url);
+        // Función para dividir el polígono
+        function dividePolygon(polygonLayer, lineLayer) {
+            const polygonCoords = polygonLayer.toGeoJSON();
+            const lineCoords = lineLayer.toGeoJSON();
+
+            // Dividir el polígono usando Turf.js
+            const splitResult = turf.lineSplit(polygonCoords, lineCoords);
+
+            if (splitResult.features.length > 1) {
+                drawnItems.removeLayer(polygonLayer); // Remover el polígono original
+
+                splitResult.features.forEach(feature => {
+                    const newPolygon = L.geoJSON(feature, {
+                        style: { color: 'blue', fillOpacity: 0.5 }
+                    }).addTo(drawnItems);
+
+                    newPolygon.bindPopup("Polígono dividido.");
+                });
+
+                drawnItems.removeLayer(lineLayer); // Remover la línea de corte
+                alert("El polígono se ha dividido con éxito.");
+            } else {
+                alert("No se pudo dividir el polígono. Verifica que la línea lo intersecte.");
+            }
         }
     </script>
 </body>
