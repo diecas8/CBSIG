@@ -3,18 +3,33 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dividir Polígonos</title>
+    <title>División de Fincas en Lotes</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css">
     <link rel="stylesheet" href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css">
     <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
     <script src="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/Turf.js/6.5.0/turf.min.js"></script>
     <style>
         #map { height: 100vh; }
+        #header {
+            position: absolute;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1000;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 10px 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.2);
+        }
     </style>
 </head>
 <body>
+    <div id="header">
+        <h1>División de Fincas en Lotes</h1>
+        <button onclick="exportData()">Exportar Todo a GeoJSON</button>
+    </div>
     <div id="map"></div>
+
     <script>
         const map = L.map('map').setView([4.5, -74], 6);
 
@@ -24,75 +39,114 @@
             attribution: 'Map data © OpenStreetMap contributors'
         }).addTo(map);
 
-        // Grupo para almacenar polígonos
-        const drawnItems = new L.FeatureGroup().addTo(map);
+        // Grupos de capas
+        const fincaLayer = new L.FeatureGroup().addTo(map);
+        const loteLayer = new L.FeatureGroup().addTo(map);
 
+        // Control de dibujo
         const drawControl = new L.Control.Draw({
             draw: {
-                polyline: true, // Activamos para que se puedan dibujar líneas de corte
-                polygon: true,
-                circle: false,
+                polyline: false,
                 marker: false,
-                circlemarker: false
+                circle: false,
+                circlemarker: false,
+                polygon: {
+                    allowIntersection: false,
+                    shapeOptions: { color: 'green' }
+                }
             },
             edit: {
-                featureGroup: drawnItems
+                featureGroup: fincaLayer
             }
         });
         map.addControl(drawControl);
 
-        let selectedPolygon = null; // Variable para almacenar el polígono seleccionado
-
-        // Manejar creación de polígonos y líneas
+        // Crear una finca
         map.on(L.Draw.Event.CREATED, function (e) {
             const layer = e.layer;
 
-            if (layer instanceof L.Polygon) {
-                layer.bindPopup("Polígono creado. Haz clic para seleccionarlo.");
-                drawnItems.addLayer(layer);
-            } else if (layer instanceof L.Polyline) {
-                if (selectedPolygon) {
-                    dividePolygon(selectedPolygon, layer);
-                } else {
-                    alert("Por favor, selecciona un polígono antes de dibujar una línea.");
-                }
-            }
+            const cod_finca = prompt("Ingrese el código de finca:");
+            const propietario = prompt("Ingrese el nombre del propietario:");
+            const proyecto = prompt("Ingrese el proyecto:");
+            const area = L.GeometryUtil.geodesicArea(layer.getLatLngs()[0]) / 10000; // Área en hectáreas
+
+            layer.properties = {
+                cod_finca: cod_finca,
+                propietario: propietario,
+                proyecto: proyecto,
+                area: area.toFixed(2),
+                tipo: "Finca"
+            };
+
+            layer.setStyle({ color: 'blue', fillOpacity: 0.3 });
+            layer.bindPopup(`
+                <strong>Finca:</strong> ${cod_finca}<br>
+                <strong>Propietario:</strong> ${propietario}<br>
+                <strong>Proyecto:</strong> ${proyecto}<br>
+                <strong>Área:</strong> ${area.toFixed(2)} ha
+            `);
+
+            fincaLayer.addLayer(layer);
         });
 
-        // Seleccionar un polígono haciendo clic
+        // Seleccionar finca para dividir
         map.on('click', function (e) {
-            drawnItems.eachLayer(function (layer) {
-                if (layer instanceof L.Polygon && layer.contains(e.latlng)) {
-                    selectedPolygon = layer;
-                    alert("Polígono seleccionado. Ahora puedes dibujar una línea para dividirlo.");
-                }
-            });
-        });
+            const selectedFinca = fincaLayer.getLayers().find(layer => layer.contains(e.latlng));
 
-        // Función para dividir el polígono
-        function dividePolygon(polygonLayer, lineLayer) {
-            const polygonCoords = polygonLayer.toGeoJSON();
-            const lineCoords = lineLayer.toGeoJSON();
+            if (selectedFinca) {
+                alert("Seleccionó una finca. Dibuje lotes dentro de esta finca.");
 
-            // Dividir el polígono usando Turf.js
-            const splitResult = turf.lineSplit(polygonCoords, lineCoords);
-
-            if (splitResult.features.length > 1) {
-                drawnItems.removeLayer(polygonLayer); // Remover el polígono original
-
-                splitResult.features.forEach(feature => {
-                    const newPolygon = L.geoJSON(feature, {
-                        style: { color: 'blue', fillOpacity: 0.5 }
-                    }).addTo(drawnItems);
-
-                    newPolygon.bindPopup("Polígono dividido.");
+                const loteDrawControl = new L.Draw.Polygon(map, {
+                    allowIntersection: false,
+                    shapeOptions: { color: 'orange' }
                 });
 
-                drawnItems.removeLayer(lineLayer); // Remover la línea de corte
-                alert("El polígono se ha dividido con éxito.");
-            } else {
-                alert("No se pudo dividir el polígono. Verifica que la línea lo intersecte.");
+                loteDrawControl.enable();
+
+                loteDrawControl.on('created', function (ev) {
+                    const loteLayerItem = ev.layer;
+                    const area = L.GeometryUtil.geodesicArea(loteLayerItem.getLatLngs()[0]) / 10000; // Área en hectáreas
+                    const cultivo = prompt("Ingrese el tipo de cultivo para este lote:");
+
+                    loteLayerItem.properties = {
+                        cod_finca: selectedFinca.properties.cod_finca,
+                        propietario: selectedFinca.properties.propietario,
+                        proyecto: selectedFinca.properties.proyecto,
+                        cultivo: cultivo,
+                        area: area.toFixed(2),
+                        tipo: "Lote"
+                    };
+
+                    loteLayerItem.setStyle({ color: 'orange', fillOpacity: 0.5 });
+                    loteLayerItem.bindPopup(`
+                        <strong>Finca:</strong> ${selectedFinca.properties.cod_finca}<br>
+                        <strong>Cultivo:</strong> ${cultivo}<br>
+                        <strong>Área:</strong> ${area.toFixed(2)} ha<br>
+                        <strong>Propietario:</strong> ${selectedFinca.properties.propietario}<br>
+                        <strong>Proyecto:</strong> ${selectedFinca.properties.proyecto}
+                    `);
+
+                    loteLayer.addLayer(loteLayerItem);
+                });
             }
+        });
+
+        // Exportar datos
+        function exportData() {
+            const fincaData = fincaLayer.toGeoJSON();
+            const loteData = loteLayer.toGeoJSON();
+            const allData = {
+                type: "FeatureCollection",
+                features: [...fincaData.features, ...loteData.features]
+            };
+
+            const blob = new Blob([JSON.stringify(allData)], { type: "application/json" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = "geoportal_finca_lotes.geojson";
+            a.click();
+            URL.revokeObjectURL(url);
         }
     </script>
 </body>
