@@ -193,7 +193,7 @@
                         <option value="Renovación por zoca">Renovación por zoca</option>
                         <option value="Siembra">Siembra</option>
                     </select><br>
-                    <button type="button" onclick="guardarLote()">Guardar</button>
+                    <button type="button" id="guardarLote">Guardar</button>
                 </form>
             `;
 
@@ -204,7 +204,7 @@
 
             const area = L.GeometryUtil.geodesicArea(layer.getLatLngs()[0]) / 10000;
 
-            window.guardarLote = function () {
+            document.getElementById("guardarLote").addEventListener("click", function () {
                 const codigoFinca = document.getElementById("codigoFinca").value;
                 const variedad = document.getElementById("variedad").value;
                 const fechaLabor = document.getElementById("fechaLabor").value;
@@ -247,52 +247,8 @@
                 `);
 
                 map.closePopup();
-            };
+            });
         });
-
-        // Exportar todos los lotes a GeoJSON
-        function exportData() {
-            const geoJSON = {
-                type: "FeatureCollection",
-                features: lotes
-            };
-            const blob = new Blob([JSON.stringify(geoJSON)], { type: "application/json" });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement("a");
-            a.href = url;
-            a.download = "lotes_cafe.geojson";
-            a.click();
-            URL.revokeObjectURL(url);
-        }
-
-        // Exportar lotes por finca
-        function exportByFinca() {
-            const codigoFinca = prompt("Ingrese el código de la finca para exportar sus lotes:");
-            if (!codigoFinca) {
-                alert("Debe ingresar un código de finca válido.");
-                return;
-            }
-
-            const filteredLotes = lotes.filter(lote => lote.properties.finca === codigoFinca);
-
-            if (filteredLotes.length === 0) {
-                alert(`No se encontraron lotes para la finca con código: ${codigoFinca}`);
-                return;
-            }
-
-            const geoJSON = {
-                type: "FeatureCollection",
-                features: filteredLotes
-            };
-
-            const blob = new Blob([JSON.stringify(geoJSON)], { type: "application/json" });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement("a");
-            a.href = url;
-            a.download = `lotes_${codigoFinca}.geojson`;
-            a.click();
-            URL.revokeObjectURL(url);
-        }
     </script>
 </body>
 </html>
