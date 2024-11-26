@@ -19,17 +19,20 @@
             transform: translateX(-50%);
             z-index: 1000;
             background: rgba(255, 255, 255, 0.9);
-            padding: 5px;
+            padding: 5px 10px;
             border-radius: 8px;
             font-size: 14px;
             box-shadow: 0 0 5px rgba(0, 0, 0, 0.2);
             display: flex;
-            flex-wrap: wrap;
-            justify-content: center;
-            gap: 5px;
+            align-items: center;
+            gap: 10px;
+        }
+        #header h1 {
+            font-size: 16px;
+            margin: 0;
         }
         #header button {
-            font-size: 12px;
+            font-size: 14px;
             padding: 5px 8px;
             border: none;
             border-radius: 5px;
@@ -39,23 +42,6 @@
         }
         #header button:hover {
             background-color: #0056b3;
-        }
-        #modal {
-            display: none;
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            z-index: 2000;
-            background: white;
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-            width: 300px;
-        }
-        #modal select, #modal button {
-            width: 100%;
-            margin-top: 10px;
         }
         #footer {
             position: absolute;
@@ -73,29 +59,16 @@
 </head>
 <body>
     <div id="header">
+        <h1>Geoportal de Lotes</h1>
+        <button onclick="registrarProductor()">Registrar Productor</button>
+        <button onclick="registrarFinca()">Registrar Finca</button>
         <button onclick="saveToLocal()">Guardar Lotes</button>
         <button onclick="loadFromLocal()">Cargar Lotes</button>
         <button onclick="exportData()">Exportar GeoJSON</button>
-        <button onclick="exportSingleLote()">Exportar Lote</button>
-        <button onclick="centerOnUser()">Ubicarme</button>
+        <button onclick="exportSingleLote()">Exportar Lote por Código</button>
+        <button onclick="centerOnUser()">Ir a Mi Ubicación</button>
     </div>
     <div id="map"></div>
-    <div id="modal">
-        <h3>Seleccione el Nombre del Cultivo</h3>
-        <select id="cultivoSelect">
-            <option value="Café">Café</option>
-            <option value="Plátano">Plátano</option>
-            <option value="Pasto">Pasto</option>
-            <option value="Aguacate">Aguacate</option>
-            <option value="Bosque">Bosque</option>
-            <option value="Rastrojo">Rastrojo</option>
-            <option value="Semestrales">Semestrales</option>
-            <option value="Guadua">Guadua</option>
-            <option value="Área en descanso">Área en descanso</option>
-            <option value="Forestales">Forestales</option>
-        </select>
-        <button onclick="confirmCultivo()">Confirmar</button>
-    </div>
     <div id="footer">
         Geoportal creado por Diego Castaño
     </div>
@@ -114,6 +87,11 @@
                 maxZoom: 20,
                 attribution: 'Map data © Google'
             }),
+            'Google Híbrido': L.tileLayer('https://{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {
+                subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
+                maxZoom: 20,
+                attribution: 'Map data © Google'
+            }),
             'ESRI Satélite': L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
                 maxZoom: 19,
                 attribution: 'Tiles © ESRI & contributors'
@@ -126,10 +104,10 @@
 
         L.control.layers(baseMaps).addTo(map);
 
+        // Capas y variables globales
         const loteLayer = new L.FeatureGroup().addTo(map);
-        const modal = document.getElementById('modal');
-        const cultivoSelect = document.getElementById('cultivoSelect');
-        let currentLayer = null;
+        let productor = null; // Datos del productor
+        let finca = null;     // Datos de la finca
 
         // Control de dibujo
         const drawControl = new L.Control.Draw({
@@ -149,72 +127,146 @@
         });
         map.addControl(drawControl);
 
-        // Abrir modal de selección de cultivo
-        function openCultivoModal(layer) {
-            currentLayer = layer;
-            modal.style.display = 'block';
+        // Registrar productor
+        function registrarProductor() {
+            const form = `
+                <form id="productorForm">
+                    <label for="nombreProductor">Nombre:</label><br>
+                    <input type="text" id="nombreProductor" required><br>
+                    <label for="idProductor">Identificación:</label><br>
+                    <input type="text" id="idProductor" required><br>
+                    <label for="telefonoProductor">Teléfono:</label><br>
+                    <input type="text" id="telefonoProductor" required><br>
+                    <label for="correoProductor">Correo:</label><br>
+                    <input type="email" id="correoProductor" required><br>
+                    <button type="button" onclick="guardarProductor()">Guardar</button>
+                </form>
+            `;
+
+            L.popup()
+                .setLatLng(map.getCenter())
+                .setContent(form)
+                .openOn(map);
         }
 
-        // Confirmar el cultivo seleccionado
-        function confirmCultivo() {
-            const nombreCultivo = cultivoSelect.value;
+        function guardarProductor() {
+            const nombre = document.getElementById("nombreProductor").value;
+            const id = document.getElementById("idProductor").value;
+            const telefono = document.getElementById("telefonoProductor").value;
+            const correo = document.getElementById("correoProductor").value;
 
-            const codigoFinca = prompt("Ingrese el código de la finca:") || "Sin definir";
-            const areaCultivo = L.GeometryUtil.geodesicArea(currentLayer.getLatLngs()[0]) / 10000;
+            if (!nombre || !id || !telefono || !correo) {
+                alert("Por favor, complete todos los campos del productor.");
+                return;
+            }
 
-            currentLayer.properties = {
-                codigo_finca: codigoFinca,
-                nombre_cultivo: nombreCultivo,
-                area_cultivo: areaCultivo.toFixed(2),
-                tipo: "Lote"
-            };
+            productor = { nombre, id, telefono, correo };
+            alert("Productor registrado correctamente.");
+            map.closePopup();
+        }
 
-            currentLayer.setStyle({ color: 'orange', fillOpacity: 0.5 });
-            currentLayer.bindPopup(`
-                <strong>Código de Finca:</strong> ${codigoFinca}<br>
-                <strong>Nombre del Cultivo:</strong> ${nombreCultivo}<br>
-                <strong>Área del Cultivo:</strong> ${areaCultivo.toFixed(2)} ha
-            `);
+        // Registrar finca
+        function registrarFinca() {
+            const form = `
+                <form id="fincaForm">
+                    <label for="nombreFinca">Nombre:</label><br>
+                    <input type="text" id="nombreFinca" required><br>
+                    <label for="areaFinca">Área Tentativa (ha):</label><br>
+                    <input type="number" id="areaFinca" required><br>
+                    <label for="veredaFinca">Vereda:</label><br>
+                    <input type="text" id="veredaFinca" required><br>
+                    <label for="municipioFinca">Municipio:</label><br>
+                    <input type="text" id="municipioFinca" required><br>
+                    <button type="button" onclick="guardarFinca()">Guardar</button>
+                </form>
+            `;
 
-            loteLayer.addLayer(currentLayer);
-            modal.style.display = 'none';
+            L.popup()
+                .setLatLng(map.getCenter())
+                .setContent(form)
+                .openOn(map);
+        }
+
+        function guardarFinca() {
+            const nombre = document.getElementById("nombreFinca").value;
+            const area = document.getElementById("areaFinca").value;
+            const vereda = document.getElementById("veredaFinca").value;
+            const municipio = document.getElementById("municipioFinca").value;
+
+            if (!nombre || !area || !vereda || !municipio) {
+                alert("Por favor, complete todos los campos de la finca.");
+                return;
+            }
+
+            finca = { nombre, area, vereda, municipio };
+            alert("Finca registrada correctamente.");
+            map.closePopup();
         }
 
         // Crear un lote
         map.on(L.Draw.Event.CREATED, function (e) {
-            openCultivoModal(e.layer);
-        });
-
-        // Guardar los lotes en LocalStorage
-        function saveToLocal() {
-            const loteData = loteLayer.toGeoJSON();
-            localStorage.setItem("loteData", JSON.stringify(loteData));
-            alert("Lotes guardados localmente.");
-        }
-
-        // Cargar los lotes desde LocalStorage
-        function loadFromLocal() {
-            const savedData = localStorage.getItem("loteData");
-            if (!savedData) {
-                alert("No hay lotes guardados.");
+            if (!productor || !finca) {
+                alert("Debe registrar primero los datos del productor y la finca.");
                 return;
             }
 
-            loteLayer.clearLayers();
-            const loteGeoJSON = JSON.parse(savedData);
-            L.geoJSON(loteGeoJSON, {
-                onEachFeature: function (feature, layer) {
-                    layer.setStyle({ color: 'orange', fillOpacity: 0.5 });
-                    layer.bindPopup(`
-                        <strong>Código de Finca:</strong> ${feature.properties.codigo_finca}<br>
-                        <strong>Nombre del Cultivo:</strong> ${feature.properties.nombre_cultivo}<br>
-                        <strong>Área del Cultivo:</strong> ${feature.properties.area_cultivo} ha
-                    `);
-                    loteLayer.addLayer(layer);
+            const layer = e.layer;
+
+            const cultivosDisponibles = [
+                "Café y no cafetería", "Plátano", "Pasto", "Aguacate", "Bosque", 
+                "Rastrojo", "Semestrales", "Guadua", "Área en descanso", "Forestales"
+            ];
+
+            const form = `
+                <form id="loteForm">
+                    <label for="codigoCultivo">Código de Cultivo:</label><br>
+                    <input type="text" id="codigoCultivo" required><br>
+                    <label for="nombreCultivo">Nombre del Cultivo:</label><br>
+                    <select id="nombreCultivo" required>
+                        ${cultivosDisponibles.map(cultivo => `<option value="${cultivo}">${cultivo}</option>`).join('')}
+                    </select><br>
+                    <button type="button" onclick="guardarLote()">Guardar</button>
+                </form>
+            `;
+
+            const popup = L.popup()
+                .setLatLng(e.layer.getBounds().getCenter())
+                .setContent(form)
+                .openOn(map);
+
+            const area = L.GeometryUtil.geodesicArea(layer.getLatLngs()[0]) / 10000;
+
+            window.guardarLote = function () {
+                const codigoCultivo = document.getElementById("codigoCultivo").value;
+                const nombreCultivo = document.getElementById("nombreCultivo").value;
+
+                if (!codigoCultivo || !nombreCultivo) {
+                    alert("Por favor, complete todos los campos del lote.");
+                    return;
                 }
-            });
-            alert("Lotes cargados correctamente.");
-        }
+
+                layer.properties = {
+                    productor,
+                    finca,
+                    codigoCultivo,
+                    nombreCultivo,
+                    area: area.toFixed(2),
+                    tipo: "Lote"
+                };
+
+                layer.setStyle({ color: 'orange', fillOpacity: 0.5 });
+                layer.bindPopup(`
+                    <strong>Productor:</strong> ${productor.nombre}<br>
+                    <strong>Finca:</strong> ${finca.nombre}<br>
+                    <strong>Código de Cultivo:</strong> ${codigoCultivo}<br>
+                    <strong>Nombre del Cultivo:</strong> ${nombreCultivo}<br>
+                    <strong>Área:</strong> ${area.toFixed(2)} ha
+                `);
+
+                loteLayer.addLayer(layer);
+                map.closePopup();
+            };
+        });
 
         // Exportar todos los lotes a GeoJSON
         function exportData() {
@@ -228,20 +280,21 @@
             URL.revokeObjectURL(url);
         }
 
-        // Exportar un lote
+        // Exportar un lote específico
         function exportSingleLote() {
             const loteData = loteLayer.toGeoJSON();
-            const codigoFinca = prompt("Ingrese el código de la finca del lote a exportar:");
-            if (!codigoFinca) {
+            const codigo = prompt("Ingrese el código del cultivo a exportar:");
+            if (!codigo) {
                 alert("Debe ingresar un código válido.");
                 return;
             }
 
             const singleLote = loteData.features.find(
-                (feature) => feature.properties.codigo_finca === codigoFinca
+                (feature) => feature.properties.codigoCultivo === codigo
             );
+
             if (!singleLote) {
-                alert(`No se encontró ningún lote con el código de finca: ${codigoFinca}`);
+                alert(`No se encontró un lote con el código: ${codigo}`);
                 return;
             }
 
@@ -254,18 +307,52 @@
             const url = URL.createObjectURL(blob);
             const a = document.createElement("a");
             a.href = url;
-            a.download = `lote_${codigoFinca}.geojson`;
+            a.download = `lote_${codigo}.geojson`;
             a.click();
             URL.revokeObjectURL(url);
         }
 
-        // Centrar en la ubicación del usuario
+        // Guardar lotes localmente
+        function saveToLocal() {
+            const loteData = loteLayer.toGeoJSON();
+            localStorage.setItem("loteData", JSON.stringify(loteData));
+            alert("Lotes guardados localmente.");
+        }
+
+        // Cargar lotes desde almacenamiento local
+        function loadFromLocal() {
+            const savedData = localStorage.getItem("loteData");
+            if (!savedData) {
+                alert("No hay lotes guardados.");
+                return;
+            }
+
+            loteLayer.clearLayers();
+
+            const loteGeoJSON = JSON.parse(savedData);
+            L.geoJSON(loteGeoJSON, {
+                onEachFeature: function (feature, layer) {
+                    layer.setStyle({ color: 'orange', fillOpacity: 0.5 });
+                    layer.bindPopup(`
+                        <strong>Código de Cultivo:</strong> ${feature.properties.codigoCultivo}<br>
+                        <strong>Nombre del Cultivo:</strong> ${feature.properties.nombreCultivo}<br>
+                        <strong>Área:</strong> ${feature.properties.area} ha
+                    `);
+                    loteLayer.addLayer(layer);
+                }
+            });
+
+            alert("Lotes cargados correctamente.");
+        }
+
+        // Centrar mapa en la ubicación del usuario
         function centerOnUser() {
             if (navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition(
                     function (position) {
                         const userLat = position.coords.latitude;
                         const userLng = position.coords.longitude;
+
                         map.setView([userLat, userLng], 16);
                         L.marker([userLat, userLng]).addTo(map).bindPopup("Estás aquí").openPopup();
                     },
