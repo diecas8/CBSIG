@@ -271,60 +271,56 @@
                 );
             });
 
-           window.guardarLote = function () {
-    // Obtener valores del formulario
-    const fincaCodigo = document.getElementById("fincaLote").value;
-    const variedad = document.getElementById("variedadCafe").value;
-    const fecha = document.getElementById("fechaLabor").value;
-    const tipo = document.getElementById("tipoLabor").value;
-    const distanciaSurcos = document.getElementById("distanciaSurcos").value;
-    const distanciaPlantas = document.getElementById("distanciaPlantas").value;
-    const luminosidad = document.getElementById("luminosidad").value;
-    const altura = document.getElementById("alturaGPS") ? document.getElementById("alturaGPS").value : "Altura no disponible";
+            window.guardarLote = function () {
+                const fincaCodigo = document.getElementById("fincaLote").value;
+                const variedad = document.getElementById("variedadCafe").value;
+                const fecha = document.getElementById("fechaLabor").value;
+                const tipo = document.getElementById("tipoLabor").value;
+                const distanciaSurcos = document.getElementById("distanciaSurcos").value;
+                const distanciaPlantas = document.getElementById("distanciaPlantas").value;
+                const luminosidad = document.getElementById("luminosidad").value;
+                const altura = document.getElementById("alturaGPS").value;
 
-    if (!fincaCodigo || !variedad || !fecha || !tipo || !distanciaSurcos || !distanciaPlantas || !luminosidad) {
-        alert("Por favor, complete todos los campos del lote.");
-        return;
-    }
+                if (!fincaCodigo || !variedad || !fecha || !tipo || !distanciaSurcos || !distanciaPlantas || !luminosidad) {
+                    alert("Por favor, complete todos los campos del lote.");
+                    return;
+                }
 
-    const finca = fincas.find(f => f.codigo === fincaCodigo);
-    const loteCodigo = `${fincaCodigo}-${loteCounter[fincaCodigo]++}`;
-    const area = L.GeometryUtil.geodesicArea(layer.getLatLngs()[0]) / 10000;
+                const finca = fincas.find(f => f.codigo === fincaCodigo);
+                const loteCodigo = `${fincaCodigo}-${loteCounter[fincaCodigo]++}`;
+                const area = L.GeometryUtil.geodesicArea(layer.getLatLngs()[0]) / 10000;
 
-    // Asignar propiedades al lote
-    layer.properties = {
-        fincaCodigo,
-        loteCodigo,
-        variedad,
-        fecha,
-        tipo,
-        distanciaSurcos,
-        distanciaPlantas,
-        luminosidad,
-        altura,
-        area: area.toFixed(2),
-        tipoLote: "Café"
-    };
+                layer.properties = {
+                    fincaCodigo,
+                    loteCodigo,
+                    variedad,
+                    fecha,
+                    tipo,
+                    distanciaSurcos,
+                    distanciaPlantas,
+                    luminosidad,
+                    altura,
+                    area: area.toFixed(2),
+                    tipoLote: "Café"
+                };
 
-    // Estilo del lote y contenido del popup
-    layer.setStyle({ color: 'orange', fillOpacity: 0.5 });
-    layer.bindPopup(`
-        <strong>Código de Finca:</strong> ${fincaCodigo}<br>
-        <strong>Código de Lote:</strong> ${loteCodigo}<br>
-        <strong>Variedad:</strong> ${variedad}<br>
-        <strong>Fecha de Labor:</strong> ${fecha}<br>
-        <strong>Tipo de Labor:</strong> ${tipo}<br>
-        <strong>Distancia entre Surcos:</strong> ${distanciaSurcos} m<br>
-        <strong>Distancia entre Plantas:</strong> ${distanciaPlantas} m<br>
-        <strong>Luminosidad:</strong> ${luminosidad}%<br>
-        <strong>Altura:</strong> ${altura} m<br>
-        <strong>Área:</strong> ${area.toFixed(2)} ha
-    `);
+                layer.setStyle({ color: 'orange', fillOpacity: 0.5 });
+                layer.bindPopup(`
+                    <strong>Código de Finca:</strong> ${fincaCodigo}<br>
+                    <strong>Código de Lote:</strong> ${loteCodigo}<br>
+                    <strong>Variedad:</strong> ${variedad}<br>
+                    <strong>Fecha de Labor:</strong> ${fecha}<br>
+                    <strong>Tipo de Labor:</strong> ${tipo}<br>
+                    <strong>Distancia entre Surcos:</strong> ${distanciaSurcos} m<br>
+                    <strong>Distancia entre Plantas:</strong> ${distanciaPlantas} m<br>
+                    <strong>Luminosidad:</strong> ${luminosidad}%<br>
+                    <strong>Altura:</strong> ${altura} m<br>
+                    <strong>Área:</strong> ${area.toFixed(2)} ha
+                `);
 
-    loteLayer.addLayer(layer);
-    map.closePopup();
-};
-
+                loteLayer.addLayer(layer);
+                map.closePopup();
+            };
         });
 
         // Exportar todos los lotes a GeoJSON
@@ -401,3 +397,5 @@
     </script>
 </body>
 </html>
+
+
