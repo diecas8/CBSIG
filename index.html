@@ -60,6 +60,7 @@
 <body>
     <div id="header">
         <h1>Geoportal de Lotes de Café</h1>
+        <button onclick="registrarProductor()">Registrar Productor</button>
         <button onclick="registrarFinca()">Registrar Finca</button>
         <button onclick="saveToLocal()">Guardar Lotes</button>
         <button onclick="loadFromLocal()">Cargar Lotes</button>
@@ -79,13 +80,23 @@
             'OpenStreetMap': L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                 maxZoom: 19,
                 attribution: 'Map data © OpenStreetMap contributors'
-            }).addTo(map)
+            }).addTo(map),
+            'Google Satélite': L.tileLayer('https://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', {
+                subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
+                maxZoom: 20,
+                attribution: 'Map data © Google'
+            }),
+            'ESRI Satélite': L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+                maxZoom: 19,
+                attribution: 'Tiles © ESRI & contributors'
+            })
         };
 
         L.control.layers(baseMaps).addTo(map);
 
         // Capas y listas dinámicas
         const loteLayer = new L.FeatureGroup().addTo(map);
+        let productores = []; // Lista de productores registrados
         let fincas = []; // Lista de fincas registradas
         let loteCounter = {}; // Contador de lotes por finca
 
@@ -107,16 +118,63 @@
         });
         map.addControl(drawControl);
 
+        // Registrar productor
+        function registrarProductor() {
+            const form = `
+                <form id="productorForm">
+                    <label for="nombreProductor">Nombre:</label><br>
+                    <input type="text" id="nombreProductor" required><br>
+                    <label for="idProductor">Identificación:</label><br>
+                    <input type="text" id="idProductor" required><br>
+                    <label for="telefonoProductor">Teléfono:</label><br>
+                    <input type="text" id="telefonoProductor" required><br>
+                    <label for="correoProductor">Correo:</label><br>
+                    <input type="email" id="correoProductor" required><br>
+                    <button type="button" onclick="guardarProductor()">Guardar</button>
+                </form>
+            `;
+
+            L.popup()
+                .setLatLng(map.getCenter())
+                .setContent(form)
+                .openOn(map);
+        }
+
+        function guardarProductor() {
+            const nombre = document.getElementById("nombreProductor").value;
+            const id = document.getElementById("idProductor").value;
+            const telefono = document.getElementById("telefonoProductor").value;
+            const correo = document.getElementById("correoProductor").value;
+
+            if (!nombre || !id || !telefono || !correo) {
+                alert("Por favor, complete todos los campos del productor.");
+                return;
+            }
+
+            productores.push({ nombre, id, telefono, correo });
+            alert("Productor registrado correctamente.");
+            map.closePopup();
+        }
+
         // Registrar finca
         function registrarFinca() {
+            if (productores.length === 0) {
+                alert("Debe registrar al menos un productor antes de registrar una finca.");
+                return;
+            }
+
             const form = `
                 <form id="fincaForm">
                     <label for="codigoFinca">Código de Finca:</label><br>
                     <input type="text" id="codigoFinca" required><br>
-                    <label for="nombreFinca">Nombre de la Finca:</label><br>
+                    <label for="nombreFinca">Nombre:</label><br>
                     <input type="text" id="nombreFinca" required><br>
                     <label for="areaFinca">Área Tentativa (ha):</label><br>
                     <input type="number" id="areaFinca" required><br>
+                    <label for="productorFinca">Seleccione Productor:</label><br>
+                    <select id="productorFinca" required>
+                        ${productores.map(p => `<option value="${p.id}">${p.nombre}</option>`).join('')}
+                    </select><br>
                     <button type="button" onclick="guardarFinca()">Guardar</button>
                 </form>
             `;
@@ -131,24 +189,21 @@
             const codigo = document.getElementById("codigoFinca").value;
             const nombre = document.getElementById("nombreFinca").value;
             const area = document.getElementById("areaFinca").value;
+            const productorId = document.getElementById("productorFinca").value;
 
-            if (!codigo || !nombre || !area) {
+            if (!codigo || !nombre || !area || !productorId) {
                 alert("Por favor, complete todos los campos de la finca.");
                 return;
             }
 
-            if (fincas.some(f => f.codigo === codigo)) {
-                alert("El código de finca ya existe.");
-                return;
-            }
-
-            fincas.push({ codigo, nombre, area });
+            const productor = productores.find(p => p.id === productorId);
+            fincas.push({ codigo, nombre, area, productor });
             loteCounter[codigo] = 1; // Inicia contador de lotes
             alert("Finca registrada correctamente.");
             map.closePopup();
         }
 
-        // Crear un lote de café
+        // Crear lote
         map.on(L.Draw.Event.CREATED, function (e) {
             if (fincas.length === 0) {
                 alert("Debe registrar al menos una finca antes de dibujar lotes.");
@@ -157,35 +212,12 @@
 
             const layer = e.layer;
 
-            const variedades = [
-                "Castillo", "Suprema", "Colombia", "Caturra", "Tabi",
-                "Cenicafe 1", "Cenicafe 2", "Borbón", "Geisha", "Costa Rica", "Otros"
-            ];
-
             const form = `
                 <form id="loteForm">
                     <label for="fincaLote">Seleccione Finca:</label><br>
                     <select id="fincaLote" required>
                         ${fincas.map(f => `<option value="${f.codigo}">${f.nombre} (${f.codigo})</option>`).join('')}
                     </select><br>
-                    <label for="variedadCafe">Variedad de Café:</label><br>
-                    <select id="variedadCafe" required>
-                        ${variedades.map(v => `<option value="${v}">${v}</option>`).join('')}
-                    </select><br>
-                    <label for="fechaLabor">Fecha de Labor:</label><br>
-                    <input type="date" id="fechaLabor" required><br>
-                    <label for="tipoLabor">Tipo de Labor:</label><br>
-                    <select id="tipoLabor" required>
-                        <option value="Siembra Nueva">Siembra Nueva</option>
-                        <option value="Renovación por Zoca">Renovación por Zoca</option>
-                        <option value="Renovación por Siembra">Renovación por Siembra</option>
-                    </select><br>
-                    <label for="distanciaSurcos">Distancia entre Surcos (m):</label><br>
-                    <input type="number" id="distanciaSurcos" required><br>
-                    <label for="distanciaPlantas">Distancia entre Plantas (m):</label><br>
-                    <input type="number" id="distanciaPlantas" required><br>
-                    <label for="luminosidad">Luminosidad (%):</label><br>
-                    <input type="number" id="luminosidad" required><br>
                     <button type="button" onclick="guardarLote()">Guardar</button>
                 </form>
             `;
@@ -195,42 +227,23 @@
                 .setContent(form)
                 .openOn(map);
 
-            // Obtener altura con GPS
-            navigator.geolocation.getCurrentPosition(function (position) {
-                const altura = position.coords.altitude || "Altura no disponible";
-
-                document.getElementById("loteForm").insertAdjacentHTML(
-                    "beforeend",
-                    `<label>Altura sobre el Nivel del Mar (m):</label><br>
-                     <input type="text" value="${altura}" readonly><br>`
-                );
-            });
+            const area = L.GeometryUtil.geodesicArea(layer.getLatLngs()[0]) / 10000;
 
             window.guardarLote = function () {
                 const fincaCodigo = document.getElementById("fincaLote").value;
-                const variedad = document.getElementById("variedadCafe").value;
-                const fecha = document.getElementById("fechaLabor").value;
-                const tipo = document.getElementById("tipoLabor").value;
-                const distanciaSurcos = document.getElementById("distanciaSurcos").value;
-                const distanciaPlantas = document.getElementById("distanciaPlantas").value;
-                const luminosidad = document.getElementById("luminosidad").value;
 
-                if (!fincaCodigo || !variedad || !fecha || !tipo || !distanciaSurcos || !distanciaPlantas || !luminosidad) {
+                if (!fincaCodigo) {
                     alert("Por favor, complete todos los campos del lote.");
                     return;
                 }
 
-                const loteCodigo = `${fincaCodigo}-${loteCounter[fincaCodigo]++}`; // Código consecutivo
+                const finca = fincas.find(f => f.codigo === fincaCodigo);
+                const loteCodigo = `${fincaCodigo}-${loteCounter[fincaCodigo]++}`;
 
                 layer.properties = {
                     fincaCodigo,
                     loteCodigo,
-                    variedad,
-                    fecha,
-                    tipo,
-                    distanciaSurcos,
-                    distanciaPlantas,
-                    luminosidad,
+                    area: area.toFixed(2),
                     tipoLote: "Café"
                 };
 
@@ -238,12 +251,7 @@
                 layer.bindPopup(`
                     <strong>Código de Finca:</strong> ${fincaCodigo}<br>
                     <strong>Código de Lote:</strong> ${loteCodigo}<br>
-                    <strong>Variedad:</strong> ${variedad}<br>
-                    <strong>Fecha de Labor:</strong> ${fecha}<br>
-                    <strong>Tipo de Labor:</strong> ${tipo}<br>
-                    <strong>Distancia entre Surcos:</strong> ${distanciaSurcos} m<br>
-                    <strong>Distancia entre Plantas:</strong> ${distanciaPlantas} m<br>
-                    <strong>Luminosidad:</strong> ${luminosidad}%<br>
+                    <strong>Área:</strong> ${area.toFixed(2)} ha
                 `);
 
                 loteLayer.addLayer(layer);
@@ -287,12 +295,7 @@
                     layer.bindPopup(`
                         <strong>Código de Finca:</strong> ${feature.properties.fincaCodigo}<br>
                         <strong>Código de Lote:</strong> ${feature.properties.loteCodigo}<br>
-                        <strong>Variedad:</strong> ${feature.properties.variedad}<br>
-                        <strong>Fecha de Labor:</strong> ${feature.properties.fecha}<br>
-                        <strong>Tipo de Labor:</strong> ${feature.properties.tipo}<br>
-                        <strong>Distancia entre Surcos:</strong> ${feature.properties.distanciaSurcos} m<br>
-                        <strong>Distancia entre Plantas:</strong> ${feature.properties.distanciaPlantas} m<br>
-                        <strong>Luminosidad:</strong> ${feature.properties.luminosidad}%<br>
+                        <strong>Área:</strong> ${feature.properties.area} ha
                     `);
                     loteLayer.addLayer(layer);
                 }
