@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Geoportal de Lotes</title>
+    <title>Geoportal de Lotes de Café</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css">
     <link rel="stylesheet" href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css">
     <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
@@ -59,13 +59,11 @@
 </head>
 <body>
     <div id="header">
-        <h1>Geoportal de Lotes</h1>
-        <button onclick="registrarProductor()">Registrar Productor</button>
+        <h1>Geoportal de Lotes de Café</h1>
         <button onclick="registrarFinca()">Registrar Finca</button>
         <button onclick="saveToLocal()">Guardar Lotes</button>
         <button onclick="loadFromLocal()">Cargar Lotes</button>
         <button onclick="exportData()">Exportar GeoJSON</button>
-        <button onclick="exportSingleLote()">Exportar Lote por Código</button>
         <button onclick="centerOnUser()">Ir a Mi Ubicación</button>
     </div>
     <div id="map"></div>
@@ -81,24 +79,15 @@
             'OpenStreetMap': L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                 maxZoom: 19,
                 attribution: 'Map data © OpenStreetMap contributors'
-            }).addTo(map),
-            'Google Satélite': L.tileLayer('https://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', {
-                subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
-                maxZoom: 20,
-                attribution: 'Map data © Google'
-            }),
-            'ESRI Satélite': L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-                maxZoom: 19,
-                attribution: 'Tiles © ESRI & contributors'
-            })
+            }).addTo(map)
         };
 
         L.control.layers(baseMaps).addTo(map);
 
         // Capas y listas dinámicas
         const loteLayer = new L.FeatureGroup().addTo(map);
-        let productores = []; // Lista de productores registrados
-        let fincas = [];      // Lista de fincas registradas
+        let fincas = []; // Lista de fincas registradas
+        let loteCounter = {}; // Contador de lotes por finca
 
         // Control de dibujo
         const drawControl = new L.Control.Draw({
@@ -118,65 +107,16 @@
         });
         map.addControl(drawControl);
 
-        // Registrar productor
-        function registrarProductor() {
-            const form = `
-                <form id="productorForm">
-                    <label for="nombreProductor">Nombre:</label><br>
-                    <input type="text" id="nombreProductor" required><br>
-                    <label for="idProductor">Identificación:</label><br>
-                    <input type="text" id="idProductor" required><br>
-                    <label for="telefonoProductor">Teléfono:</label><br>
-                    <input type="text" id="telefonoProductor" required><br>
-                    <label for="correoProductor">Correo:</label><br>
-                    <input type="email" id="correoProductor" required><br>
-                    <button type="button" onclick="guardarProductor()">Guardar</button>
-                </form>
-            `;
-
-            L.popup()
-                .setLatLng(map.getCenter())
-                .setContent(form)
-                .openOn(map);
-        }
-
-        function guardarProductor() {
-            const nombre = document.getElementById("nombreProductor").value;
-            const id = document.getElementById("idProductor").value;
-            const telefono = document.getElementById("telefonoProductor").value;
-            const correo = document.getElementById("correoProductor").value;
-
-            if (!nombre || !id || !telefono || !correo) {
-                alert("Por favor, complete todos los campos del productor.");
-                return;
-            }
-
-            productores.push({ nombre, id, telefono, correo });
-            alert("Productor registrado correctamente.");
-            map.closePopup();
-        }
-
         // Registrar finca
         function registrarFinca() {
-            if (productores.length === 0) {
-                alert("Debe registrar al menos un productor antes de registrar una finca.");
-                return;
-            }
-
             const form = `
                 <form id="fincaForm">
-                    <label for="nombreFinca">Nombre:</label><br>
+                    <label for="codigoFinca">Código de Finca:</label><br>
+                    <input type="text" id="codigoFinca" required><br>
+                    <label for="nombreFinca">Nombre de la Finca:</label><br>
                     <input type="text" id="nombreFinca" required><br>
                     <label for="areaFinca">Área Tentativa (ha):</label><br>
                     <input type="number" id="areaFinca" required><br>
-                    <label for="veredaFinca">Vereda:</label><br>
-                    <input type="text" id="veredaFinca" required><br>
-                    <label for="municipioFinca">Municipio:</label><br>
-                    <input type="text" id="municipioFinca" required><br>
-                    <label for="productorFinca">Seleccione Productor:</label><br>
-                    <select id="productorFinca" required>
-                        ${productores.map(p => `<option value="${p.id}">${p.nombre}</option>`).join('')}
-                    </select><br>
                     <button type="button" onclick="guardarFinca()">Guardar</button>
                 </form>
             `;
@@ -188,49 +128,64 @@
         }
 
         function guardarFinca() {
+            const codigo = document.getElementById("codigoFinca").value;
             const nombre = document.getElementById("nombreFinca").value;
             const area = document.getElementById("areaFinca").value;
-            const vereda = document.getElementById("veredaFinca").value;
-            const municipio = document.getElementById("municipioFinca").value;
-            const productorId = document.getElementById("productorFinca").value;
 
-            if (!nombre || !area || !vereda || !municipio || !productorId) {
+            if (!codigo || !nombre || !area) {
                 alert("Por favor, complete todos los campos de la finca.");
                 return;
             }
 
-            const productor = productores.find(p => p.id === productorId);
-            fincas.push({ nombre, area, vereda, municipio, productor });
+            if (fincas.some(f => f.codigo === codigo)) {
+                alert("El código de finca ya existe.");
+                return;
+            }
+
+            fincas.push({ codigo, nombre, area });
+            loteCounter[codigo] = 1; // Inicia contador de lotes
             alert("Finca registrada correctamente.");
             map.closePopup();
         }
 
-        // Crear un lote
+        // Crear un lote de café
         map.on(L.Draw.Event.CREATED, function (e) {
-            if (productores.length === 0 || fincas.length === 0) {
-                alert("Debe registrar al menos un productor y una finca antes de dibujar lotes.");
+            if (fincas.length === 0) {
+                alert("Debe registrar al menos una finca antes de dibujar lotes.");
                 return;
             }
 
             const layer = e.layer;
 
-            const cultivosDisponibles = [
-                "Café y no cafetería", "Plátano", "Pasto", "Aguacate", "Bosque", 
-                "Rastrojo", "Semestrales", "Guadua", "Área en descanso", "Forestales"
+            const variedades = [
+                "Castillo", "Suprema", "Colombia", "Caturra", "Tabi",
+                "Cenicafe 1", "Cenicafe 2", "Borbón", "Geisha", "Costa Rica", "Otros"
             ];
 
             const form = `
                 <form id="loteForm">
-                    <label for="codigoCultivo">Código de Cultivo:</label><br>
-                    <input type="text" id="codigoCultivo" required><br>
-                    <label for="nombreCultivo">Nombre del Cultivo:</label><br>
-                    <select id="nombreCultivo" required>
-                        ${cultivosDisponibles.map(cultivo => `<option value="${cultivo}">${cultivo}</option>`).join('')}
-                    </select><br>
                     <label for="fincaLote">Seleccione Finca:</label><br>
                     <select id="fincaLote" required>
-                        ${fincas.map(f => `<option value="${f.nombre}">${f.nombre} (${f.productor.nombre})</option>`).join('')}
+                        ${fincas.map(f => `<option value="${f.codigo}">${f.nombre} (${f.codigo})</option>`).join('')}
                     </select><br>
+                    <label for="variedadCafe">Variedad de Café:</label><br>
+                    <select id="variedadCafe" required>
+                        ${variedades.map(v => `<option value="${v}">${v}</option>`).join('')}
+                    </select><br>
+                    <label for="fechaLabor">Fecha de Labor:</label><br>
+                    <input type="date" id="fechaLabor" required><br>
+                    <label for="tipoLabor">Tipo de Labor:</label><br>
+                    <select id="tipoLabor" required>
+                        <option value="Siembra Nueva">Siembra Nueva</option>
+                        <option value="Renovación por Zoca">Renovación por Zoca</option>
+                        <option value="Renovación por Siembra">Renovación por Siembra</option>
+                    </select><br>
+                    <label for="distanciaSurcos">Distancia entre Surcos (m):</label><br>
+                    <input type="number" id="distanciaSurcos" required><br>
+                    <label for="distanciaPlantas">Distancia entre Plantas (m):</label><br>
+                    <input type="number" id="distanciaPlantas" required><br>
+                    <label for="luminosidad">Luminosidad (%):</label><br>
+                    <input type="number" id="luminosidad" required><br>
                     <button type="button" onclick="guardarLote()">Guardar</button>
                 </form>
             `;
@@ -240,36 +195,55 @@
                 .setContent(form)
                 .openOn(map);
 
-            const area = L.GeometryUtil.geodesicArea(layer.getLatLngs()[0]) / 10000;
+            // Obtener altura con GPS
+            navigator.geolocation.getCurrentPosition(function (position) {
+                const altura = position.coords.altitude || "Altura no disponible";
+
+                document.getElementById("loteForm").insertAdjacentHTML(
+                    "beforeend",
+                    `<label>Altura sobre el Nivel del Mar (m):</label><br>
+                     <input type="text" value="${altura}" readonly><br>`
+                );
+            });
 
             window.guardarLote = function () {
-                const codigoCultivo = document.getElementById("codigoCultivo").value;
-                const nombreCultivo = document.getElementById("nombreCultivo").value;
-                const fincaSeleccionada = document.getElementById("fincaLote").value;
+                const fincaCodigo = document.getElementById("fincaLote").value;
+                const variedad = document.getElementById("variedadCafe").value;
+                const fecha = document.getElementById("fechaLabor").value;
+                const tipo = document.getElementById("tipoLabor").value;
+                const distanciaSurcos = document.getElementById("distanciaSurcos").value;
+                const distanciaPlantas = document.getElementById("distanciaPlantas").value;
+                const luminosidad = document.getElementById("luminosidad").value;
 
-                if (!codigoCultivo || !nombreCultivo || !fincaSeleccionada) {
+                if (!fincaCodigo || !variedad || !fecha || !tipo || !distanciaSurcos || !distanciaPlantas || !luminosidad) {
                     alert("Por favor, complete todos los campos del lote.");
                     return;
                 }
 
-                const finca = fincas.find(f => f.nombre === fincaSeleccionada);
+                const loteCodigo = `${fincaCodigo}-${loteCounter[fincaCodigo]++}`; // Código consecutivo
 
                 layer.properties = {
-                    productor: finca.productor,
-                    finca,
-                    codigoCultivo,
-                    nombreCultivo,
-                    area: area.toFixed(2),
-                    tipo: "Lote"
+                    fincaCodigo,
+                    loteCodigo,
+                    variedad,
+                    fecha,
+                    tipo,
+                    distanciaSurcos,
+                    distanciaPlantas,
+                    luminosidad,
+                    tipoLote: "Café"
                 };
 
                 layer.setStyle({ color: 'orange', fillOpacity: 0.5 });
                 layer.bindPopup(`
-                    <strong>Productor:</strong> ${finca.productor.nombre}<br>
-                    <strong>Finca:</strong> ${finca.nombre}<br>
-                    <strong>Código de Cultivo:</strong> ${codigoCultivo}<br>
-                    <strong>Nombre del Cultivo:</strong> ${nombreCultivo}<br>
-                    <strong>Área:</strong> ${area.toFixed(2)} ha
+                    <strong>Código de Finca:</strong> ${fincaCodigo}<br>
+                    <strong>Código de Lote:</strong> ${loteCodigo}<br>
+                    <strong>Variedad:</strong> ${variedad}<br>
+                    <strong>Fecha de Labor:</strong> ${fecha}<br>
+                    <strong>Tipo de Labor:</strong> ${tipo}<br>
+                    <strong>Distancia entre Surcos:</strong> ${distanciaSurcos} m<br>
+                    <strong>Distancia entre Plantas:</strong> ${distanciaPlantas} m<br>
+                    <strong>Luminosidad:</strong> ${luminosidad}%<br>
                 `);
 
                 loteLayer.addLayer(layer);
@@ -284,39 +258,7 @@
             const url = URL.createObjectURL(blob);
             const a = document.createElement("a");
             a.href = url;
-            a.download = "lotes.geojson";
-            a.click();
-            URL.revokeObjectURL(url);
-        }
-
-        // Exportar un lote específico
-        function exportSingleLote() {
-            const loteData = loteLayer.toGeoJSON();
-            const codigo = prompt("Ingrese el código del cultivo a exportar:");
-            if (!codigo) {
-                alert("Debe ingresar un código válido.");
-                return;
-            }
-
-            const singleLote = loteData.features.find(
-                (feature) => feature.properties.codigoCultivo === codigo
-            );
-
-            if (!singleLote) {
-                alert(`No se encontró un lote con el código: ${codigo}`);
-                return;
-            }
-
-            const singleLoteGeoJSON = {
-                type: "FeatureCollection",
-                features: [singleLote],
-            };
-
-            const blob = new Blob([JSON.stringify(singleLoteGeoJSON)], { type: "application/json" });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement("a");
-            a.href = url;
-            a.download = `lote_${codigo}.geojson`;
+            a.download = "lotes_cafe.geojson";
             a.click();
             URL.revokeObjectURL(url);
         }
@@ -343,9 +285,14 @@
                 onEachFeature: function (feature, layer) {
                     layer.setStyle({ color: 'orange', fillOpacity: 0.5 });
                     layer.bindPopup(`
-                        <strong>Código de Cultivo:</strong> ${feature.properties.codigoCultivo}<br>
-                        <strong>Nombre del Cultivo:</strong> ${feature.properties.nombreCultivo}<br>
-                        <strong>Área:</strong> ${feature.properties.area} ha
+                        <strong>Código de Finca:</strong> ${feature.properties.fincaCodigo}<br>
+                        <strong>Código de Lote:</strong> ${feature.properties.loteCodigo}<br>
+                        <strong>Variedad:</strong> ${feature.properties.variedad}<br>
+                        <strong>Fecha de Labor:</strong> ${feature.properties.fecha}<br>
+                        <strong>Tipo de Labor:</strong> ${feature.properties.tipo}<br>
+                        <strong>Distancia entre Surcos:</strong> ${feature.properties.distanciaSurcos} m<br>
+                        <strong>Distancia entre Plantas:</strong> ${feature.properties.distanciaPlantas} m<br>
+                        <strong>Luminosidad:</strong> ${feature.properties.luminosidad}%<br>
                     `);
                     loteLayer.addLayer(layer);
                 }
