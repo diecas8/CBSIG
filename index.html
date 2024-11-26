@@ -62,7 +62,8 @@
         <h1>Geoportal de Café</h1>
         <button onclick="registrarPropietario()">Registrar Propietario</button>
         <button onclick="registrarFinca()">Registrar Finca</button>
-        <button onclick="exportData()">Exportar GeoJSON</button>
+        <button onclick="exportData()">Exportar Todo</button>
+        <button onclick="exportByFinca()">Exportar por Finca</button>
         <button onclick="centerOnUser()">Ir a Mi Ubicación</button>
     </div>
     <div id="map"></div>
@@ -79,7 +80,21 @@
                 maxZoom: 19,
                 attribution: 'Map data © OpenStreetMap contributors'
             }).addTo(map),
+            'Google Satélite': L.tileLayer('https://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', {
+                subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
+                maxZoom: 20,
+                attribution: 'Map data © Google'
+            }),
+            'Google Híbrido': L.tileLayer('https://{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {
+                subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
+                maxZoom: 20,
+                attribution: 'Map data © Google'
+            }),
             'ESRI Satélite': L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+                maxZoom: 19,
+                attribution: 'Tiles © ESRI & contributors'
+            }),
+            'ESRI Topográfico': L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}', {
                 maxZoom: 19,
                 attribution: 'Tiles © ESRI & contributors'
             })
@@ -89,194 +104,85 @@
 
         // Capas y listas dinámicas
         const loteLayer = new L.FeatureGroup().addTo(map);
-        let propietarios = []; // Lista de propietarios registrados
-        let fincas = []; // Lista de fincas registradas
+        let propietarios = JSON.parse(localStorage.getItem('propietarios')) || [];
+        let fincas = JSON.parse(localStorage.getItem('fincas')) || [];
         let alturaGPS = null; // Altura sobre el nivel del mar
-        let loteConsecutivo = {}; // Consecutivo de lotes por finca
+        let loteConsecutivo = JSON.parse(localStorage.getItem('loteConsecutivo')) || {};
 
-        // Control de dibujo
-        const drawControl = new L.Control.Draw({
-            draw: {
-                polyline: false,
-                marker: false,
-                circle: false,
-                circlemarker: false,
-                polygon: {
-                    allowIntersection: false,
-                    shapeOptions: { color: 'orange' }
-                }
-            },
-            edit: {
-                featureGroup: loteLayer
-            }
-        });
-        map.addControl(drawControl);
-
-        // Registrar propietario
-        function registrarPropietario() {
-            const form = `
-                <form id="propietarioForm">
-                    <label for="nombrePropietario">Nombre:</label><br>
-                    <input type="text" id="nombrePropietario" required><br>
-                    <label for="idPropietario">Identificación:</label><br>
-                    <input type="text" id="idPropietario" required><br>
-                    <label for="telefonoPropietario">Teléfono:</label><br>
-                    <input type="text" id="telefonoPropietario" required><br>
-                    <label for="correoPropietario">Correo:</label><br>
-                    <input type="email" id="correoPropietario" required><br>
-                    <button type="button" onclick="guardarPropietario()">Guardar</button>
-                </form>
-            `;
-
-            L.popup()
-                .setLatLng(map.getCenter())
-                .setContent(form)
-                .openOn(map);
+        // Persistir datos
+        function saveData() {
+            localStorage.setItem('propietarios', JSON.stringify(propietarios));
+            localStorage.setItem('fincas', JSON.stringify(fincas));
+            localStorage.setItem('loteConsecutivo', JSON.stringify(loteConsecutivo));
+            localStorage.setItem('loteLayer', JSON.stringify(loteLayer.toGeoJSON()));
         }
 
-        function guardarPropietario() {
-            const nombre = document.getElementById("nombrePropietario").value;
-            const id = document.getElementById("idPropietario").value;
-            const telefono = document.getElementById("telefonoPropietario").value;
-            const correo = document.getElementById("correoPropietario").value;
+        // Cargar lotes desde el almacenamiento local
+        function loadLotes() {
+            const savedLotes = localStorage.getItem('loteLayer');
+            if (savedLotes) {
+                L.geoJSON(JSON.parse(savedLotes), {
+                    onEachFeature: function (feature, layer) {
+                        layer.bindPopup(`
+                            <strong>Finca:</strong> ${feature.properties.finca}<br>
+                            <strong>Lote ID:</strong> ${feature.properties.loteId}<br>
+                            <strong>Variedad:</strong> ${feature.properties.variedad}<br>
+                            <strong>Fecha:</strong> ${feature.properties.fechaLabor}<br>
+                            <strong>Labor:</strong> ${feature.properties.tipoLabor}<br>
+                            <strong>Área:</strong> ${feature.properties.area} ha<br>
+                            <strong>Altura:</strong> ${feature.properties.altura} m<br>
+                        `);
+                        loteLayer.addLayer(layer);
+                    }
+                });
+            }
+        }
 
-            if (!nombre || !id || !telefono || !correo) {
-                alert("Por favor, complete todos los campos del propietario.");
+        loadLotes();
+
+        // Exportar todos los lotes a GeoJSON
+        function exportData() {
+            const loteData = loteLayer.toGeoJSON();
+            const blob = new Blob([JSON.stringify(loteData)], { type: "application/json" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = "lotes_cafe.geojson";
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        // Exportar lotes por código de finca
+        function exportByFinca() {
+            const codigo = prompt("Ingrese el código de la finca a exportar:");
+            if (!codigo) {
+                alert("Debe ingresar un código de finca válido.");
                 return;
             }
 
-            propietarios.push({ nombre, id, telefono, correo });
-            alert("Propietario registrado correctamente.");
-            map.closePopup();
-        }
+            const loteData = loteLayer.toGeoJSON();
+            const filteredLotes = loteData.features.filter(
+                feature => feature.properties.finca === codigo
+            );
 
-        // Registrar finca
-        function registrarFinca() {
-            if (propietarios.length === 0) {
-                alert("Debe registrar al menos un propietario antes de registrar una finca.");
+            if (filteredLotes.length === 0) {
+                alert(`No se encontraron lotes para la finca con código: ${codigo}`);
                 return;
             }
 
-            const form = `
-                <form id="fincaForm">
-                    <label for="nombreFinca">Nombre:</label><br>
-                    <input type="text" id="nombreFinca" required><br>
-                    <label for="codigoFinca">Código de Finca:</label><br>
-                    <input type="text" id="codigoFinca" required><br>
-                    <label for="propietarioFinca">Seleccione Propietario:</label><br>
-                    <select id="propietarioFinca" required>
-                        ${propietarios.map(p => `<option value="${p.id}">${p.nombre} (${p.id})</option>`).join('')}
-                    </select><br>
-                    <button type="button" onclick="guardarFinca()">Guardar</button>
-                </form>
-            `;
-
-            L.popup()
-                .setLatLng(map.getCenter())
-                .setContent(form)
-                .openOn(map);
-        }
-
-        function guardarFinca() {
-            const nombre = document.getElementById("nombreFinca").value;
-            const codigoFinca = document.getElementById("codigoFinca").value;
-            const propietarioId = document.getElementById("propietarioFinca").value;
-
-            if (!nombre || !codigoFinca || !propietarioId) {
-                alert("Por favor, complete todos los campos de la finca.");
-                return;
-            }
-
-            const propietario = propietarios.find(p => p.id === propietarioId);
-            fincas.push({ nombre, codigoFinca, propietario });
-            loteConsecutivo[codigoFinca] = 0; // Inicia el consecutivo para esta finca
-            alert("Finca registrada correctamente.");
-            map.closePopup();
-        }
-
-        // Crear un lote
-        map.on(L.Draw.Event.CREATED, function (e) {
-            if (fincas.length === 0) {
-                alert("Debe registrar al menos una finca antes de dibujar lotes.");
-                return;
-            }
-
-            const layer = e.layer;
-
-            const form = `
-                <form id="loteForm">
-                    <label for="codigoFinca">Seleccione la Finca:</label><br>
-                    <select id="codigoFinca" required>
-                        ${fincas.map(f => `<option value="${f.codigoFinca}">${f.nombre} (${f.codigoFinca})</option>`).join('')}
-                    </select><br>
-                    <label for="variedad">Variedad:</label><br>
-                    <select id="variedad" required>
-                        <option value="Castillo">Castillo</option>
-                        <option value="Caturra">Caturra</option>
-                        <option value="Tabi">Tabi</option>
-                        <option value="Cenicafe 1">Cenicafe 1</option>
-                        <option value="Cenicafe 2">Cenicafe 2</option>
-                        <option value="Borbón">Borbón</option>
-                        <option value="Geisha">Geisha</option>
-                        <option value="Costa Rica">Costa Rica</option>
-                    </select><br>
-                    <label for="fechaLabor">Fecha de Labor:</label><br>
-                    <input type="date" id="fechaLabor" required><br>
-                    <label for="tipoLabor">Tipo de Labor:</label><br>
-                    <select id="tipoLabor" required>
-                        <option value="Siembra nueva">Siembra nueva</option>
-                        <option value="Renovación por zoca">Renovación por zoca</option>
-                        <option value="Siembra">Siembra</option>
-                    </select><br>
-                    <button type="button" onclick="guardarLote()">Guardar</button>
-                </form>
-            `;
-
-            const popup = L.popup()
-                .setLatLng(e.layer.getBounds().getCenter())
-                .setContent(form)
-                .openOn(map);
-
-            const area = L.GeometryUtil.geodesicArea(layer.getLatLngs()[0]) / 10000;
-
-            window.guardarLote = function () {
-                const codigoFinca = document.getElementById("codigoFinca").value;
-                const variedad = document.getElementById("variedad").value;
-                const fechaLabor = document.getElementById("fechaLabor").value;
-                const tipoLabor = document.getElementById("tipoLabor").value;
-
-                if (!codigoFinca || !variedad || !fechaLabor || !tipoLabor) {
-                    alert("Por favor, complete todos los campos del lote.");
-                    return;
-                }
-
-                const loteId = ++loteConsecutivo[codigoFinca];
-
-                layer.properties = {
-                    finca: codigoFinca,
-                    loteId,
-                    variedad,
-                    fechaLabor,
-                    tipoLabor,
-                    area: area.toFixed(2),
-                    altura: alturaGPS || "No disponible"
-                };
-
-                layer.setStyle({ color: 'orange', fillOpacity: 0.5 });
-                layer.bindPopup(`
-                    <strong>Finca:</strong> ${codigoFinca}<br>
-                    <strong>Lote ID:</strong> ${loteId}<br>
-                    <strong>Variedad:</strong> ${variedad}<br>
-                    <strong>Fecha:</strong> ${fechaLabor}<br>
-                    <strong>Labor:</strong> ${tipoLabor}<br>
-                    <strong>Área:</strong> ${area.toFixed(2)} ha<br>
-                    <strong>Altura:</strong> ${alturaGPS || "No disponible"} m<br>
-                `);
-
-                loteLayer.addLayer(layer);
-                map.closePopup();
+            const filteredGeoJSON = {
+                type: "FeatureCollection",
+                features: filteredLotes
             };
-        });
+
+            const blob = new Blob([JSON.stringify(filteredGeoJSON)], { type: "application/json" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = `lotes_${codigo}.geojson`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
 
         // Obtener la altura del GPS
         function centerOnUser() {
@@ -297,18 +203,6 @@
             } else {
                 alert("Tu navegador no soporta geolocalización.");
             }
-        }
-
-        // Exportar todos los lotes a GeoJSON
-        function exportData() {
-            const loteData = loteLayer.toGeoJSON();
-            const blob = new Blob([JSON.stringify(loteData)], { type: "application/json" });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement("a");
-            a.href = url;
-            a.download = "lotes_cafe.geojson";
-            a.click();
-            URL.revokeObjectURL(url);
         }
     </script>
 </body>
