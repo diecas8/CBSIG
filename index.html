@@ -60,6 +60,7 @@
 <body>
     <div id="header">
         <h1>Geoportal de Café</h1>
+        <button onclick="registrarPropietario()">Registrar Propietario</button>
         <button onclick="registrarFinca()">Registrar Finca</button>
         <button onclick="exportData()">Exportar GeoJSON</button>
         <button onclick="centerOnUser()">Ir a Mi Ubicación</button>
@@ -88,6 +89,7 @@
 
         // Capas y listas dinámicas
         const loteLayer = new L.FeatureGroup().addTo(map);
+        let propietarios = []; // Lista de propietarios registrados
         let fincas = []; // Lista de fincas registradas
         let alturaGPS = null; // Altura sobre el nivel del mar
         let loteConsecutivo = {}; // Consecutivo de lotes por finca
@@ -110,16 +112,61 @@
         });
         map.addControl(drawControl);
 
+        // Registrar propietario
+        function registrarPropietario() {
+            const form = `
+                <form id="propietarioForm">
+                    <label for="nombrePropietario">Nombre:</label><br>
+                    <input type="text" id="nombrePropietario" required><br>
+                    <label for="idPropietario">Identificación:</label><br>
+                    <input type="text" id="idPropietario" required><br>
+                    <label for="telefonoPropietario">Teléfono:</label><br>
+                    <input type="text" id="telefonoPropietario" required><br>
+                    <label for="correoPropietario">Correo:</label><br>
+                    <input type="email" id="correoPropietario" required><br>
+                    <button type="button" onclick="guardarPropietario()">Guardar</button>
+                </form>
+            `;
+
+            L.popup()
+                .setLatLng(map.getCenter())
+                .setContent(form)
+                .openOn(map);
+        }
+
+        function guardarPropietario() {
+            const nombre = document.getElementById("nombrePropietario").value;
+            const id = document.getElementById("idPropietario").value;
+            const telefono = document.getElementById("telefonoPropietario").value;
+            const correo = document.getElementById("correoPropietario").value;
+
+            if (!nombre || !id || !telefono || !correo) {
+                alert("Por favor, complete todos los campos del propietario.");
+                return;
+            }
+
+            propietarios.push({ nombre, id, telefono, correo });
+            alert("Propietario registrado correctamente.");
+            map.closePopup();
+        }
+
         // Registrar finca
         function registrarFinca() {
+            if (propietarios.length === 0) {
+                alert("Debe registrar al menos un propietario antes de registrar una finca.");
+                return;
+            }
+
             const form = `
                 <form id="fincaForm">
                     <label for="nombreFinca">Nombre:</label><br>
                     <input type="text" id="nombreFinca" required><br>
                     <label for="codigoFinca">Código de Finca:</label><br>
                     <input type="text" id="codigoFinca" required><br>
-                    <label for="areaFinca">Área Tentativa (ha):</label><br>
-                    <input type="number" id="areaFinca" required><br>
+                    <label for="propietarioFinca">Seleccione Propietario:</label><br>
+                    <select id="propietarioFinca" required>
+                        ${propietarios.map(p => `<option value="${p.id}">${p.nombre} (${p.id})</option>`).join('')}
+                    </select><br>
                     <button type="button" onclick="guardarFinca()">Guardar</button>
                 </form>
             `;
@@ -133,14 +180,15 @@
         function guardarFinca() {
             const nombre = document.getElementById("nombreFinca").value;
             const codigoFinca = document.getElementById("codigoFinca").value;
-            const area = document.getElementById("areaFinca").value;
+            const propietarioId = document.getElementById("propietarioFinca").value;
 
-            if (!nombre || !codigoFinca || !area) {
+            if (!nombre || !codigoFinca || !propietarioId) {
                 alert("Por favor, complete todos los campos de la finca.");
                 return;
             }
 
-            fincas.push({ nombre, codigoFinca, area });
+            const propietario = propietarios.find(p => p.id === propietarioId);
+            fincas.push({ nombre, codigoFinca, propietario });
             loteConsecutivo[codigoFinca] = 0; // Inicia el consecutivo para esta finca
             alert("Finca registrada correctamente.");
             map.closePopup();
@@ -180,12 +228,6 @@
                         <option value="Renovación por zoca">Renovación por zoca</option>
                         <option value="Siembra">Siembra</option>
                     </select><br>
-                    <label for="surcos">Distancia entre Surcos (m):</label><br>
-                    <input type="number" id="surcos" required><br>
-                    <label for="plantas">Distancia entre Plantas (m):</label><br>
-                    <input type="number" id="plantas" required><br>
-                    <label for="luminosidad">Luminosidad (%):</label><br>
-                    <input type="number" id="luminosidad" required><br>
                     <button type="button" onclick="guardarLote()">Guardar</button>
                 </form>
             `;
@@ -202,16 +244,13 @@
                 const variedad = document.getElementById("variedad").value;
                 const fechaLabor = document.getElementById("fechaLabor").value;
                 const tipoLabor = document.getElementById("tipoLabor").value;
-                const surcos = document.getElementById("surcos").value;
-                const plantas = document.getElementById("plantas").value;
-                const luminosidad = document.getElementById("luminosidad").value;
 
-                if (!codigoFinca || !variedad || !fechaLabor || !tipoLabor || !surcos || !plantas || !luminosidad) {
+                if (!codigoFinca || !variedad || !fechaLabor || !tipoLabor) {
                     alert("Por favor, complete todos los campos del lote.");
                     return;
                 }
 
-                const loteId = ++loteConsecutivo[codigoFinca]; // Genera el consecutivo del lote
+                const loteId = ++loteConsecutivo[codigoFinca];
 
                 layer.properties = {
                     finca: codigoFinca,
@@ -219,9 +258,6 @@
                     variedad,
                     fechaLabor,
                     tipoLabor,
-                    surcos,
-                    plantas,
-                    luminosidad,
                     area: area.toFixed(2),
                     altura: alturaGPS || "No disponible"
                 };
