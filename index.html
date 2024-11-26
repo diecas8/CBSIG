@@ -87,16 +87,7 @@
                 maxZoom: 20,
                 attribution: 'Map data © Google'
             }),
-            'Google Híbrido': L.tileLayer('https://{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {
-                subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
-                maxZoom: 20,
-                attribution: 'Map data © Google'
-            }),
             'ESRI Satélite': L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-                maxZoom: 19,
-                attribution: 'Tiles © ESRI & contributors'
-            }),
-            'ESRI Topográfico': L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}', {
                 maxZoom: 19,
                 attribution: 'Tiles © ESRI & contributors'
             })
@@ -104,10 +95,10 @@
 
         L.control.layers(baseMaps).addTo(map);
 
-        // Capas y variables globales
+        // Capas y listas dinámicas
         const loteLayer = new L.FeatureGroup().addTo(map);
-        let productor = null; // Datos del productor
-        let finca = null;     // Datos de la finca
+        let productores = []; // Lista de productores registrados
+        let fincas = [];      // Lista de fincas registradas
 
         // Control de dibujo
         const drawControl = new L.Control.Draw({
@@ -160,13 +151,18 @@
                 return;
             }
 
-            productor = { nombre, id, telefono, correo };
+            productores.push({ nombre, id, telefono, correo });
             alert("Productor registrado correctamente.");
             map.closePopup();
         }
 
         // Registrar finca
         function registrarFinca() {
+            if (productores.length === 0) {
+                alert("Debe registrar al menos un productor antes de registrar una finca.");
+                return;
+            }
+
             const form = `
                 <form id="fincaForm">
                     <label for="nombreFinca">Nombre:</label><br>
@@ -177,6 +173,10 @@
                     <input type="text" id="veredaFinca" required><br>
                     <label for="municipioFinca">Municipio:</label><br>
                     <input type="text" id="municipioFinca" required><br>
+                    <label for="productorFinca">Seleccione Productor:</label><br>
+                    <select id="productorFinca" required>
+                        ${productores.map(p => `<option value="${p.id}">${p.nombre}</option>`).join('')}
+                    </select><br>
                     <button type="button" onclick="guardarFinca()">Guardar</button>
                 </form>
             `;
@@ -192,21 +192,23 @@
             const area = document.getElementById("areaFinca").value;
             const vereda = document.getElementById("veredaFinca").value;
             const municipio = document.getElementById("municipioFinca").value;
+            const productorId = document.getElementById("productorFinca").value;
 
-            if (!nombre || !area || !vereda || !municipio) {
+            if (!nombre || !area || !vereda || !municipio || !productorId) {
                 alert("Por favor, complete todos los campos de la finca.");
                 return;
             }
 
-            finca = { nombre, area, vereda, municipio };
+            const productor = productores.find(p => p.id === productorId);
+            fincas.push({ nombre, area, vereda, municipio, productor });
             alert("Finca registrada correctamente.");
             map.closePopup();
         }
 
         // Crear un lote
         map.on(L.Draw.Event.CREATED, function (e) {
-            if (!productor || !finca) {
-                alert("Debe registrar primero los datos del productor y la finca.");
+            if (productores.length === 0 || fincas.length === 0) {
+                alert("Debe registrar al menos un productor y una finca antes de dibujar lotes.");
                 return;
             }
 
@@ -225,6 +227,10 @@
                     <select id="nombreCultivo" required>
                         ${cultivosDisponibles.map(cultivo => `<option value="${cultivo}">${cultivo}</option>`).join('')}
                     </select><br>
+                    <label for="fincaLote">Seleccione Finca:</label><br>
+                    <select id="fincaLote" required>
+                        ${fincas.map(f => `<option value="${f.nombre}">${f.nombre} (${f.productor.nombre})</option>`).join('')}
+                    </select><br>
                     <button type="button" onclick="guardarLote()">Guardar</button>
                 </form>
             `;
@@ -239,14 +245,17 @@
             window.guardarLote = function () {
                 const codigoCultivo = document.getElementById("codigoCultivo").value;
                 const nombreCultivo = document.getElementById("nombreCultivo").value;
+                const fincaSeleccionada = document.getElementById("fincaLote").value;
 
-                if (!codigoCultivo || !nombreCultivo) {
+                if (!codigoCultivo || !nombreCultivo || !fincaSeleccionada) {
                     alert("Por favor, complete todos los campos del lote.");
                     return;
                 }
 
+                const finca = fincas.find(f => f.nombre === fincaSeleccionada);
+
                 layer.properties = {
-                    productor,
+                    productor: finca.productor,
                     finca,
                     codigoCultivo,
                     nombreCultivo,
@@ -256,7 +265,7 @@
 
                 layer.setStyle({ color: 'orange', fillOpacity: 0.5 });
                 layer.bindPopup(`
-                    <strong>Productor:</strong> ${productor.nombre}<br>
+                    <strong>Productor:</strong> ${finca.productor.nombre}<br>
                     <strong>Finca:</strong> ${finca.nombre}<br>
                     <strong>Código de Cultivo:</strong> ${codigoCultivo}<br>
                     <strong>Nombre del Cultivo:</strong> ${nombreCultivo}<br>
