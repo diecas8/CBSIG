@@ -106,6 +106,7 @@
         const loteLayer = new L.FeatureGroup().addTo(map);
         let propietarios = JSON.parse(localStorage.getItem("propietarios")) || [];
         let fincas = JSON.parse(localStorage.getItem("fincas")) || [];
+        let lotes = JSON.parse(localStorage.getItem("lotes")) || [];
         let alturaGPS = null; // Altura sobre el nivel del mar
         let loteConsecutivo = JSON.parse(localStorage.getItem("loteConsecutivo")) || {};
 
@@ -113,8 +114,32 @@
         function saveToLocalStorage() {
             localStorage.setItem("propietarios", JSON.stringify(propietarios));
             localStorage.setItem("fincas", JSON.stringify(fincas));
+            localStorage.setItem("lotes", JSON.stringify(lotes));
             localStorage.setItem("loteConsecutivo", JSON.stringify(loteConsecutivo));
         }
+
+        // Cargar lotes al iniciar
+        function loadLotes() {
+            lotes.forEach((feature) => {
+                const layer = L.geoJSON(feature).addTo(loteLayer);
+                const props = feature.properties;
+
+                layer.eachLayer((lyr) => {
+                    lyr.setStyle({ color: 'orange', fillOpacity: 0.5 });
+                    lyr.bindPopup(`
+                        <strong>Finca:</strong> ${props.finca}<br>
+                        <strong>Lote ID:</strong> ${props.loteId}<br>
+                        <strong>Variedad:</strong> ${props.variedad}<br>
+                        <strong>Fecha:</strong> ${props.fechaLabor}<br>
+                        <strong>Labor:</strong> ${props.tipoLabor}<br>
+                        <strong>Área:</strong> ${props.area} ha<br>
+                        <strong>Altura:</strong> ${props.altura} m<br>
+                    `);
+                });
+            });
+        }
+
+        loadLotes(); // Cargar lotes al abrir la página
 
         // Control de dibujo
         const drawControl = new L.Control.Draw({
@@ -133,90 +158,6 @@
             }
         });
         map.addControl(drawControl);
-
-        // Registrar propietario
-        function registrarPropietario() {
-            const form = `
-                <form id="propietarioForm">
-                    <label for="nombrePropietario">Nombre:</label><br>
-                    <input type="text" id="nombrePropietario" required><br>
-                    <label for="idPropietario">Identificación:</label><br>
-                    <input type="text" id="idPropietario" required><br>
-                    <label for="telefonoPropietario">Teléfono:</label><br>
-                    <input type="text" id="telefonoPropietario" required><br>
-                    <label for="correoPropietario">Correo:</label><br>
-                    <input type="email" id="correoPropietario" required><br>
-                    <button type="button" onclick="guardarPropietario()">Guardar</button>
-                </form>
-            `;
-
-            L.popup()
-                .setLatLng(map.getCenter())
-                .setContent(form)
-                .openOn(map);
-        }
-
-        function guardarPropietario() {
-            const nombre = document.getElementById("nombrePropietario").value;
-            const id = document.getElementById("idPropietario").value;
-            const telefono = document.getElementById("telefonoPropietario").value;
-            const correo = document.getElementById("correoPropietario").value;
-
-            if (!nombre || !id || !telefono || !correo) {
-                alert("Por favor, complete todos los campos del propietario.");
-                return;
-            }
-
-            propietarios.push({ nombre, id, telefono, correo });
-            saveToLocalStorage();
-            alert("Propietario registrado correctamente.");
-            map.closePopup();
-        }
-
-        // Registrar finca
-        function registrarFinca() {
-            if (propietarios.length === 0) {
-                alert("Debe registrar al menos un propietario antes de registrar una finca.");
-                return;
-            }
-
-            const form = `
-                <form id="fincaForm">
-                    <label for="nombreFinca">Nombre:</label><br>
-                    <input type="text" id="nombreFinca" required><br>
-                    <label for="codigoFinca">Código de Finca:</label><br>
-                    <input type="text" id="codigoFinca" required><br>
-                    <label for="propietarioFinca">Seleccione Propietario:</label><br>
-                    <select id="propietarioFinca" required>
-                        ${propietarios.map(p => `<option value="${p.id}">${p.nombre} (${p.id})</option>`).join('')}
-                    </select><br>
-                    <button type="button" onclick="guardarFinca()">Guardar</button>
-                </form>
-            `;
-
-            L.popup()
-                .setLatLng(map.getCenter())
-                .setContent(form)
-                .openOn(map);
-        }
-
-        function guardarFinca() {
-            const nombre = document.getElementById("nombreFinca").value;
-            const codigoFinca = document.getElementById("codigoFinca").value;
-            const propietarioId = document.getElementById("propietarioFinca").value;
-
-            if (!nombre || !codigoFinca || !propietarioId) {
-                alert("Por favor, complete todos los campos de la finca.");
-                return;
-            }
-
-            const propietario = propietarios.find(p => p.id === propietarioId);
-            fincas.push({ nombre, codigoFinca, propietario });
-            loteConsecutivo[codigoFinca] = 0; // Inicia el consecutivo para esta finca
-            saveToLocalStorage();
-            alert("Finca registrada correctamente.");
-            map.closePopup();
-        }
 
         // Crear un lote
         map.on(L.Draw.Event.CREATED, function (e) {
@@ -252,12 +193,6 @@
                         <option value="Renovación por zoca">Renovación por zoca</option>
                         <option value="Siembra">Siembra</option>
                     </select><br>
-                    <label for="surcos">Distancia entre Surcos (m):</label><br>
-                    <input type="number" id="surcos" required><br>
-                    <label for="plantas">Distancia entre Plantas (m):</label><br>
-                    <input type="number" id="plantas" required><br>
-                    <label for="luminosidad">Luminosidad (%):</label><br>
-                    <input type="number" id="luminosidad" required><br>
                     <button type="button" onclick="guardarLote()">Guardar</button>
                 </form>
             `;
@@ -274,75 +209,54 @@
                 const variedad = document.getElementById("variedad").value;
                 const fechaLabor = document.getElementById("fechaLabor").value;
                 const tipoLabor = document.getElementById("tipoLabor").value;
-                const surcos = document.getElementById("surcos").value;
-                const plantas = document.getElementById("plantas").value;
-                const luminosidad = document.getElementById("luminosidad").value;
 
-                if (!codigoFinca || !variedad || !fechaLabor || !tipoLabor || !surcos || !plantas || !luminosidad) {
+                if (!codigoFinca || !variedad || !fechaLabor || !tipoLabor) {
                     alert("Por favor, complete todos los campos del lote.");
                     return;
                 }
 
                 const loteId = ++loteConsecutivo[codigoFinca];
 
-                layer.properties = {
-                    finca: codigoFinca,
-                    loteId,
-                    variedad,
-                    fechaLabor,
-                    tipoLabor,
-                    surcos,
-                    plantas,
-                    luminosidad,
-                    area: area.toFixed(2),
-                    altura: alturaGPS || "No disponible"
+                const feature = {
+                    type: "Feature",
+                    properties: {
+                        finca: codigoFinca,
+                        loteId,
+                        variedad,
+                        fechaLabor,
+                        tipoLabor,
+                        area: area.toFixed(2),
+                        altura: alturaGPS || "No disponible"
+                    },
+                    geometry: layer.toGeoJSON().geometry
                 };
 
-                layer.setStyle({ color: 'orange', fillOpacity: 0.5 });
-                layer.bindPopup(`
+                lotes.push(feature);
+                saveToLocalStorage();
+
+                const newLayer = L.geoJSON(feature).addTo(loteLayer);
+                newLayer.setStyle({ color: 'orange', fillOpacity: 0.5 });
+                newLayer.bindPopup(`
                     <strong>Finca:</strong> ${codigoFinca}<br>
                     <strong>Lote ID:</strong> ${loteId}<br>
                     <strong>Variedad:</strong> ${variedad}<br>
                     <strong>Fecha:</strong> ${fechaLabor}<br>
                     <strong>Labor:</strong> ${tipoLabor}<br>
-                    <strong>Distancia entre Surcos:</strong> ${surcos} m<br>
-                    <strong>Distancia entre Plantas:</strong> ${plantas} m<br>
-                    <strong>Luminosidad:</strong> ${luminosidad}%<br>
                     <strong>Área:</strong> ${area.toFixed(2)} ha<br>
                     <strong>Altura:</strong> ${alturaGPS || "No disponible"} m<br>
                 `);
 
-                loteLayer.addLayer(layer);
-                saveToLocalStorage();
                 map.closePopup();
             };
         });
 
-        // Obtener la altura del GPS
-        function centerOnUser() {
-            if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(
-                    function (position) {
-                        const userLat = position.coords.latitude;
-                        const userLng = position.coords.longitude;
-                        alturaGPS = position.coords.altitude || "No disponible";
-
-                        map.setView([userLat, userLng], 16);
-                        L.marker([userLat, userLng]).addTo(map).bindPopup(`Estás aquí<br>Altura: ${alturaGPS} m`).openPopup();
-                    },
-                    function () {
-                        alert("No se pudo obtener tu ubicación. Activa el GPS.");
-                    }
-                );
-            } else {
-                alert("Tu navegador no soporta geolocalización.");
-            }
-        }
-
         // Exportar todos los lotes a GeoJSON
         function exportData() {
-            const loteData = loteLayer.toGeoJSON();
-            const blob = new Blob([JSON.stringify(loteData)], { type: "application/json" });
+            const geoJSON = {
+                type: "FeatureCollection",
+                features: lotes
+            };
+            const blob = new Blob([JSON.stringify(geoJSON)], { type: "application/json" });
             const url = URL.createObjectURL(blob);
             const a = document.createElement("a");
             a.href = url;
@@ -359,22 +273,19 @@
                 return;
             }
 
-            const loteData = loteLayer.toGeoJSON();
-            const filteredLotes = loteData.features.filter(
-                (feature) => feature.properties.finca === codigoFinca
-            );
+            const filteredLotes = lotes.filter(lote => lote.properties.finca === codigoFinca);
 
             if (filteredLotes.length === 0) {
                 alert(`No se encontraron lotes para la finca con código: ${codigoFinca}`);
                 return;
             }
 
-            const filteredGeoJSON = {
+            const geoJSON = {
                 type: "FeatureCollection",
-                features: filteredLotes,
+                features: filteredLotes
             };
 
-            const blob = new Blob([JSON.stringify(filteredGeoJSON)], { type: "application/json" });
+            const blob = new Blob([JSON.stringify(geoJSON)], { type: "application/json" });
             const url = URL.createObjectURL(blob);
             const a = document.createElement("a");
             a.href = url;
