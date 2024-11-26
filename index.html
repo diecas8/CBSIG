@@ -180,9 +180,34 @@
             modal.style.display = 'none';
         }
 
-        // Crear un lote
+        // Crear un lote con ajuste automático
         map.on(L.Draw.Event.CREATED, function (e) {
-            openCultivoModal(e.layer);
+            const layer = e.layer;
+
+            // Obtener la geometría del polígono dibujado
+            const drawnPolygon = layer.toGeoJSON();
+
+            // Buscar vecinos existentes
+            const vecinos = loteLayer.toGeoJSON();
+
+            let ajustado = false;
+
+            vecinos.features.forEach((vecino) => {
+                const interseccion = turf.intersect(drawnPolygon, vecino);
+
+                if (interseccion) {
+                    // Ajustar el polígono al vecino si hay intersección
+                    layer.setLatLngs(interseccion.geometry.coordinates[0]);
+                    ajustado = true;
+                }
+            });
+
+            if (!ajustado) {
+                alert("No hay vecinos cercanos para ajustar. El polígono se dibujará como está.");
+            }
+
+            // Abrir modal para asignar atributos al polígono
+            openCultivoModal(layer);
         });
 
         // Guardar los lotes en LocalStorage
