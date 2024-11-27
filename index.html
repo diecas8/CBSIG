@@ -187,9 +187,9 @@
                     <input type="text" id="codigoFinca" required><br>
                     <label for="nombreFinca">Nombre:</label><br>
                     <input type="text" id="nombreFinca" required><br>
-                    <label for="areaFinca">Área Tentativa (ha):</label><br>
+                    <label for="areaFinca">Área (ha):</label><br>
                     <input type="number" id="areaFinca" required><br>
-                    <label for="productorFinca">Seleccione Productor:</label><br>
+                    <label for="productorFinca">Productor:</label><br>
                     <select id="productorFinca" required>
                         ${productores.map(p => `<option value="${p.id}">${p.nombre}</option>`).join('')}
                     </select><br>
@@ -319,6 +319,25 @@
             map.closePopup();
         }
 
+        // Buscar finca por código
+        function buscarFinca() {
+            const codigo = prompt("Ingrese el código de la finca:");
+            const finca = fincas.find(f => f.codigo === codigo);
+
+            if (finca) {
+                const latlng = turf.centerOfMass(finca.geoJson).geometry.coordinates.reverse();
+                map.setView(latlng, 16); // Hacer zoom en la finca encontrada
+                L.marker(latlng).addTo(map).bindPopup(`Finca: ${finca.nombre}<br>Área: ${finca.area}`).openPopup();
+            } else {
+                alert("Finca no encontrada.");
+            }
+        }
+
+        // Señalización de ubicación actual
+        function centerOnUser() {
+            map.locate({ setView: true, maxZoom: 16 });
+        }
+
         // Exportar datos en formato GeoJSON
         function exportData() {
             const geoJson = loteLayer.toGeoJSON();
@@ -327,23 +346,6 @@
             downloadAnchorNode.setAttribute("href", dataStr);
             downloadAnchorNode.setAttribute("download", "lotes_cafe.geojson");
             downloadAnchorNode.click();
-        }
-
-        // Ir a la ubicación del usuario
-        function centerOnUser() {
-            map.locate({ setView: true, maxZoom: 16 });
-        }
-
-        // Buscar finca por código
-        function buscarFinca() {
-            const codigo = prompt("Ingrese el código de la finca:");
-            const finca = fincas.find(f => f.codigo === codigo);
-
-            if (finca) {
-                alert(`Finca encontrada: ${finca.nombre} - Área: ${finca.area} ha`);
-            } else {
-                alert("Finca no encontrada.");
-            }
         }
 
     </script>
