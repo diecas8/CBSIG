@@ -204,89 +204,150 @@
         }
 
         function guardarFinca() {
-            const codigo = document.getElementById("codigoFinca").value;
-            const nombre = document.getElementById("nombreFinca").value;
-            const area = document.getElementById("areaFinca").value;
-            const productorId = document.getElementById("productorFinca").value;
+            const codigoFinca = document.getElementById("codigoFinca").value;
+            const nombreFinca = document.getElementById("nombreFinca").value;
+            const areaFinca = document.getElementById("areaFinca").value;
+            const idProductor = document.getElementById("productorFinca").value;
 
-            if (!codigo || !nombre || !area || !productorId) {
+            if (!codigoFinca || !nombreFinca || !areaFinca || !idProductor) {
                 alert("Por favor, complete todos los campos de la finca.");
                 return;
             }
 
-            const productor = productores.find(p => p.id === productorId);
-            fincas.push({ codigo, nombre, area, productor });
+            const productor = productores.find(p => p.id === idProductor);
+            if (!productor) {
+                alert("El productor seleccionado no existe.");
+                return;
+            }
+
+            fincas.push({ codigo: codigoFinca, nombre: nombreFinca, area: areaFinca, productor });
             localStorage.setItem("fincas", JSON.stringify(fincas)); // Guardar fincas
             alert("Finca registrada correctamente.");
             map.closePopup();
         }
 
-        // Activar herramientas de dibujo
-        let drawControl;
-        function toggleDrawTools() {
-            if (drawControl) {
-                map.removeControl(drawControl);
-                drawControl = null;
-            } else {
-                const drawOptions = {
-                    position: 'topleft',
-                    draw: {
-                        polyline: false,
-                        polygon: {
-                            allowIntersection: false, 
-                            shapeOptions: {
-                                color: 'green',
-                                weight: 3
-                            }
-                        },
-                        rectangle: false,
-                        circle: false,
-                        marker: true
+        // Activar/desactivar herramientas de dibujo
+        let drawnItems = new L.FeatureGroup();
+        map.addLayer(drawnItems);
+
+        const drawControl = new L.Control.Draw({
+            edit: {
+                featureGroup: drawnItems
+            },
+            draw: {
+                polygon: {
+                    shapeOptions: {
+                        color: '#ff7800',
+                        weight: 4
                     }
-                };
-
-                drawControl = new L.Control.Draw(drawOptions);
-                map.addControl(drawControl);
-
-                map.on(L.Draw.Event.CREATED, function (event) {
-                    const layer = event.layer;
-                    loteLayer.addLayer(layer);
-                    // Guardar la geometría del polígono o punto en el localStorage si es necesario
-                });
+                },
+                rectangle: true,
+                polyline: true,
+                circle: true,
+                marker: true
             }
+        });
+
+        let drawToolsEnabled = false;
+
+        function toggleDrawTools() {
+            if (drawToolsEnabled) {
+                map.removeControl(drawControl);
+            } else {
+                map.addControl(drawControl);
+            }
+            drawToolsEnabled = !drawToolsEnabled;
         }
 
-        // Exportar los datos como GeoJSON
-        function exportData() {
-            const geojson = loteLayer.toGeoJSON();
-            const geojsonStr = JSON.stringify(geojson);
-            const blob = new Blob([geojsonStr], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'lotes.geojson';
-            a.click();
-        }
+        map.on(L.Draw.Event.CREATED, function (e) {
+            const layer = e.layer;
+            drawnItems.addLayer(layer);
 
-        // Ir a la ubicación del usuario
-        function centerOnUser() {
-            map.locate({ setView: true, maxZoom: 16 });
+            // Formulario para ingresar atributos automáticamente al crear el polígono
+            const form = `
+                <form id="atributosForm">
+                    <label for="codigoFinca">Código de Finca:</label><br>
+                    <input type="text" id="codigoFinca" required><br>
+                    <label for="nombreFinca">Nombre de Finca:</label><br>
+                    <input type="text" id="nombreFinca" required><br>
+                    <label for="areaFinca">Área (ha):</label><br>
+                    <input type="number" id="areaFinca" required><br>
+                    <label for="productorFinca">Productor:</label><br>
+                    <select id="productorFinca" required>
+                        ${productores.map(p => `<option value="${p.id}">${p.nombre}</option>`).join('')}
+                    </select><br>
+                    <button type="button" onclick="guardarAtributosPoligono(${JSON.stringify(layer.toGeoJSON())})">Guardar Atributos</button>
+                </form>
+            `;
+
+            L.popup()
+                .setLatLng(layer.getBounds().getCenter())
+                .setContent(form)
+                .openOn(map);
+        });
+
+        // Guardar atributos con la geometría del polígono
+        function guardarAtributosPoligono(layerGeoJson) {
+            const codigoFinca = document.getElementById("codigoFinca").value;
+            const nombreFinca = document.getElementById("nombreFinca").value;
+            const areaFinca = document.getElementById("areaFinca").value;
+            const idProductor = document.getElementById("productorFinca").value;
+
+            if (!codigoFinca || !nombreFinca || !areaFinca || !idProductor) {
+                alert("Por favor, complete todos los campos.");
+                return;
+            }
+
+            const productor = productores.find(p => p.id === idProductor);
+            if (!productor) {
+                alert("Productor no válido.");
+                return;
+            }
+
+            const finca = {
+                codigo: codigoFinca,
+                nombre: nombreFinca,
+                area: areaFinca,
+                productor: productor,
+                geoJson: layerGeoJson
+            };
+
+            fincas.push(finca);
+            localStorage.setItem("fincas", JSON.stringify(fincas)); // Guardar finca con atributos y geolocalización
+
+            alert("Atributos de finca guardados.");
+            map.closePopup();
         }
 
         // Buscar finca por código
         function buscarFinca() {
             const codigo = prompt("Ingrese el código de la finca:");
-            if (!codigo) return;
-
             const finca = fincas.find(f => f.codigo === codigo);
-            if (!finca) {
-                alert("Finca no encontrada.");
-                return;
-            }
 
-            alert(`Finca encontrada: ${finca.nombre}`);
-            // Aquí puedes agregar un marcador o zoom en la ubicación de la finca en el mapa
+            if (finca) {
+                const latlng = turf.centerOfMass(finca.geoJson).geometry.coordinates.reverse();
+                map.setView(latlng, 16); // Hacer zoom en la finca encontrada
+                L.marker(latlng).addTo(map).bindPopup(`Finca: ${finca.nombre}<br>Área: ${finca.area}`).openPopup();
+            } else {
+                alert("Finca no encontrada.");
+            }
         }
+
+        // Señalización de ubicación actual
+        function centerOnUser() {
+            map.locate({ setView: true, maxZoom: 16 });
+        }
+
+        // Exportar datos en formato GeoJSON
+        function exportData() {
+            const geoJson = loteLayer.toGeoJSON();
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(geoJson));
+            const downloadAnchorNode = document.createElement('a');
+            downloadAnchorNode.setAttribute("href", dataStr);
+            downloadAnchorNode.setAttribute("download", "lotes_cafe.geojson");
+            downloadAnchorNode.click();
+        }
+
     </script>
 </body>
 </html>
