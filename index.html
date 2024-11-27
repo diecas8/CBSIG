@@ -110,7 +110,7 @@
         
         let productores = JSON.parse(localStorage.getItem("productores")) || []; // Lista de productores
         let fincas = JSON.parse(localStorage.getItem("fincas")) || []; // Lista de fincas
-        
+
         // Guardar productores y fincas en el almacenamiento local
         function saveMetadata() {
             const data = {
@@ -289,7 +289,62 @@
         map.on(L.Draw.Event.CREATED, function (e) {
             const layer = e.layer;
             drawnItems.addLayer(layer);
+
+            // Cuando se crea un polígono, mostrar formulario para ingresar atributos
+            const form = `
+                <form id="atributosForm">
+                    <label for="codigoFinca">Código de Finca:</label><br>
+                    <input type="text" id="codigoFinca" required><br>
+                    <label for="nombreFinca">Nombre de Finca:</label><br>
+                    <input type="text" id="nombreFinca" required><br>
+                    <label for="areaFinca">Área (ha):</label><br>
+                    <input type="number" id="areaFinca" required><br>
+                    <label for="productorFinca">Productor:</label><br>
+                    <select id="productorFinca" required>
+                        ${productores.map(p => `<option value="${p.id}">${p.nombre}</option>`).join('')}
+                    </select><br>
+                    <button type="button" onclick="guardarAtributosPoligono(${JSON.stringify(layer.toGeoJSON())})">Guardar Atributos</button>
+                </form>
+            `;
+
+            L.popup()
+                .setLatLng(layer.getBounds().getCenter())
+                .setContent(form)
+                .openOn(map);
         });
+
+        // Guardar los atributos de un polígono
+        function guardarAtributosPoligono(layerGeoJson) {
+            const codigoFinca = document.getElementById("codigoFinca").value;
+            const nombreFinca = document.getElementById("nombreFinca").value;
+            const areaFinca = document.getElementById("areaFinca").value;
+            const idProductor = document.getElementById("productorFinca").value;
+
+            if (!codigoFinca || !nombreFinca || !areaFinca || !idProductor) {
+                alert("Por favor, complete todos los campos.");
+                return;
+            }
+
+            const productor = productores.find(p => p.id === idProductor);
+            if (!productor) {
+                alert("Productor no válido.");
+                return;
+            }
+
+            const finca = {
+                codigo: codigoFinca,
+                nombre: nombreFinca,
+                area: areaFinca,
+                productor: productor,
+                geoJson: layerGeoJson
+            };
+
+            fincas.push(finca);
+            localStorage.setItem("fincas", JSON.stringify(fincas)); // Guardar finca con atributos y geolocalización
+
+            alert("Atributos de finca guardados.");
+            map.closePopup();
+        }
     </script>
 </body>
 </html>
