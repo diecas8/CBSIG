@@ -226,33 +226,6 @@
             map.closePopup();
         }
 
-        // Buscar finca por código
-        function buscarFinca() {
-            const codigo = prompt("Ingrese el código de la finca:");
-            const finca = fincas.find(f => f.codigo === codigo);
-
-            if (finca) {
-                alert(`Finca encontrada: ${finca.nombre} - Área: ${finca.area} ha`);
-            } else {
-                alert("Finca no encontrada.");
-            }
-        }
-
-        // Exportar datos en formato GeoJSON
-        function exportData() {
-            const geoJson = loteLayer.toGeoJSON();
-            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(geoJson));
-            const downloadAnchorNode = document.createElement('a');
-            downloadAnchorNode.setAttribute("href", dataStr);
-            downloadAnchorNode.setAttribute("download", "lotes_cafe.geojson");
-            downloadAnchorNode.click();
-        }
-
-        // Ir a la ubicación del usuario
-        function centerOnUser() {
-            map.locate({ setView: true, maxZoom: 16 });
-        }
-
         // Activar/desactivar herramientas de dibujo
         let drawnItems = new L.FeatureGroup();
         map.addLayer(drawnItems);
@@ -290,7 +263,7 @@
             const layer = e.layer;
             drawnItems.addLayer(layer);
 
-            // Cuando se crea un polígono, mostrar formulario para ingresar atributos
+            // Formulario para ingresar atributos automáticamente al crear el polígono
             const form = `
                 <form id="atributosForm">
                     <label for="codigoFinca">Código de Finca:</label><br>
@@ -313,7 +286,7 @@
                 .openOn(map);
         });
 
-        // Guardar los atributos de un polígono
+        // Guardar atributos con la geometría del polígono
         function guardarAtributosPoligono(layerGeoJson) {
             const codigoFinca = document.getElementById("codigoFinca").value;
             const nombreFinca = document.getElementById("nombreFinca").value;
@@ -345,6 +318,34 @@
             alert("Atributos de finca guardados.");
             map.closePopup();
         }
+
+        // Exportar datos en formato GeoJSON
+        function exportData() {
+            const geoJson = loteLayer.toGeoJSON();
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(geoJson));
+            const downloadAnchorNode = document.createElement('a');
+            downloadAnchorNode.setAttribute("href", dataStr);
+            downloadAnchorNode.setAttribute("download", "lotes_cafe.geojson");
+            downloadAnchorNode.click();
+        }
+
+        // Ir a la ubicación del usuario
+        function centerOnUser() {
+            map.locate({ setView: true, maxZoom: 16 });
+        }
+
+        // Buscar finca por código
+        function buscarFinca() {
+            const codigo = prompt("Ingrese el código de la finca:");
+            const finca = fincas.find(f => f.codigo === codigo);
+
+            if (finca) {
+                alert(`Finca encontrada: ${finca.nombre} - Área: ${finca.area} ha`);
+            } else {
+                alert("Finca no encontrada.");
+            }
+        }
+
     </script>
 </body>
 </html>
