@@ -132,6 +132,30 @@ function actualizarLocalStorage() {
 
         let productores = []; // Lista de productores registrados
         let fincas = []; // Lista de fincas registradas
+        // Guardar productores y fincas en el almacenamiento local
+function saveMetadata() {
+    const data = {
+        productores: productores,
+        fincas: fincas
+    };
+    localStorage.setItem("metadata", JSON.stringify(data));
+    alert("Información de productores y fincas guardada localmente.");
+}
+
+// Cargar productores y fincas del almacenamiento local
+function loadMetadata() {
+    const savedData = localStorage.getItem("metadata");
+    if (!savedData) {
+        alert("No hay información guardada de productores y fincas.");
+        return;
+    }
+
+    const data = JSON.parse(savedData);
+    productores = data.productores || [];
+    fincas = data.fincas || [];
+    alert("Información de productores y fincas cargada correctamente.");
+}
+
         let loteCounter = {}; // Contador de lotes por finca
 
         // Control de dibujo
