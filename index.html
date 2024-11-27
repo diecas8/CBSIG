@@ -419,6 +419,25 @@ function actualizarLocalStorage() {
                 alert("Tu navegador no soporta geolocalización.");
             }
         }
+        function centerOnUser() {
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+            function (position) {
+                const userLat = position.coords.latitude;
+                const userLng = position.coords.longitude;
+
+                map.setView([userLat, userLng], 16);
+                L.marker([userLat, userLng]).addTo(map).bindPopup("Estás aquí").openPopup();
+            },
+            function () {
+                alert("No se pudo obtener tu ubicación. Activa el GPS.");
+            }
+        );
+    } else {
+        alert("Tu navegador no soporta geolocalización.");
+    }
+}
+
     </script>
 </body>
 </html>
