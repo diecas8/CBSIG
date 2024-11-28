@@ -2,249 +2,153 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Geoportal</title>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
-    <style>
-        #map { height: 600px; width: 75%; float: right; }
-        .sidebar {
-            width: 25%;
-            float: left;
-            padding: 10px;
-            background-color: #f8f9fa;
-            box-sizing: border-box;
-            height: 600px;
-            overflow-y: auto;
-        }
-        .logo {
-            width: 100px;
-            display: block;
-            margin: 0 auto 10px;
-        }
-        .filter, .summary, .chart-container {
-            background: white;
-            padding: 10px;
-            color: #333;
-            font-size: 14px;
-            margin-top: 10px;
-            line-height: 1.5;
-        }
-        .chart-container {
-            width: 100%;
-            height: 200px;
-        }
-        .credits {
-            text-align: center;
-            margin-top: 10px;
-            font-size: 12px;
-            color: #555;
-        }
-    </style>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Geoportal de Lotes Cafeteros</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" rel="stylesheet" />
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <script src="https://maps.googleapis.com/maps/api/js?key=YOUR_API_KEY&callback=initMap" async defer></script>
 </head>
 <body>
-    <div class="sidebar">
-        <img src="CBS.png" class="logo" alt="Logo">
-        <div class="filter">
-            <strong>Filtrar por Código de Finca</strong><br>
-            <input type="text" id="codigoFinca" placeholder="Ingrese código de finca" onkeypress="if(event.key === 'Enter') filtrarPorFinca()" />
-            <button onclick="filtrarPorFinca()">Filtrar</button>
-        </div>
-        <div id="summary" class="summary"></div>
-        <div class="chart-container">
-            <canvas id="chart"></canvas>
-        </div>
-        <div class="credits">
-            <strong>Creado por:</strong> Diego Castaño P.
-        </div>
-    </div>
-    <div id="map"></div>
 
-    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <h1>Registro de Lotes Cafeteros</h1>
+
+    <!-- Formulario de Registro de Productor -->
+    <h2>Datos del Productor</h2>
+    <form id="formProductor">
+        <label for="nombre">Nombre del Productor:</label>
+        <input type="text" id="nombre" name="nombre" required><br><br>
+
+        <label for="cedula">Cédula:</label>
+        <input type="text" id="cedula" name="cedula" required><br><br>
+
+        <label for="celular">Número de Celular:</label>
+        <input type="text" id="celular" name="celular" required><br><br>
+
+        <label for="genero">Género:</label>
+        <select id="genero" name="genero">
+            <option value="masculino">Masculino</option>
+            <option value="femenino">Femenino</option>
+        </select><br><br>
+
+        <label for="correo">Correo Electrónico:</label>
+        <input type="email" id="correo" name="correo" required><br><br>
+    </form>
+
+    <h2>Datos de la Finca</h2>
+    <form id="formFinca">
+        <label for="codigo">Código de la Finca:</label>
+        <input type="text" id="codigo" name="codigo" required><br><br>
+
+        <label for="nombre_finca">Nombre de la Finca:</label>
+        <input type="text" id="nombre_finca" name="nombre_finca" required><br><br>
+
+        <label for="municipio">Municipio:</label>
+        <input type="text" id="municipio" name="municipio" required><br><br>
+
+        <label for="vereda">Vereda:</label>
+        <input type="text" id="vereda" name="vereda" required><br><br>
+
+        <label for="area">Área (hectáreas):</label>
+        <input type="text" id="area" name="area" readonly><br><br>
+    </form>
+
+    <h2>Datos del Lote</h2>
+    <form id="formLote">
+        <label for="variedad">Variedad de Café:</label>
+        <select id="variedad" name="variedad">
+            <option value="castillo">Castillo</option>
+            <option value="cenicafe">Cenicafe</option>
+            <option value="colombia">Colombia</option>
+            <option value="caturra">Caturra</option>
+            <option value="tabi">Tabi</option>
+            <option value="geisha">Geisha</option>
+            <option value="costa_rica">Costa Rica</option>
+            <option value="suprema">Suprema</option>
+            <option value="borbon">Borbon</option>
+            <option value="otras">Otras</option>
+        </select><br><br>
+
+        <label for="fecha_labor">Fecha de la Labor:</label>
+        <input type="date" id="fecha_labor" name="fecha_labor"><br><br>
+
+        <label for="tipo_labor">Tipo de Labor:</label>
+        <select id="tipo_labor" name="tipo_labor">
+            <option value="siembra_nueva">Siembra nueva</option>
+            <option value="reno_zoca">Reno por zoca</option>
+            <option value="reno_siembra">Reno por siembra</option>
+        </select><br><br>
+
+        <label for="distancia_surcos">Distancia entre Surcos (m):</label>
+        <input type="number" id="distancia_surcos" name="distancia_surcos"><br><br>
+
+        <label for="distancia_plantas">Distancia entre Plantas (m):</label>
+        <input type="number" id="distancia_plantas" name="distancia_plantas"><br><br>
+
+        <label for="densidad">Densidad por Hectárea:</label>
+        <input type="text" id="densidad" name="densidad" readonly><br><br>
+
+        <label for="cantidad_arboles">Cantidad de Árboles en el Lote:</label>
+        <input type="number" id="cantidad_arboles" name="cantidad_arboles" readonly><br><br>
+
+        <label for="luminosidad">Tipo de Luminosidad:</label>
+        <select id="luminosidad" name="luminosidad">
+            <option value="sol">Sol</option>
+            <option value="sombra">Sombra</option>
+            <option value="semisombra">Semisombra</option>
+        </select><br><br>
+
+        <label for="altura">Altura sobre el Nivel del Mar (m):</label>
+        <input type="text" id="altura" name="altura" readonly><br><br>
+    </form>
+
+    <!-- Mapa para Ubicación de Lote -->
+    <div id="map" style="height: 400px;"></div><br>
+
+    <button onclick="guardarDatos()">Guardar Datos</button>
+
     <script>
-        // Crear el mapa con un mapa base predeterminado
-        var map = L.map('map').setView([0, 0], 2);
+        let map = L.map('map').setView([0, 0], 13); // Ajustar la vista inicial del mapa
 
-        // Agregar diferentes opciones de mapas base
-        var osmBase = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            maxZoom: 18,
-            attribution: '© OpenStreetMap contributors'
+        // Cargar el mapa de ESRI o Google Maps
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         }).addTo(map);
 
-        var satelliteBase = L.tileLayer('https://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', {
-            maxZoom: 20,
-            subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
-            attribution: 'Imágenes © Google'
-        });
+        // Función para registrar la ubicación con GPS
+        function getGPSLocation() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(function (position) {
+                    const lat = position.coords.latitude;
+                    const lng = position.coords.longitude;
 
-        var topoBase = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
-            maxZoom: 17,
-            attribution: 'Map data © OpenTopoMap contributors'
-        });
+                    // Establecer la vista del mapa a la ubicación obtenida
+                    map.setView([lat, lng], 13);
 
-        var reliefBase = L.tileLayer('https://tiles.stadiamaps.com/tiles/alidade_smooth_relief/{z}/{x}/{y}{r}.png', {
-            maxZoom: 20,
-            attribution: 'Map data © Stadia Maps, OpenMapTiles, OpenStreetMap contributors'
-        });
+                    // Agregar marcador en la ubicación
+                    L.marker([lat, lng]).addTo(map)
+                        .bindPopup("Ubicación registrada.")
+                        .openPopup();
 
-        var baseMaps = {
-            "OpenStreetMap": osmBase,
-            "Satélite": satelliteBase,
-            "Topográfico": topoBase,
-            "Relieve": reliefBase
-        };
-
-        // Añadir el control de capas de mapas base
-        L.control.layers(baseMaps, null, { collapsed: false }).addTo(map);
-
-        var bounds = L.latLngBounds();
-        var usosLayer, fincasLayer, rutasLayer;
-        var layerControl = L.control.layers(null, null, { collapsed: false }).addTo(map);
-        var chart;
-
-        // Mapear colores para cada tipo de cultivo específico
-        const colorMap = {
-            'bosque de galería': '#006400',  // Verde oscuro
-            'arroz': '#FFD700',              // Amarillo
-            'río': '#0000FF',                // Azul
-            'lago': '#0000FF',               // Azul
-            'estero': '#0000FF',             // Azul
-            'humedales': '#0000FF',          // Azul
-            'pasto enmalezado': '#ADFF2F',   // Verde claro
-            'pasto limpio': '#D2B48C',       // Café claro
-            'pasto arbolado': '#FF6347',     // Rojo claro
-            'cacao': '#8B4513',              // Marrón oscuro
-            'algarrobo': '#A0522D',          // Sienna oscuro
-            'papaya': '#FFA500',             // Naranja
-            'maíz': '#FFD700',               // Amarillo dorado
-            'café': '#8B0000',               // Rojo oscuro
-            'otros': '#FF0000',              // Rojo
-            'palma aceite': '#CD853F'        // Café claro
-        };
-
-        // Asignar color basado en el tipo de cultivo
-        function estiloUsos(feature) {
-            const cultivo = feature.properties.cultivo ? feature.properties.cultivo.trim().toLowerCase() : "";
-            const color = colorMap[cultivo] || 'gray';
-            return {
-                color: color,
-                fillOpacity: 0.5,
-                weight: 1
-            };
-        }
-
-        // Cargar capas en el orden deseado
-        fetch("usos.geojson")
-            .then(response => response.json())
-            .then(data => {
-                usosLayer = L.geoJSON(data, {
-                    style: estiloUsos,
-                    onEachFeature: function(feature, layer) {
-                        const areaFormatted = parseFloat(feature.properties.has).toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-                        layer.bindPopup(`Cultivo: ${feature.properties.cultivo}<br>Área: ${areaFormatted} ha`);
-                    }
+                    document.getElementById('altura').value = lat; // Usar latitud como referencia de altura
                 });
-                usosLayer.addTo(map);
-                layerControl.addOverlay(usosLayer, "Usos");
-                bounds.extend(usosLayer.getBounds());
-            })
-            .catch(error => console.error("Error cargando usos.geojson:", error));
-
-        fetch("fincasssss.geojson")
-            .then(response => response.json())
-            .then(data => {
-                fincasLayer = L.geoJSON(data, { style: { color: '#000', weight: 2, fillOpacity: 0 } });
-                fincasLayer.addTo(map);
-                layerControl.addOverlay(fincasLayer, "Fincas");
-                bounds.extend(fincasLayer.getBounds());
-            })
-            .catch(error => console.error("Error cargando fincasssss.geojson:", error));
-
-        fetch("Rutas.geojson")
-            .then(response => response.json())
-            .then(data => {
-                rutasLayer = L.geoJSON(data, { style: { color: '#FFA500', weight: 2 } });
-                rutasLayer.addTo(map);
-                layerControl.addOverlay(rutasLayer, "Rutas");
-                bounds.extend(rutasLayer.getBounds());
-            })
-            .catch(error => console.error("Error cargando Rutas.geojson:", error));
-
-        setTimeout(() => map.fitBounds(bounds), 500);
-
-        // Filtrar por código de finca y mostrar el resumen de cultivos
-        function filtrarPorFinca() {
-            var codigoFinca = document.getElementById("codigoFinca").value.trim().toLowerCase();
-            var resumen = {};
-            var totalArea = 0;
-            var propietario = "";
-            var nombreFinca = "";  // Variable para el nombre de la finca
-            var fincaBounds = L.latLngBounds();
-
-            usosLayer.eachLayer(function(layer) {
-                if (layer.feature.properties.cod_finca && layer.feature.properties.cod_finca.trim().toLowerCase() === codigoFinca) {
-                    map.addLayer(layer);
-                    fincaBounds.extend(layer.getBounds());
-                    var cultivo = layer.feature.properties.cultivo;
-                    var area = parseFloat(layer.feature.properties.has);
-                    totalArea += area;
-                    resumen[cultivo] = (resumen[cultivo] || 0) + area;
-                    propietario = layer.feature.properties.propietari || propietario;
-                    nombreFinca = layer.feature.properties.nom_finca_ || nombreFinca;  // Obtener el nombre de la finca
-                } else {
-                    map.removeLayer(layer);
-                }
-            });
-
-            if (fincaBounds.isValid()) {
-                map.fitBounds(fincaBounds);
             } else {
-                alert("Código de finca no encontrado.");
+                alert("Geolocalización no disponible.");
             }
-
-            var summaryDiv = document.getElementById("summary");
-            summaryDiv.innerHTML = `<strong>Resumen de Cultivos para Finca ${codigoFinca.toUpperCase()}</strong><br>`;
-            summaryDiv.innerHTML += `Propietario: ${propietario}<br>`;
-            summaryDiv.innerHTML += `Nombre de la Finca: ${nombreFinca}<br><br>`;  // Mostrar el nombre de la finca
-            var labels = [], data = [], backgroundColors = [];
-
-            for (var cultivo in resumen) {
-                const area = resumen[cultivo].toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-                summaryDiv.innerHTML += `${cultivo}: ${area} ha<br>`;
-                labels.push(cultivo);
-                data.push(resumen[cultivo]);
-                backgroundColors.push(colorMap[cultivo.toLowerCase()] || 'gray');
-            }
-
-            summaryDiv.innerHTML += `<br><strong>Total de la finca: ${totalArea.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ha</strong>`;
-
-            if (chart) chart.destroy();
-            const ctx = document.getElementById('chart').getContext('2d');
-            chart = new Chart(ctx, {
-                type: 'pie',
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        data: data,
-                        backgroundColor: backgroundColors
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        tooltip: {
-                            callbacks: {
-                                label: function(context) {
-                                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
-                                    const porcentaje = ((context.raw / total) * 100).toFixed(2);
-                                    return `${context.label}: ${context.raw.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ha (${porcentaje}%)`;
-                                }
-                            }
-                        }
-                    }
-                }
-            });
         }
+
+        // Función para guardar los datos (esto es solo un ejemplo, deberías integrarlo con un backend)
+        function guardarDatos() {
+            const productor = document.getElementById('nombre').value;
+            const finca = document.getElementById('codigo').value;
+            const lote = document.getElementById('variedad').value;
+            // Aquí debes agregar la lógica para guardar los datos en una base de datos
+
+            alert("Datos guardados exitosamente!");
+        }
+
+        // Cargar la ubicación GPS al cargar la página
+        window.onload = getGPSLocation;
     </script>
 </body>
 </html>
