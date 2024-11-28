@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Geoportal de Lotes Cafeteros</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
     <link href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" rel="stylesheet" />
     <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
     <script src="https://maps.googleapis.com/maps/api/js?key=YOUR_API_KEY&callback=initMap" async defer></script>
@@ -12,24 +12,58 @@
         body {
             font-family: Arial, sans-serif;
             padding: 20px;
+            margin: 0;
+            box-sizing: border-box;
+        }
+        h1 {
+            text-align: center;
         }
         .form-section {
             display: none;
             margin-bottom: 20px;
+            padding: 10px;
+            background-color: #f9f9f9;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .form-section label, .form-section select, .form-section input {
+            width: 100%;
+            margin-bottom: 10px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .form-section input[type="date"], .form-section select {
+            font-size: 14px;
         }
         #map {
-            height: 400px;
+            width: 100%;
+            height: 300px;
+            margin-bottom: 20px;
         }
         button {
-            margin: 10px;
-            padding: 10px;
             background-color: #4CAF50;
             color: white;
+            padding: 10px;
             border: none;
             cursor: pointer;
+            width: 100%;
+            margin-bottom: 10px;
+            border-radius: 4px;
+            font-size: 16px;
         }
         button:hover {
             background-color: #45a049;
+        }
+        @media (min-width: 768px) {
+            .form-section {
+                width: 60%;
+                margin: 0 auto;
+            }
+            button {
+                width: auto;
+                margin-right: 10px;
+            }
         }
     </style>
 </head>
@@ -116,10 +150,10 @@
             </select><br><br>
 
             <label for="distancia_surcos">Distancia entre Surcos (m):</label>
-            <input type="number" id="distancia_surcos" name="distancia_surcos"><br><br>
+            <input type="number" id="distancia_surcos" name="distancia_surcos" oninput="calcularDensidad()"><br><br>
 
             <label for="distancia_plantas">Distancia entre Plantas (m):</label>
-            <input type="number" id="distancia_plantas" name="distancia_plantas"><br><br>
+            <input type="number" id="distancia_plantas" name="distancia_plantas" oninput="calcularDensidad()"><br><br>
 
             <label for="densidad">Densidad por Hectárea:</label>
             <input type="text" id="densidad" name="densidad" readonly><br><br>
@@ -145,55 +179,57 @@
     <button onclick="guardarDatos()">Guardar Datos</button>
 
     <script>
-        // Mostrar/Ocultar formularios
+        let map;
+        let marker;
+
+        // Función para mostrar u ocultar formularios
         function toggleForm(formId) {
-            const form = document.getElementById(formId);
             const forms = document.querySelectorAll('.form-section');
-            forms.forEach(f => f.style.display = 'none'); // Ocultar todos los formularios
-            form.style.display = 'block'; // Mostrar el formulario seleccionado
+            forms.forEach(form => form.style.display = 'none');
+            document.getElementById(formId).style.display = 'block';
         }
 
-        // Inicialización del mapa con Leaflet
-        let map = L.map('map').setView([0, 0], 13); // Ajusta la vista inicial
+        // Función para calcular la densidad y la cantidad de árboles
+        function calcularDensidad() {
+            const distanciaSurcos = parseFloat(document.getElementById('distancia_surcos').value);
+            const distanciaPlantas = parseFloat(document.getElementById('distancia_plantas').value);
+            const area = parseFloat(document.getElementById('area').value);
 
-        // Cargar el mapa con OpenStreetMap (puedes usar Google Maps si lo prefieres)
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-        }).addTo(map);
+            if (!isNaN(distanciaSurcos) && !isNaN(distanciaPlantas) && area) {
+                const densidad = 10000 / (distanciaSurcos * distanciaPlantas);  // En árboles/hectárea
+                const cantidadArboles = densidad * area;
+                document.getElementById('densidad').value = densidad.toFixed(2);
+                document.getElementById('cantidad_arboles').value = Math.round(cantidadArboles);
+            }
+        }
 
         // Función para obtener la ubicación GPS
         function getGPSLocation() {
             if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(function (position) {
+                navigator.geolocation.getCurrentPosition(function(position) {
                     const lat = position.coords.latitude;
-                    const lng = position.coords.longitude;
-
-                    // Establecer la vista del mapa en la ubicación obtenida
-                    map.setView([lat, lng], 13);
-
-                    // Agregar marcador en el mapa
-                    L.marker([lat, lng]).addTo(map)
-                        .bindPopup("Ubicación registrada.")
-                        .openPopup();
-
-                    document.getElementById('altura').value = lat; // Asumir latitud como altura
+                    const lon = position.coords.longitude;
+                    document.getElementById('altura').value = lat; // Altura aproximada en este caso
+                    if (marker) {
+                        marker.setLatLng([lat, lon]);
+                    } else {
+                        marker = L.marker([lat, lon]).addTo(map);
+                    }
+                    map.setView([lat, lon], 15);
                 });
-            } else {
-                alert("Geolocalización no disponible.");
             }
         }
 
-        // Función para guardar los datos (este es solo un ejemplo, deberías integrar con un backend)
-        function guardarDatos() {
-            const productor = document.getElementById('nombre').value;
-            const finca = document.getElementById('codigo').value;
-            const lote = document.getElementById('variedad').value;
+        // Inicializar el mapa
+        function initMap() {
+            map = L.map('map').setView([4.5, -75.5], 10); // Coordenadas predeterminadas (ajustar según la ubicación)
 
-            alert(`Datos guardados: ${productor}, ${finca}, ${lote}`);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            }).addTo(map);
         }
 
-        // Llamar a la función para obtener la ubicación al cargar la página
-        window.onload = getGPSLocation;
+        window.onload = initMap;
     </script>
 
 </body>
