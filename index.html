@@ -8,147 +8,193 @@
     <link href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" rel="stylesheet" />
     <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
     <script src="https://maps.googleapis.com/maps/api/js?key=YOUR_API_KEY&callback=initMap" async defer></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+        }
+        .form-section {
+            display: none;
+            margin-bottom: 20px;
+        }
+        #map {
+            height: 400px;
+        }
+        button {
+            margin: 10px;
+            padding: 10px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+    </style>
 </head>
 <body>
 
     <h1>Registro de Lotes Cafeteros</h1>
 
+    <!-- Botones para mostrar formularios -->
+    <button onclick="toggleForm('formProductor')">Registrar Productor</button>
+    <button onclick="toggleForm('formFinca')">Registrar Finca</button>
+    <button onclick="toggleForm('formLote')">Registrar Lote</button>
+
     <!-- Formulario de Registro de Productor -->
-    <h2>Datos del Productor</h2>
-    <form id="formProductor">
-        <label for="nombre">Nombre del Productor:</label>
-        <input type="text" id="nombre" name="nombre" required><br><br>
+    <div id="formProductor" class="form-section">
+        <h2>Datos del Productor</h2>
+        <form>
+            <label for="nombre">Nombre del Productor:</label>
+            <input type="text" id="nombre" name="nombre" required><br><br>
 
-        <label for="cedula">Cédula:</label>
-        <input type="text" id="cedula" name="cedula" required><br><br>
+            <label for="cedula">Cédula:</label>
+            <input type="text" id="cedula" name="cedula" required><br><br>
 
-        <label for="celular">Número de Celular:</label>
-        <input type="text" id="celular" name="celular" required><br><br>
+            <label for="celular">Número de Celular:</label>
+            <input type="text" id="celular" name="celular" required><br><br>
 
-        <label for="genero">Género:</label>
-        <select id="genero" name="genero">
-            <option value="masculino">Masculino</option>
-            <option value="femenino">Femenino</option>
-        </select><br><br>
+            <label for="genero">Género:</label>
+            <select id="genero" name="genero">
+                <option value="masculino">Masculino</option>
+                <option value="femenino">Femenino</option>
+            </select><br><br>
 
-        <label for="correo">Correo Electrónico:</label>
-        <input type="email" id="correo" name="correo" required><br><br>
-    </form>
+            <label for="correo">Correo Electrónico:</label>
+            <input type="email" id="correo" name="correo" required><br><br>
+        </form>
+    </div>
 
-    <h2>Datos de la Finca</h2>
-    <form id="formFinca">
-        <label for="codigo">Código de la Finca:</label>
-        <input type="text" id="codigo" name="codigo" required><br><br>
+    <!-- Formulario de Registro de Finca -->
+    <div id="formFinca" class="form-section">
+        <h2>Datos de la Finca</h2>
+        <form>
+            <label for="codigo">Código de la Finca:</label>
+            <input type="text" id="codigo" name="codigo" required><br><br>
 
-        <label for="nombre_finca">Nombre de la Finca:</label>
-        <input type="text" id="nombre_finca" name="nombre_finca" required><br><br>
+            <label for="nombre_finca">Nombre de la Finca:</label>
+            <input type="text" id="nombre_finca" name="nombre_finca" required><br><br>
 
-        <label for="municipio">Municipio:</label>
-        <input type="text" id="municipio" name="municipio" required><br><br>
+            <label for="municipio">Municipio:</label>
+            <input type="text" id="municipio" name="municipio" required><br><br>
 
-        <label for="vereda">Vereda:</label>
-        <input type="text" id="vereda" name="vereda" required><br><br>
+            <label for="vereda">Vereda:</label>
+            <input type="text" id="vereda" name="vereda" required><br><br>
 
-        <label for="area">Área (hectáreas):</label>
-        <input type="text" id="area" name="area" readonly><br><br>
-    </form>
+            <label for="area">Área (hectáreas):</label>
+            <input type="text" id="area" name="area" readonly><br><br>
+        </form>
+    </div>
 
-    <h2>Datos del Lote</h2>
-    <form id="formLote">
-        <label for="variedad">Variedad de Café:</label>
-        <select id="variedad" name="variedad">
-            <option value="castillo">Castillo</option>
-            <option value="cenicafe">Cenicafe</option>
-            <option value="colombia">Colombia</option>
-            <option value="caturra">Caturra</option>
-            <option value="tabi">Tabi</option>
-            <option value="geisha">Geisha</option>
-            <option value="costa_rica">Costa Rica</option>
-            <option value="suprema">Suprema</option>
-            <option value="borbon">Borbon</option>
-            <option value="otras">Otras</option>
-        </select><br><br>
+    <!-- Formulario de Registro de Lote -->
+    <div id="formLote" class="form-section">
+        <h2>Datos del Lote</h2>
+        <form>
+            <label for="variedad">Variedad de Café:</label>
+            <select id="variedad" name="variedad">
+                <option value="castillo">Castillo</option>
+                <option value="cenicafe">Cenicafe</option>
+                <option value="colombia">Colombia</option>
+                <option value="caturra">Caturra</option>
+                <option value="tabi">Tabi</option>
+                <option value="geisha">Geisha</option>
+                <option value="costa_rica">Costa Rica</option>
+                <option value="suprema">Suprema</option>
+                <option value="borbon">Borbon</option>
+                <option value="otras">Otras</option>
+            </select><br><br>
 
-        <label for="fecha_labor">Fecha de la Labor:</label>
-        <input type="date" id="fecha_labor" name="fecha_labor"><br><br>
+            <label for="fecha_labor">Fecha de la Labor:</label>
+            <input type="date" id="fecha_labor" name="fecha_labor"><br><br>
 
-        <label for="tipo_labor">Tipo de Labor:</label>
-        <select id="tipo_labor" name="tipo_labor">
-            <option value="siembra_nueva">Siembra nueva</option>
-            <option value="reno_zoca">Reno por zoca</option>
-            <option value="reno_siembra">Reno por siembra</option>
-        </select><br><br>
+            <label for="tipo_labor">Tipo de Labor:</label>
+            <select id="tipo_labor" name="tipo_labor">
+                <option value="siembra_nueva">Siembra nueva</option>
+                <option value="reno_zoca">Reno por zoca</option>
+                <option value="reno_siembra">Reno por siembra</option>
+            </select><br><br>
 
-        <label for="distancia_surcos">Distancia entre Surcos (m):</label>
-        <input type="number" id="distancia_surcos" name="distancia_surcos"><br><br>
+            <label for="distancia_surcos">Distancia entre Surcos (m):</label>
+            <input type="number" id="distancia_surcos" name="distancia_surcos"><br><br>
 
-        <label for="distancia_plantas">Distancia entre Plantas (m):</label>
-        <input type="number" id="distancia_plantas" name="distancia_plantas"><br><br>
+            <label for="distancia_plantas">Distancia entre Plantas (m):</label>
+            <input type="number" id="distancia_plantas" name="distancia_plantas"><br><br>
 
-        <label for="densidad">Densidad por Hectárea:</label>
-        <input type="text" id="densidad" name="densidad" readonly><br><br>
+            <label for="densidad">Densidad por Hectárea:</label>
+            <input type="text" id="densidad" name="densidad" readonly><br><br>
 
-        <label for="cantidad_arboles">Cantidad de Árboles en el Lote:</label>
-        <input type="number" id="cantidad_arboles" name="cantidad_arboles" readonly><br><br>
+            <label for="cantidad_arboles">Cantidad de Árboles en el Lote:</label>
+            <input type="number" id="cantidad_arboles" name="cantidad_arboles" readonly><br><br>
 
-        <label for="luminosidad">Tipo de Luminosidad:</label>
-        <select id="luminosidad" name="luminosidad">
-            <option value="sol">Sol</option>
-            <option value="sombra">Sombra</option>
-            <option value="semisombra">Semisombra</option>
-        </select><br><br>
+            <label for="luminosidad">Tipo de Luminosidad:</label>
+            <select id="luminosidad" name="luminosidad">
+                <option value="sol">Sol</option>
+                <option value="sombra">Sombra</option>
+                <option value="semisombra">Semisombra</option>
+            </select><br><br>
 
-        <label for="altura">Altura sobre el Nivel del Mar (m):</label>
-        <input type="text" id="altura" name="altura" readonly><br><br>
-    </form>
+            <label for="altura">Altura sobre el Nivel del Mar (m):</label>
+            <input type="text" id="altura" name="altura" readonly><br><br>
+        </form>
+    </div>
 
     <!-- Mapa para Ubicación de Lote -->
-    <div id="map" style="height: 400px;"></div><br>
+    <div id="map"></div><br>
 
     <button onclick="guardarDatos()">Guardar Datos</button>
 
     <script>
-        let map = L.map('map').setView([0, 0], 13); // Ajustar la vista inicial del mapa
+        // Mostrar/Ocultar formularios
+        function toggleForm(formId) {
+            const form = document.getElementById(formId);
+            const forms = document.querySelectorAll('.form-section');
+            forms.forEach(f => f.style.display = 'none'); // Ocultar todos los formularios
+            form.style.display = 'block'; // Mostrar el formulario seleccionado
+        }
 
-        // Cargar el mapa de ESRI o Google Maps
+        // Inicialización del mapa con Leaflet
+        let map = L.map('map').setView([0, 0], 13); // Ajusta la vista inicial
+
+        // Cargar el mapa con OpenStreetMap (puedes usar Google Maps si lo prefieres)
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         }).addTo(map);
 
-        // Función para registrar la ubicación con GPS
+        // Función para obtener la ubicación GPS
         function getGPSLocation() {
             if (navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition(function (position) {
                     const lat = position.coords.latitude;
                     const lng = position.coords.longitude;
 
-                    // Establecer la vista del mapa a la ubicación obtenida
+                    // Establecer la vista del mapa en la ubicación obtenida
                     map.setView([lat, lng], 13);
 
-                    // Agregar marcador en la ubicación
+                    // Agregar marcador en el mapa
                     L.marker([lat, lng]).addTo(map)
                         .bindPopup("Ubicación registrada.")
                         .openPopup();
 
-                    document.getElementById('altura').value = lat; // Usar latitud como referencia de altura
+                    document.getElementById('altura').value = lat; // Asumir latitud como altura
                 });
             } else {
                 alert("Geolocalización no disponible.");
             }
         }
 
-        // Función para guardar los datos (esto es solo un ejemplo, deberías integrarlo con un backend)
+        // Función para guardar los datos (este es solo un ejemplo, deberías integrar con un backend)
         function guardarDatos() {
             const productor = document.getElementById('nombre').value;
             const finca = document.getElementById('codigo').value;
             const lote = document.getElementById('variedad').value;
-            // Aquí debes agregar la lógica para guardar los datos en una base de datos
 
-            alert("Datos guardados exitosamente!");
+            alert(`Datos guardados: ${productor}, ${finca}, ${lote}`);
         }
 
-        // Cargar la ubicación GPS al cargar la página
+        // Llamar a la función para obtener la ubicación al cargar la página
         window.onload = getGPSLocation;
     </script>
+
 </body>
 </html>
