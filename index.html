@@ -193,6 +193,12 @@
         var telefono = document.getElementById("telefonoProd").value;
         var correo = document.getElementById("correoProd").value;
 
+        // Verificar si la ubicación fue seleccionada
+        if (!ubicacionProd) {
+            alert('Por favor, selecciona una ubicación para el productor.');
+            return;
+        }
+
         console.log('Productor Guardado:', nombre, identificacion, genero, telefono, correo, ubicacionProd);
         alert('Productor guardado correctamente');
     }
@@ -205,6 +211,12 @@
         var area = document.getElementById("areaFinca").value;
         var vereda = document.getElementById("veredaFinca").value;
         var municipio = document.getElementById("municipioFinca").value;
+
+        // Verificar si la ubicación fue seleccionada
+        if (!ubicacionFinca) {
+            alert('Por favor, selecciona una ubicación para la finca.');
+            return;
+        }
 
         console.log('Finca Guardada:', codigo, nombre, propietario, area, vereda, municipio, ubicacionFinca);
         alert('Finca guardada correctamente');
