@@ -40,7 +40,6 @@
             background-color: #28a745;
             color: white;
             transition: background-color 0.3s;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
         }
 
         .button-container button:hover {
@@ -88,7 +87,6 @@
             border-radius: 8px;
             background-color: #f9f9f9;
             font-size: 14px;
-            transition: border 0.3s ease;
         }
 
         .form-container input:focus, .form-container select:focus {
@@ -105,26 +103,10 @@
             font-size: 16px;
             border-radius: 8px;
             cursor: pointer;
-            transition: background-color 0.3s;
         }
 
         .form-container button:hover {
             background-color: #218838;
-        }
-
-        .form-container .close-button {
-            background-color: #f44336;
-            margin-top: 10px;
-        }
-
-        .form-container .close-button:hover {
-            background-color: #d32f2f;
-        }
-
-        .form-container label {
-            font-size: 14px;
-            margin-bottom: 5px;
-            color: #555;
         }
 
         /* Botón de cierre (X) en la parte superior derecha */
@@ -258,7 +240,6 @@
         var genero = document.getElementById('generoProd').value;
         var telefono = document.getElementById('telefonoProd').value;
         var correo = document.getElementById('correoProd').value;
-
         // Aquí deberías agregar el productor a la lista o base de datos
         alert('Productor guardado');
         cerrarFormulario('productor');
@@ -273,7 +254,6 @@
         var vereda = document.getElementById('veredaFinca').value;
         var municipio = document.getElementById('municipioFinca').value;
         var productor = document.getElementById('productorFinca').value;
-
         // Aquí deberías agregar la finca a la lista o base de datos
         alert('Finca guardada');
         cerrarFormulario('finca');
@@ -303,7 +283,7 @@
     // Agregar productor a la lista de opciones del formulario de finca (para pruebas)
     document.getElementById('productorFinca').innerHTML += '<option value="1">Juan Pérez</option>';
     document.getElementById('productorFinca').innerHTML += '<option value="2">Ana Gómez</option>';
-
 </script>
+
 </body>
 </html>
