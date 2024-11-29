@@ -39,7 +39,7 @@
             background-color: rgba(255, 255, 255, 0.9);
             padding: 10px 20px;
             border-radius: 10px;
-            width: 300px;
+            width: 250px; /* Reducido el ancho */
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
             z-index: 2000;
             transition: opacity 0.3s ease;
@@ -54,7 +54,7 @@
         .form-container input, .form-container select {
             width: 100%;
             padding: 6px;
-            margin-bottom: 8px;
+            margin-bottom: 6px; /* Reducido el espacio entre los campos */
             font-size: 14px;
         }
         .form-container button {
@@ -83,7 +83,7 @@
 <div class="button-container">
     <button onclick="mostrarFormulario('productor')">Agregar Productor</button>
     <button onclick="mostrarFormulario('finca')">Agregar Finca</button>
-    <button class="ubicar" onclick="ubicarEnMapa()">Ubicar</button>
+    <button class="ubicar" onclick="obtenerUbicacionGPS()">Ubicar</button>
 </div>
 
 <!-- Formulario de Productor -->
@@ -221,7 +221,7 @@
         // Guardar el productor
         productores.push(productor);
 
-        // Actualizar el selector de productores en el formulario de finca
+        // Agregar productor a la lista desplegable de finca
         var selectProductor = document.getElementById("productorFinca");
         var option = document.createElement("option");
         option.value = productores.length - 1;
@@ -269,22 +269,28 @@
         document.getElementById('form' + capitalizeFirstLetter(modulo)).classList.remove('show');
     }
 
-    // Función para activar la herramienta de ubicación
-    function ubicarEnMapa() {
-        // Si ya hay un polígono dibujado, centra el mapa en su ubicación
-        if (drawnItems.getLayers().length > 0) {
-            var latlng = drawnItems.getLayers()[0].getBounds().getCenter();
-            map.setView(latlng, 15); // Ajusta el zoom a 15
-        } else {
-            alert("Primero dibuje un polígono en el mapa.");
-        }
-    }
-
     // Función para capitalizar la primera letra de un string
     function capitalizeFirstLetter(string) {
         return string.charAt(0).toUpperCase() + string.slice(1);
+    }
+
+    // Función para obtener la ubicación GPS del usuario
+    function obtenerUbicacionGPS() {
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(function(position) {
+                var lat = position.coords.latitude;
+                var lon = position.coords.longitude;
+                map.setView([lat, lon], 15); // Centra el mapa en la ubicación obtenida
+                alert("Ubicación obtenida: " + lat + ", " + lon);
+            }, function(error) {
+                alert("No se pudo obtener la ubicación: " + error.message);
+            });
+        } else {
+            alert("Geolocalización no es soportada por este navegador.");
+        }
     }
 </script>
 
 </body>
 </html>
+
