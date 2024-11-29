@@ -64,7 +64,6 @@
             transition: opacity 0.3s ease;
             resize: both;
             overflow: auto;
-            cursor: move;
         }
 
         .form-container.show {
@@ -240,20 +239,11 @@
             polyline: false
         }
     });
-    
     map.addControl(drawControl);
 
-    // Función para mostrar los formularios
+    // Función para mostrar el formulario (Productor o Finca)
     function mostrarFormulario(modulo) {
         document.getElementById('form' + capitalizeFirstLetter(modulo)).classList.add('show');
-        interact('.form-container').draggable({
-            restrict: {
-                restriction: 'parent',
-                endOnly: true
-            }
-        }).resizable({
-            edges: { left: true, right: true, bottom: true, top: true }
-        });
     }
 
     // Función para cerrar los formularios
@@ -309,7 +299,11 @@
     function capitalizeFirstLetter(string) {
         return string.charAt(0).toUpperCase() + string.slice(1);
     }
-</script>
 
+    // Agregar productor a la lista de opciones del formulario de finca (para pruebas)
+    document.getElementById('productorFinca').innerHTML += '<option value="1">Juan Pérez</option>';
+    document.getElementById('productorFinca').innerHTML += '<option value="2">Ana Gómez</option>';
+
+</script>
 </body>
 </html>
