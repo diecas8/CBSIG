@@ -37,7 +37,7 @@
             left: 50%;
             transform: translateX(-50%);
             background-color: rgba(255, 255, 255, 0.9);
-            padding: 20px;
+            padding: 10px 20px;
             border-radius: 10px;
             width: 300px;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
@@ -53,13 +53,13 @@
         }
         .form-container input, .form-container select {
             width: 100%;
-            padding: 8px;
-            margin-bottom: 10px;
-            font-size: 16px;
+            padding: 6px;
+            margin-bottom: 8px;
+            font-size: 14px;
         }
         .form-container button {
             width: 100%;
-            padding: 10px;
+            padding: 8px;
             background-color: #4CAF50;
             color: white;
             font-size: 16px;
@@ -83,7 +83,7 @@
 <div class="button-container">
     <button onclick="mostrarFormulario('productor')">Agregar Productor</button>
     <button onclick="mostrarFormulario('finca')">Agregar Finca</button>
-    <button class="ubicar" onclick="activarUbicacion()">Ubicación</button>
+    <button class="ubicar" onclick="ubicarEnMapa()">Ubicar</button>
 </div>
 
 <!-- Formulario de Productor -->
@@ -270,27 +270,14 @@
     }
 
     // Función para activar la herramienta de ubicación
-    function activarUbicacion() {
-        map.on('draw:created', function (e) {
-            var layer = e.layer;
-            drawnItems.addLayer(layer);
-
-            // Obtener la ubicación (punto central del polígono)
-            var latlng = layer.getBounds().getCenter();
-            var lat = latlng.lat;
-            var lon = latlng.lng;
-
-            if (document.getElementById('formProductor').classList.contains('show')) {
-                document.getElementById("ubicacionProd").value = lat + ", " + lon;
-                ubicacionProd = { lat: lat, lon: lon };
-            } else if (document.getElementById('formFinca').classList.contains('show')) {
-                document.getElementById("ubicacionFinca").value = lat + ", " + lon;
-                ubicacionFinca = { lat: lat, lon: lon };
-            }
-        });
-
-        // Habilitar la herramienta de dibujo de polígonos
-        map.addControl(drawControl);
+    function ubicarEnMapa() {
+        // Si ya hay un polígono dibujado, centra el mapa en su ubicación
+        if (drawnItems.getLayers().length > 0) {
+            var latlng = drawnItems.getLayers()[0].getBounds().getCenter();
+            map.setView(latlng, 15); // Ajusta el zoom a 15
+        } else {
+            alert("Primero dibuje un polígono en el mapa.");
+        }
     }
 
     // Función para capitalizar la primera letra de un string
