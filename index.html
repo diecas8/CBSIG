@@ -8,7 +8,6 @@
     <link href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" rel="stylesheet" />
     <link href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css" rel="stylesheet" />
     <style>
-        /* Diseño general */
         body {
             font-family: 'Roboto', sans-serif;
             margin: 0;
@@ -16,6 +15,7 @@
             box-sizing: border-box;
             background-color: #f4f6f9;
         }
+
         h1 {
             text-align: center;
             font-size: 2em;
@@ -23,14 +23,12 @@
             color: #333;
         }
 
-        /* Mapa a pantalla completa */
         #map {
             width: 100%;
             height: 100vh;  /* El mapa cubre toda la pantalla */
             margin-top: 0;
         }
 
-        /* Banda de selección de formularios */
         .navbar {
             display: flex;
             justify-content: center;
@@ -61,7 +59,6 @@
             font-weight: bold;
         }
 
-        /* Formularios */
         .form-section {
             background-color: white;
             border-radius: 10px;
@@ -85,6 +82,7 @@
             display: block;
             color: #333;
         }
+
         .form-section input, .form-section select {
             width: 100%;
             padding: 10px;
@@ -95,7 +93,6 @@
             background-color: #fafafa;
         }
 
-        /* Estilos para dispositivos móviles */
         @media (max-width: 768px) {
             .navbar {
                 flex-direction: column;
@@ -164,6 +161,18 @@
     <div id="formFinca" class="form-section">
         <h2>Datos de la Finca</h2>
         <form>
+            <label for="productor">Seleccionar Productor:</label>
+            <select id="productor" name="productor" onchange="updateFincas()">
+                <option value="">Seleccionar Productor</option>
+                <!-- Opciones dinámicas de productores -->
+            </select><br><br>
+
+            <label for="finca">Seleccionar Finca:</label>
+            <select id="finca" name="finca">
+                <option value="">Seleccionar Finca</option>
+                <!-- Opciones dinámicas de fincas -->
+            </select><br><br>
+
             <label for="codigo">Código de la Finca:</label>
             <input type="text" id="codigo" name="codigo" required><br><br>
 
@@ -186,14 +195,16 @@
     <div id="formLote" class="form-section">
         <h2>Datos del Lote</h2>
         <form>
-            <label for="productor">Seleccionar Productor:</label>
-            <select id="productor" name="productor">
-                <!-- Opciones dinámicas -->
+            <label for="productor_lote">Seleccionar Productor:</label>
+            <select id="productor_lote" name="productor_lote">
+                <option value="">Seleccionar Productor</option>
+                <!-- Opciones dinámicas de productores -->
             </select><br><br>
 
-            <label for="finca">Seleccionar Finca:</label>
-            <select id="finca" name="finca">
-                <!-- Opciones dinámicas -->
+            <label for="finca_lote">Seleccionar Finca:</label>
+            <select id="finca_lote" name="finca_lote">
+                <option value="">Seleccionar Finca</option>
+                <!-- Opciones dinámicas de fincas -->
             </select><br><br>
 
             <label for="variedad">Variedad de Café:</label>
@@ -206,7 +217,7 @@
                 <option value="geisha">Geisha</option>
                 <option value="costa_rica">Costa Rica</option>
                 <option value="suprema">Suprema</option>
-                <option value="borbon">Borbon</option>
+                <option value="borbon">Borbón</option>
                 <option value="otras">Otras</option>
             </select><br><br>
 
@@ -247,10 +258,10 @@
 
     <button class="btn-small" onclick="exportGeoJSON()">Exportar como GeoJSON</button>
 
-    <!-- Scripts -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
+
     <script>
         let map, drawnItems;
 
@@ -283,6 +294,8 @@
             map.on('draw:created', function(event) {
                 drawnItems.addLayer(event.layer);
                 toggleForm('formLote'); // Activar formulario después de dibujar el polígono
+                const area = L.GeometryUtil.geodesicArea(event.layer.getLatLngs()[0]); 
+                $('#area').val((area / 10000).toFixed(2)); // Calcular área en hectáreas
             });
 
             if (navigator.geolocation) {
@@ -296,6 +309,14 @@
 
         function saveForm(formId) {
             toggleForm(formId);
+        }
+
+        function updateFincas() {
+            const productor = $('#productor').val();
+            if (productor) {
+                // Lógica para obtener las fincas asociadas al productor
+                // Esta parte debería conectarse a tu base de datos o API
+            }
         }
 
         function exportGeoJSON() {
