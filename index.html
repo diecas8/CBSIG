@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Formulario Productor y Finca</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-draw/dist/leaflet.draw.css" />
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -100,10 +101,9 @@
         <label for="correoProd">Correo:</label>
         <input type="email" id="correoProd"><br>
 
-        <!-- Ubicación -->
-        <button type="button" id="btnUbicacionProd">Agregar Ubicación</button><br>
+        <!-- Ubicación (Opcional) -->
         <label for="ubicacionProd">Ubicación (Lat, Lon):</label>
-        <input type="text" id="ubicacionProd" readonly><br>
+        <input type="text" id="ubicacionProd" readonly placeholder="Opcional"><br>
 
         <button type="button" onclick="guardarProductor()">Guardar Productor</button>
     </form>
@@ -126,10 +126,9 @@
         <label for="municipioFinca">Municipio:</label>
         <input type="text" id="municipioFinca"><br>
 
-        <!-- Ubicación -->
-        <button type="button" id="btnUbicacionFinca">Agregar Ubicación</button><br>
+        <!-- Ubicación (Opcional) -->
         <label for="ubicacionFinca">Ubicación (Lat, Lon):</label>
-        <input type="text" id="ubicacionFinca" readonly><br>
+        <input type="text" id="ubicacionFinca" readonly placeholder="Opcional"><br>
 
         <button type="button" onclick="guardarFinca()">Guardar Finca</button>
     </form>
@@ -137,6 +136,7 @@
 
 <!-- Mapa y Scripts -->
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet-draw/dist/leaflet.draw.js"></script>
 <script>
     // Crear el mapa base
     var map = L.map('map').setView([14.6349, -90.5069], 13); // Coordenadas de ejemplo (Guatemala)
@@ -149,6 +149,24 @@
     // Variables para almacenar las ubicaciones seleccionadas
     var ubicacionProd = null;
     var ubicacionFinca = null;
+
+    // Crear el controlador de dibujo de polígonos
+    var drawnItems = new L.FeatureGroup();
+    map.addLayer(drawnItems);
+
+    var drawControl = new L.Control.Draw({
+        edit: {
+            featureGroup: drawnItems
+        },
+        draw: {
+            polygon: true,
+            polyline: false,
+            rectangle: false,
+            circle: false,
+            marker: false
+        }
+    });
+    map.addControl(drawControl);
 
     // Función para mostrar el formulario correspondiente
     function mostrarFormulario(modulo) {
@@ -164,35 +182,6 @@
         document.getElementById('form' + capitalizeFirstLetter(modulo)).classList.remove('hide');
     }
 
-    // Función para mostrar el mapa y agregar una ubicación
-    function agregarUbicacion(formulario) {
-        // Limpiar los marcadores previos
-        if (formulario === 'productor') {
-            ubicacionProd = null;
-        } else if (formulario === 'finca') {
-            ubicacionFinca = null;
-        }
-
-        // Agregar el evento de clic en el mapa para obtener las coordenadas
-        map.once('click', function(e) {
-            var latLon = e.latlng;
-            var lat = latLon.lat.toFixed(6);
-            var lon = latLon.lng.toFixed(6);
-
-            // Agregar un marcador al mapa en la ubicación seleccionada
-            L.marker([lat, lon]).addTo(map).bindPopup("Ubicación seleccionada: " + lat + ", " + lon).openPopup();
-
-            // Mostrar las coordenadas en el formulario
-            if (formulario === 'productor') {
-                ubicacionProd = { lat: lat, lon: lon };
-                document.getElementById('ubicacionProd').value = lat + ", " + lon;
-            } else if (formulario === 'finca') {
-                ubicacionFinca = { lat: lat, lon: lon };
-                document.getElementById('ubicacionFinca').value = lat + ", " + lon;
-            }
-        });
-    }
-
     // Función para guardar el productor
     function guardarProductor() {
         var nombre = document.getElementById("nombreProd").value;
@@ -201,10 +190,9 @@
         var telefono = document.getElementById("telefonoProd").value;
         var correo = document.getElementById("correoProd").value;
 
-        // Verificar si la ubicación fue seleccionada
+        // Verificar si la ubicación fue ingresada (opcional)
         if (!ubicacionProd) {
-            alert('Por favor, selecciona una ubicación para el productor.');
-            return;
+            alert('Productor guardado sin ubicación.');
         }
 
         // Guardar los datos del productor
@@ -221,10 +209,9 @@
         var vereda = document.getElementById("veredaFinca").value;
         var municipio = document.getElementById("municipioFinca").value;
 
-        // Verificar si la ubicación fue seleccionada
+        // Verificar si la ubicación fue ingresada (opcional)
         if (!ubicacionFinca) {
-            alert('Por favor, selecciona una ubicación para la finca.');
-            return;
+            alert('Finca guardada sin ubicación.');
         }
 
         // Guardar los datos de la finca
@@ -237,12 +224,36 @@
         return string.charAt(0).toUpperCase() + string.slice(1);
     }
 
-    // Event listeners para los botones de ubicación
-    document.getElementById('btnUbicacionProd').addEventListener('click', function() {
-        agregarUbicacion('productor');
+    // Evento para agregar polígono
+    map.on('draw:created', function(event) {
+        var layer = event.layer;
+        drawnItems.addLayer(layer);
+
+        // Obtener coordenadas del polígono
+        var coords = layer.getLatLngs()[0].map(function(latlng) {
+            return latlng.lat.toFixed(6) + ',' + latlng.lng.toFixed(6);
+        }).join('; ');
+        
+        // Mostrar las coordenadas en el formulario
+        if (document.getElementById('ubicacionProd').readOnly) {
+            document.getElementById('ubicacionProd').value = coords;
+            ubicacionProd = coords;
+        } else {
+            document.getElementById('ubicacionFinca').value = coords;
+            ubicacionFinca = coords;
+        }
     });
-    document.getElementById('btnUbicacionFinca').addEventListener('click', function() {
-        agregarUbicacion('finca');
+
+    // Herramientas de edición y eliminación de polígonos
+    map.on('draw:edited', function(event) {
+        var layers = event.layers;
+        layers.eachLayer(function(layer) {
+            console.log('Polygon edited:', layer.getLatLngs());
+        });
+    });
+
+    map.on('draw:deleted', function(event) {
+        console.log('Polygon deleted:', event.layers);
     });
 </script>
 
