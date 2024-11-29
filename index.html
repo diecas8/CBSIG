@@ -37,7 +37,7 @@
             left: 50%;
             transform: translateX(-50%);
             background-color: rgba(255, 255, 255, 0.9);
-            padding: 10px 20px;
+            padding: 15px;
             border-radius: 10px;
             width: 250px; /* Reducido el ancho */
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
@@ -71,6 +71,9 @@
         }
         .button-container button.ubicar {
             margin-top: 20px;
+        }
+        .form-container label {
+            font-size: 14px;
         }
     </style>
 </head>
@@ -209,19 +212,17 @@
             alert('Productor guardado sin ubicación.');
         }
 
-        // Crear objeto productor
+        // Guardar productor
         var productor = {
             nombre: nombre,
             identificacion: identificacion,
             genero: genero,
             telefono: telefono,
-            correo: correo,
-            ubicacion: ubicacionProd
+            correo: correo
         };
 
-        // Agregar productor al array
         productores.push(productor);
-        
+
         // Actualizar la lista de productores en finca
         var productorSelect = document.getElementById("productorFinca");
         var option = document.createElement("option");
@@ -290,5 +291,6 @@
         return string.charAt(0).toUpperCase() + string.slice(1);
     }
 </script>
+
 </body>
 </html>
