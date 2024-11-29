@@ -6,6 +6,7 @@
     <title>Geoportal de Lotes Cafeteros</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
     <link href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" rel="stylesheet" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css" rel="stylesheet" />
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -167,63 +168,87 @@
     </div>
 
     <!-- Mapa para Ubicación de Lote -->
-    <div id="map"></div><br>
+    <div id="map"></div>
 
-    <button onclick="guardarDatos()">Guardar Datos</button>
+    <!-- Scripts -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
 
     <script>
-        let map;
-        let marker;
+        let map, drawnItems, marker;
 
-        // Función para mostrar u ocultar formularios
+        // Función para alternar visibilidad de formularios
         function toggleForm(formId) {
-            const forms = document.querySelectorAll('.form-section');
-            forms.forEach(form => form.style.display = 'none');
-            document.getElementById(formId).style.display = 'block';
+            $('.form-section').hide();
+            $('#' + formId).show();
+        }
+
+        // Inicialización del mapa
+        function initMap() {
+            map = L.map('map').setView([4.5, -75.5], 10); // Coordenadas predeterminadas
+
+            // Agregar capa base (OpenStreetMap)
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            }).addTo(map);
+
+            // Contenedor para los objetos dibujados
+            drawnItems = new L.FeatureGroup().addTo(map);
+
+            // Agregar herramientas de dibujo
+            const drawControl = new L.Control.Draw({
+                edit: {
+                    featureGroup: drawnItems
+                },
+                draw: {
+                    polygon: true,
+                    polyline: false,
+                    circle: false,
+                    marker: true
+                }
+            });
+            map.addControl(drawControl);
+
+            // Manejo de eventos de dibujo
+            map.on('draw:created', function(event) {
+                const layer = event.layer;
+                drawnItems.addLayer(layer);
+                if (layer instanceof L.Marker) {
+                    marker = layer;
+                }
+            });
+
+            // Obtener ubicación del usuario
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(function(position) {
+                    const lat = position.coords.latitude;
+                    const lon = position.coords.longitude;
+                    if (!marker) {
+                        marker = L.marker([lat, lon]).addTo(map);
+                    } else {
+                        marker.setLatLng([lat, lon]);
+                    }
+                    map.setView([lat, lon], 15);
+                    document.getElementById('altura').value = lat; // Altura aproximada
+                });
+            }
         }
 
         // Función para calcular la densidad y la cantidad de árboles
         function calcularDensidad() {
             const distanciaSurcos = parseFloat(document.getElementById('distancia_surcos').value);
             const distanciaPlantas = parseFloat(document.getElementById('distancia_plantas').value);
-            const area = parseFloat(document.getElementById('area').value);
 
-            if (!isNaN(distanciaSurcos) && !isNaN(distanciaPlantas) && area) {
-                const densidad = 10000 / (distanciaSurcos * distanciaPlantas);  // En árboles/hectárea
-                const cantidadArboles = densidad * area;
+            if (!isNaN(distanciaSurcos) && !isNaN(distanciaPlantas)) {
+                const densidad = 10000 / (distanciaSurcos * distanciaPlantas); // 10000 es el área de 1 hectárea en m²
+                const cantidadArboles = densidad * parseFloat(document.getElementById('area').value);
                 document.getElementById('densidad').value = densidad.toFixed(2);
                 document.getElementById('cantidad_arboles').value = Math.round(cantidadArboles);
             }
         }
 
-        // Función para obtener la ubicación GPS
-        function getGPSLocation() {
-            if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(function(position) {
-                    const lat = position.coords.latitude;
-                    const lon = position.coords.longitude;
-                    document.getElementById('altura').value = lat; // Altura aproximada en este caso
-                    if (marker) {
-                        marker.setLatLng([lat, lon]);
-                    } else {
-                        marker = L.marker([lat, lon]).addTo(map);
-                    }
-                    map.setView([lat, lon], 15);
-                });
-            }
-        }
-
-        // Inicializar el mapa
-        function initMap() {
-            map = L.map('map').setView([4.5, -75.5], 10); // Coordenadas predeterminadas (ajustar según la ubicación)
-
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-            }).addTo(map);
-        }
-
         window.onload = initMap;
     </script>
-
 </body>
 </html>
