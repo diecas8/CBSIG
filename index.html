@@ -3,246 +3,154 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Formulario de Lotes Cafeteros</title>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css" />
+    <title>Tablas de Productores, Finca, Variedades, Tipos de Labor y Luminosidad</title>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 0;
-        }
-
-        /* Estilo del mapa */
-        #map {
+        table {
             width: 100%;
-            height: 100vh;
+            border-collapse: collapse;
+            margin-bottom: 20px;
         }
-
-        /* Estilos del formulario flotante */
-        .floating-form {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background-color: #fff;
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
-            z-index: 1000;
-            width: 80%;
-            max-width: 400px;
-            display: none;
-        }
-
-        /* Estilo para el overlay que cubre el fondo cuando el formulario está abierto */
-        .overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.5);
-            z-index: 999;
-            display: none;
-        }
-
-        .floating-form label {
-            font-weight: bold;
-        }
-
-        .floating-form input, .floating-form select {
-            width: 100%;
-            padding: 8px;
-            margin: 6px 0;
+        th, td {
             border: 1px solid #ddd;
-            border-radius: 8px;
-            font-size: 0.9em;
-            background-color: #fafafa;
+            padding: 8px;
+            text-align: left;
         }
-
-        .floating-form button {
-            background-color: #28a745;
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            cursor: pointer;
-            border-radius: 8px;
-            font-size: 1em;
-        }
-
-        .floating-form button:hover {
-            background-color: #218838;
-        }
-
-        /* Estilos para los botones flotantes */
-        .btn-float {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            background-color: #28a745;
-            color: white;
-            border: none;
-            padding: 15px 25px;
-            border-radius: 50%;
-            font-size: 1.5em;
-            cursor: pointer;
-            z-index: 1001;
-        }
-
-        .btn-float:hover {
-            background-color: #218838;
-        }
-
-        /* Ajustes para dispositivos móviles */
-        @media (max-width: 768px) {
-            .floating-form {
-                width: 90%;
-            }
-
-            .floating-form input, .floating-form select {
-                font-size: 0.8em;
-                padding: 6px;
-            }
+        th {
+            background-color: #f2f2f2;
         }
     </style>
 </head>
 <body>
 
-    <!-- Mapa -->
-    <div id="map"></div>
+    <!-- Tabla de Productores -->
+    <h2>Productores</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Nombre</th>
+                <th>Identificación</th>
+                <th>Género</th>
+                <th>Teléfono</th>
+                <th>Correo</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>Juan Pérez</td>
+                <td>12345678</td>
+                <td>Masculino</td>
+                <td>1234-5678</td>
+                <td>juanperez@email.com</td>
+            </tr>
+            <tr>
+                <td>María Gómez</td>
+                <td>87654321</td>
+                <td>Femenino</td>
+                <td>8765-4321</td>
+                <td>mariagomez@email.com</td>
+            </tr>
+        </tbody>
+    </table>
 
-    <!-- Formulario para Productor (flotante) -->
-    <div id="formProductor" class="floating-form">
-        <h2>Datos del Productor</h2>
-        <form>
-            <label for="productor">Nombre del Productor:</label>
-            <input type="text" id="productor" name="productor" required><br><br>
+    <!-- Tabla de Finca -->
+    <h2>Finca</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Código Finca</th>
+                <th>Nombre</th>
+                <th>Propietario</th>
+                <th>Área Tentativa</th>
+                <th>Vereda</th>
+                <th>Municipio</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>F001</td>
+                <td>Finca El Roble</td>
+                <td>Juan Pérez</td>
+                <td>20 ha</td>
+                <td>La Vega</td>
+                <td>Municipio A</td>
+            </tr>
+            <tr>
+                <td>F002</td>
+                <td>Finca Los Pinos</td>
+                <td>María Gómez</td>
+                <td>15 ha</td>
+                <td>Los Lirios</td>
+                <td>Municipio B</td>
+            </tr>
+        </tbody>
+    </table>
 
-            <label for="cedula">Cédula:</label>
-            <input type="text" id="cedula" name="cedula" required><br><br>
+    <!-- Tabla de Variedades -->
+    <h2>Variedades</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Código Variedad</th>
+                <th>Nombre Variedad</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>V001</td>
+                <td>Variedad A</td>
+            </tr>
+            <tr>
+                <td>V002</td>
+                <td>Variedad B</td>
+            </tr>
+        </tbody>
+    </table>
 
-            <label for="telefono">Teléfono:</label>
-            <input type="text" id="telefono" name="telefono" required><br><br>
+    <!-- Tabla de Tipos de Labor -->
+    <h2>Tipos de Labor</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Código Labor</th>
+                <th>Tipo de Labor</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>L001</td>
+                <td>Cultivo</td>
+            </tr>
+            <tr>
+                <td>L002</td>
+                <td>Cosecha</td>
+            </tr>
+        </tbody>
+    </table>
 
-            <label for="email">Correo Electrónico:</label>
-            <input type="email" id="email" name="email" required><br><br>
-        </form>
-        <button onclick="saveProductor()">Guardar</button>
-        <button onclick="closeForm('formProductor')">Cerrar</button>
-    </div>
-
-    <!-- Formulario para Finca (flotante) -->
-    <div id="formFinca" class="floating-form">
-        <h2>Datos de la Finca</h2>
-        <form>
-            <label for="codigo_finca">Código de la Finca:</label>
-            <input type="text" id="codigo_finca" name="codigo_finca" required><br><br>
-
-            <label for="nombre_finca">Nombre de la Finca:</label>
-            <input type="text" id="nombre_finca" name="nombre_finca" required><br><br>
-
-            <label for="municipio">Municipio:</label>
-            <input type="text" id="municipio" name="municipio" required><br><br>
-
-            <label for="vereda">Vereda:</label>
-            <input type="text" id="vereda" name="vereda" required><br><br>
-
-            <label for="area">Área (hectáreas):</label>
-            <input type="text" id="area" name="area" readonly><br><br>
-        </form>
-        <button onclick="saveFinca()">Guardar</button>
-        <button onclick="closeForm('formFinca')">Cerrar</button>
-    </div>
-
-    <!-- Overlay (fondo oscuro cuando el formulario está abierto) -->
-    <div id="overlay" class="overlay"></div>
-
-    <!-- Botón flotante para abrir el formulario de Productor -->
-    <button class="btn-float" onclick="openForm('formProductor')">+</button>
-    <!-- Botón flotante para abrir el formulario de Finca -->
-    <button class="btn-float" onclick="openForm('formFinca')">+</button>
-
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
-
-    <script>
-        let map, drawnItems, currentPolygon;
-
-        function initMap() {
-            map = L.map('map').setView([10.0, -84.0], 6); // Establece la vista inicial del mapa
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
-            drawnItems = new L.FeatureGroup().addTo(map);
-
-            map.on('draw:created', function (e) {
-                let layer = e.layer;
-                drawnItems.addLayer(layer);
-                currentPolygon = layer;  // Guarda el polígono actual
-                // Activar el formulario de Productor
-                openForm('formProductor');
-            });
-
-            // Herramienta de dibujo
-            new L.Control.Draw({
-                edit: { featureGroup: drawnItems },
-                draw: { polygon: true, polyline: false, rectangle: false, circle: false }
-            }).addTo(map);
-        }
-
-        function openForm(formId) {
-            // Muestra el formulario flotante
-            document.getElementById(formId).style.display = 'block';
-            document.getElementById('overlay').style.display = 'block'; // Muestra el fondo oscuro
-        }
-
-        function closeForm(formId) {
-            // Oculta el formulario flotante
-            document.getElementById(formId).style.display = 'none';
-            document.getElementById('overlay').style.display = 'none'; // Oculta el fondo oscuro
-        }
-
-        function saveProductor() {
-            // Aquí se guardarían los datos del productor (puedes integrarlo con tu backend o base de datos)
-            let productor = document.getElementById('productor').value;
-            let cedula = document.getElementById('cedula').value;
-            let telefono = document.getElementById('telefono').value;
-            let email = document.getElementById('email').value;
-
-            alert('Datos del Productor Guardados:\n' +
-                  'Productor: ' + productor + '\n' +
-                  'Cédula: ' + cedula + '\n' +
-                  'Teléfono: ' + telefono + '\n' +
-                  'Correo: ' + email);
-
-            // Cerrar formulario de Productor
-            closeForm('formProductor');
-        }
-
-        function saveFinca() {
-            // Aquí se guardarían los datos de la finca (puedes integrarlo con tu backend o base de datos)
-            let codigoFinca = document.getElementById('codigo_finca').value;
-            let nombreFinca = document.getElementById('nombre_finca').value;
-            let municipio = document.getElementById('municipio').value;
-            let vereda = document.getElementById('vereda').value;
-            let area = (currentPolygon) ? (currentPolygon.getArea() / 10000).toFixed(2) : '0'; // Auto-calcular área en hectáreas
-
-            document.getElementById('area').value = area;
-
-            alert('Datos de la Finca Guardados:\n' +
-                  'Código Finca: ' + codigoFinca + '\n' +
-                  'Nombre Finca: ' + nombreFinca + '\n' +
-                  'Municipio: ' + municipio + '\n' +
-                  'Vereda: ' + vereda + '\n' +
-                  'Área: ' + area + ' ha');
-
-            // Cerrar formulario de Finca
-            closeForm('formFinca');
-        }
-
-        // Inicializar el mapa cuando la página cargue
-        window.onload = initMap;
-    </script>
+    <!-- Tabla de Luminosidad -->
+    <h2>Luminosidad</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Código Luminosidad</th>
+                <th>Tipo de Luminosidad</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>LU001</td>
+                <td>Baja</td>
+            </tr>
+            <tr>
+                <td>LU002</td>
+                <td>Media</td>
+            </tr>
+            <tr>
+                <td>LU003</td>
+                <td>Alta</td>
+            </tr>
+        </tbody>
+    </table>
 
 </body>
 </html>
