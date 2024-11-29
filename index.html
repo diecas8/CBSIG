@@ -8,9 +8,10 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet-draw/dist/leaflet.draw.css" />
     <style>
         body {
-            font-family: Arial, sans-serif;
+            font-family: 'Roboto', sans-serif;
             margin: 0;
             padding: 0;
+            background-color: #f7f7f7;
         }
         #map {
             height: 100vh;
@@ -23,24 +24,35 @@
             z-index: 1000;
             display: flex;
             flex-direction: column;
+            background-color: rgba(255, 255, 255, 0.8);
+            padding: 10px;
+            border-radius: 5px;
         }
         .button-container button {
-            margin: 10px 0;
-            padding: 10px;
+            margin: 8px 0;
+            padding: 12px 16px;
             font-size: 16px;
             cursor: pointer;
+            border-radius: 5px;
+            border: none;
+            background-color: #4CAF50;
+            color: white;
+            transition: background-color 0.3s;
+        }
+        .button-container button:hover {
+            background-color: #45a049;
         }
         .form-container {
             display: none;
             position: absolute;
-            top: 10%;
+            top: 15%;
             left: 50%;
             transform: translateX(-50%);
-            background-color: rgba(255, 255, 255, 0.9);
-            padding: 12px;
-            border-radius: 10px;
-            width: 250px; /* Reducido el ancho */
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            width: 300px;
+            box-shadow: 0 6px 10px rgba(0, 0, 0, 0.1);
             z-index: 2000;
             transition: opacity 0.3s ease;
         }
@@ -53,31 +65,43 @@
         }
         .form-container input, .form-container select {
             width: 100%;
-            padding: 6px;
-            margin-bottom: 4px; /* Reducido el espacio entre los campos */
+            padding: 10px;
+            margin-bottom: 12px; 
             font-size: 14px;
-            line-height: 1.4; /* Ajustado el interlineado */
+            border-radius: 5px;
+            border: 1px solid #ccc;
+            background-color: #f9f9f9;
+            transition: border 0.3s;
+        }
+        .form-container input:focus, .form-container select:focus {
+            border-color: #4CAF50;
         }
         .form-container button {
             width: 100%;
-            padding: 8px;
+            padding: 12px;
             background-color: #4CAF50;
             color: white;
-            font-size: 16px;
             border: none;
+            font-size: 16px;
+            border-radius: 5px;
             cursor: pointer;
-            margin-top: 6px;
+            margin-top: 12px;
+            transition: background-color 0.3s;
         }
         .form-container button:hover {
             background-color: #45a049;
         }
-        .button-container button.ubicar {
-            margin-top: 20px;
-        }
         .form-container label {
             font-size: 14px;
-            margin-bottom: 4px; /* Reducido el espacio entre etiqueta y campo */
-            display: block; /* Asegura que las etiquetas no se alineen horizontalmente */
+            color: #333;
+            margin-bottom: 6px;
+        }
+        .form-container .close-button {
+            background-color: #f44336;
+            margin-top: 10px;
+        }
+        .form-container .close-button:hover {
+            background-color: #d32f2f;
         }
     </style>
 </head>
@@ -117,7 +141,7 @@
         <input type="text" id="ubicacionProd" readonly placeholder="Opcional"><br>
 
         <button type="button" onclick="guardarProductor()">Guardar Productor</button>
-        <button type="button" onclick="cerrarFormulario('productor')">Cerrar</button>
+        <button type="button" class="close-button" onclick="cerrarFormulario('productor')">Cerrar</button>
     </form>
 </div>
 
@@ -149,7 +173,7 @@
         <input type="text" id="ubicacionFinca" readonly placeholder="Opcional"><br>
 
         <button type="button" onclick="guardarFinca()">Guardar Finca</button>
-        <button type="button" onclick="cerrarFormulario('finca')">Cerrar</button>
+        <button type="button" class="close-button" onclick="cerrarFormulario('finca')">Cerrar</button>
     </form>
 </div>
 
@@ -170,24 +194,6 @@
     var ubicacionProd = null;
     var ubicacionFinca = null;
     var userMarker = null; // Marcador para la ubicación del usuario
-
-    // Crear el controlador de dibujo de polígonos
-    var drawnItems = new L.FeatureGroup();
-    map.addLayer(drawnItems);
-
-    var drawControl = new L.Control.Draw({
-        edit: {
-            featureGroup: drawnItems
-        },
-        draw: {
-            polygon: true,
-            polyline: false,
-            rectangle: false,
-            circle: false,
-            marker: false
-        }
-    });
-    map.addControl(drawControl);
 
     // Función para mostrar el formulario correspondiente
     function mostrarFormulario(modulo) {
@@ -212,7 +218,9 @@
         var correo = document.getElementById("correoProd").value;
 
         // Verificar si la ubicación fue proporcionada
-        if (!ubicacionProd) {
+        if (ubicacionProd) {
+            alert('Ubicación de productor: ' + ubicacionProd);
+        } else {
             alert('Productor guardado sin ubicación');
         }
 
@@ -232,7 +240,9 @@
         var productor = document.getElementById("productorFinca").value;
 
         // Verificar si la ubicación fue proporcionada
-        if (!ubicacionFinca) {
+        if (ubicacionFinca) {
+            alert('Ubicación de finca: ' + ubicacionFinca);
+        } else {
             alert('Finca guardada sin ubicación');
         }
 
