@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Formularios de Registro</title>
+    <title>Formulario Individualizado</title>
     <style>
         table {
             width: 100%;
@@ -22,9 +22,6 @@
             font-size: 1.5em;
             margin: 10px;
         }
-        form {
-            margin-bottom: 30px;
-        }
         label {
             margin-right: 10px;
         }
@@ -32,34 +29,13 @@
             margin-bottom: 10px;
             padding: 5px;
         }
+        .form-container {
+            display: none;
+            margin-top: 20px;
+        }
     </style>
 </head>
 <body>
-
-<!-- Formulario de Productores -->
-<h2>Formulario de Productores</h2>
-<form id="formProductores">
-    <label for="nombreProd">Nombre:</label>
-    <input type="text" id="nombreProd" required><br>
-    
-    <label for="idProd">Identificación:</label>
-    <input type="text" id="idProd" required><br>
-    
-    <label for="generoProd">Género:</label>
-    <select id="generoProd" required>
-        <option value="Masculino">Masculino</option>
-        <option value="Femenino">Femenino</option>
-        <option value="Otro">Otro</option>
-    </select><br>
-    
-    <label for="telefonoProd">Teléfono:</label>
-    <input type="tel" id="telefonoProd" required><br>
-    
-    <label for="correoProd">Correo:</label>
-    <input type="email" id="correoProd" required><br>
-    
-    <button type="button" onclick="agregarProductor()">Agregar Productor</button>
-</form>
 
 <!-- Tabla de Productores -->
 <table id="tablaProductores">
@@ -74,191 +50,126 @@
         </tr>
     </thead>
     <tbody>
-    </tbody>
-</table>
-
-<!-- Formulario de Fincas -->
-<h2>Formulario de Fincas</h2>
-<form id="formFincas">
-    <label for="codigoFinca">Código Finca:</label>
-    <input type="text" id="codigoFinca" required><br>
-    
-    <label for="nombreFinca">Nombre:</label>
-    <input type="text" id="nombreFinca" required><br>
-    
-    <label for="propietarioFinca">Propietario:</label>
-    <input type="text" id="propietarioFinca" required><br>
-    
-    <label for="areaFinca">Área Tentativa:</label>
-    <input type="text" id="areaFinca" required><br>
-    
-    <label for="veredaFinca">Vereda:</label>
-    <input type="text" id="veredaFinca" required><br>
-    
-    <label for="municipioFinca">Municipio:</label>
-    <input type="text" id="municipioFinca" required><br>
-    
-    <button type="button" onclick="agregarFinca()">Agregar Finca</button>
-</form>
-
-<!-- Tabla de Fincas -->
-<table id="tablaFincas">
-    <caption>Tabla de Fincas</caption>
-    <thead>
-        <tr>
-            <th>Código Finca</th>
-            <th>Nombre</th>
-            <th>Propietario</th>
-            <th>Área Tentativa</th>
-            <th>Vereda</th>
-            <th>Municipio</th>
+        <tr data-id="1">
+            <td>Juan Pérez</td>
+            <td>12345678</td>
+            <td>Masculino</td>
+            <td>+505 1234-5678</td>
+            <td>juan@email.com</td>
         </tr>
-    </thead>
-    <tbody>
-    </tbody>
-</table>
-
-<!-- Formulario de Variedades -->
-<h2>Formulario de Variedades</h2>
-<form id="formVariedades">
-    <label for="codigoVariedad">Código Variedad:</label>
-    <input type="text" id="codigoVariedad" required><br>
-    
-    <label for="nombreVariedad">Variedad:</label>
-    <input type="text" id="nombreVariedad" required><br>
-    
-    <button type="button" onclick="agregarVariedad()">Agregar Variedad</button>
-</form>
-
-<!-- Tabla de Variedades -->
-<table id="tablaVariedades">
-    <caption>Tabla de Variedades</caption>
-    <thead>
-        <tr>
-            <th>Código Variedad</th>
-            <th>Variedad</th>
+        <tr data-id="2">
+            <td>Ana Gómez</td>
+            <td>87654321</td>
+            <td>Femenino</td>
+            <td>+505 9876-5432</td>
+            <td>ana@email.com</td>
         </tr>
-    </thead>
-    <tbody>
+        <!-- Más productores pueden agregarse aquí -->
     </tbody>
 </table>
 
-<!-- Formulario de Tipos de Labor -->
-<h2>Formulario de Tipos de Labor</h2>
-<form id="formLabor">
-    <label for="codigoLabor">Código Labor:</label>
-    <input type="text" id="codigoLabor" required><br>
-    
-    <label for="nombreLabor">Labor:</label>
-    <input type="text" id="nombreLabor" required><br>
-    
-    <button type="button" onclick="agregarLabor()">Agregar Labor</button>
-</form>
+<!-- Selección de Productor -->
+<h2>Selecciona un Productor</h2>
+<select id="selectProductor" onchange="mostrarFormulario()">
+    <option value="">-- Seleccionar Productor --</option>
+    <option value="1">Juan Pérez</option>
+    <option value="2">Ana Gómez</option>
+    <!-- Agregar más opciones según los productores -->
+</select>
 
-<!-- Tabla de Tipos de Labor -->
-<table id="tablaLabor">
-    <caption>Tabla de Tipos de Labor</caption>
-    <thead>
-        <tr>
-            <th>Código Labor</th>
-            <th>Labor</th>
-        </tr>
-    </thead>
-    <tbody>
-    </tbody>
-</table>
+<!-- Formulario Individualizado -->
+<div class="form-container" id="formContainer">
+    <h2>Formulario de Productor</h2>
+    <form id="formProductor">
+        <input type="hidden" id="productorId">
+        
+        <label for="nombreProd">Nombre:</label>
+        <input type="text" id="nombreProd" required><br>
 
-<!-- Formulario de Luminosidad -->
-<h2>Formulario de Luminosidad</h2>
-<form id="formLuminosidad">
-    <label for="codigoLuminosidad">Código Luminosidad:</label>
-    <input type="text" id="codigoLuminosidad" required><br>
-    
-    <label for="nivelLuminosidad">Nivel de Luminosidad:</label>
-    <input type="text" id="nivelLuminosidad" required><br>
-    
-    <button type="button" onclick="agregarLuminosidad()">Agregar Luminosidad</button>
-</form>
+        <label for="idProd">Identificación:</label>
+        <input type="text" id="idProd" required><br>
 
-<!-- Tabla de Luminosidad -->
-<table id="tablaLuminosidad">
-    <caption>Tabla de Luminosidad</caption>
-    <thead>
-        <tr>
-            <th>Código Luminosidad</th>
-            <th>Nivel de Luminosidad</th>
-        </tr>
-    </thead>
-    <tbody>
-    </tbody>
-</table>
+        <label for="generoProd">Género:</label>
+        <select id="generoProd" required>
+            <option value="Masculino">Masculino</option>
+            <option value="Femenino">Femenino</option>
+            <option value="Otro">Otro</option>
+        </select><br>
+
+        <label for="telefonoProd">Teléfono:</label>
+        <input type="tel" id="telefonoProd" required><br>
+
+        <label for="correoProd">Correo:</label>
+        <input type="email" id="correoProd" required><br>
+
+        <button type="button" onclick="guardarProductor()">Guardar</button>
+    </form>
+</div>
 
 <script>
-// Función para agregar productores
-function agregarProductor() {
-    let nombre = document.getElementById("nombreProd").value;
-    let identificacion = document.getElementById("idProd").value;
-    let genero = document.getElementById("generoProd").value;
-    let telefono = document.getElementById("telefonoProd").value;
-    let correo = document.getElementById("correoProd").value;
+// Datos de los productores
+const productores = [
+    {
+        id: 1,
+        nombre: 'Juan Pérez',
+        identificacion: '12345678',
+        genero: 'Masculino',
+        telefono: '+505 1234-5678',
+        correo: 'juan@email.com'
+    },
+    {
+        id: 2,
+        nombre: 'Ana Gómez',
+        identificacion: '87654321',
+        genero: 'Femenino',
+        telefono: '+505 9876-5432',
+        correo: 'ana@email.com'
+    }
+    // Agregar más productores según sea necesario
+];
 
-    let tabla = document.getElementById("tablaProductores").getElementsByTagName("tbody")[0];
-    let fila = tabla.insertRow();
-    fila.innerHTML = `<td>${nombre}</td><td>${identificacion}</td><td>${genero}</td><td>${telefono}</td><td>${correo}</td>`;
+// Mostrar formulario con datos del productor seleccionado
+function mostrarFormulario() {
+    const productorId = document.getElementById("selectProductor").value;
+    const formContainer = document.getElementById("formContainer");
 
-    document.getElementById("formProductores").reset();
+    if (productorId) {
+        const productor = productores.find(p => p.id == productorId);
+        if (productor) {
+            document.getElementById("productorId").value = productor.id;
+            document.getElementById("nombreProd").value = productor.nombre;
+            document.getElementById("idProd").value = productor.identificacion;
+            document.getElementById("generoProd").value = productor.genero;
+            document.getElementById("telefonoProd").value = productor.telefono;
+            document.getElementById("correoProd").value = productor.correo;
+
+            formContainer.style.display = "block";
+        }
+    } else {
+        formContainer.style.display = "none";
+    }
 }
 
-// Función para agregar fincas
-function agregarFinca() {
-    let codigo = document.getElementById("codigoFinca").value;
-    let nombre = document.getElementById("nombreFinca").value;
-    let propietario = document.getElementById("propietarioFinca").value;
-    let area = document.getElementById("areaFinca").value;
-    let vereda = document.getElementById("veredaFinca").value;
-    let municipio = document.getElementById("municipioFinca").value;
+// Función para guardar la información del productor
+function guardarProductor() {
+    const productorId = document.getElementById("productorId").value;
+    const nombre = document.getElementById("nombreProd").value;
+    const identificacion = document.getElementById("idProd").value;
+    const genero = document.getElementById("generoProd").value;
+    const telefono = document.getElementById("telefonoProd").value;
+    const correo = document.getElementById("correoProd").value;
 
-    let tabla = document.getElementById("tablaFincas").getElementsByTagName("tbody")[0];
-    let fila = tabla.insertRow();
-    fila.innerHTML = `<td>${codigo}</td><td>${nombre}</td><td>${propietario}</td><td>${area}</td><td>${vereda}</td><td>${municipio}</td>`;
+    const productor = productores.find(p => p.id == productorId);
+    if (productor) {
+        productor.nombre = nombre;
+        productor.identificacion = identificacion;
+        productor.genero = genero;
+        productor.telefono = telefono;
+        productor.correo = correo;
 
-    document.getElementById("formFincas").reset();
-}
-
-// Función para agregar variedades
-function agregarVariedad() {
-    let codigo = document.getElementById("codigoVariedad").value;
-    let nombre = document.getElementById("nombreVariedad").value;
-
-    let tabla = document.getElementById("tablaVariedades").getElementsByTagName("tbody")[0];
-    let fila = tabla.insertRow();
-    fila.innerHTML = `<td>${codigo}</td><td>${nombre}</td>`;
-
-    document.getElementById("formVariedades").reset();
-}
-
-// Función para agregar tipos de labor
-function agregarLabor() {
-    let codigo = document.getElementById("codigoLabor").value;
-    let nombre = document.getElementById("nombreLabor").value;
-
-    let tabla = document.getElementById("tablaLabor").getElementsByTagName("tbody")[0];
-    let fila = tabla.insertRow();
-    fila.innerHTML = `<td>${codigo}</td><td>${nombre}</td>`;
-
-    document.getElementById("formLabor").reset();
-}
-
-// Función para agregar luminosidad
-function agregarLuminosidad() {
-    let codigo = document.getElementById("codigoLuminosidad").value;
-    let nivel = document.getElementById("nivelLuminosidad").value;
-
-    let tabla = document.getElementById("tablaLuminosidad").getElementsByTagName("tbody")[0];
-    let fila = tabla.insertRow();
-    fila.innerHTML = `<td>${codigo}</td><td>${nivel}</td>`;
-
-    document.getElementById("formLuminosidad").reset();
+        alert('Información guardada correctamente!');
+        console.log(productor);
+    }
 }
 </script>
 
