@@ -49,9 +49,9 @@
             left: 50%;
             transform: translateX(-50%);
             background-color: #fff;
-            padding: 20px;
+            padding: 25px;
             border-radius: 8px;
-            width: 300px;
+            width: 350px;
             box-shadow: 0 6px 10px rgba(0, 0, 0, 0.1);
             z-index: 2000;
             transition: opacity 0.3s ease;
@@ -63,10 +63,16 @@
         .form-container.hide {
             opacity: 0;
         }
+        .form-container h3 {
+            font-size: 18px;
+            text-align: center;
+            margin-bottom: 20px;
+            color: #333;
+        }
         .form-container input, .form-container select {
             width: 100%;
             padding: 10px;
-            margin-bottom: 12px; 
+            margin-bottom: 12px;
             font-size: 14px;
             border-radius: 5px;
             border: 1px solid #ccc;
@@ -181,8 +187,8 @@
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 <script src="https://unpkg.com/leaflet-draw/dist/leaflet.draw.js"></script>
 <script>
-    // Crear el mapa base
-    var map = L.map('map').setView([14.6349, -90.5069], 13); // Coordenadas de ejemplo (Guatemala)
+    // Crear el mapa base centrado en Colombia
+    var map = L.map('map').setView([4.5709, -74.2973], 6); // Coordenadas de Colombia
 
     // Agregar capa base de OpenStreetMap
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
