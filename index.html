@@ -128,7 +128,7 @@
             <label for="email">Correo Electrónico:</label>
             <input type="email" id="email" name="email" required><br><br>
         </form>
-        <button onclick="saveForm('formProductor')">Guardar</button>
+        <button onclick="saveProductor()">Guardar</button>
         <button onclick="closeForm('formProductor')">Cerrar</button>
     </div>
 
@@ -151,7 +151,7 @@
             <label for="area">Área (hectáreas):</label>
             <input type="text" id="area" name="area" readonly><br><br>
         </form>
-        <button onclick="saveForm('formFinca')">Guardar</button>
+        <button onclick="saveFinca()">Guardar</button>
         <button onclick="closeForm('formFinca')">Cerrar</button>
     </div>
 
@@ -168,7 +168,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
 
     <script>
-        let map, drawnItems;
+        let map, drawnItems, currentPolygon;
 
         function initMap() {
             map = L.map('map').setView([10.0, -84.0], 6); // Establece la vista inicial del mapa
@@ -178,7 +178,9 @@
             map.on('draw:created', function (e) {
                 let layer = e.layer;
                 drawnItems.addLayer(layer);
-                // Cuando se dibuja un polígono, activa el formulario de Lote
+                currentPolygon = layer;  // Guarda el polígono actual
+                // Activar el formulario de Productor
+                openForm('formProductor');
             });
 
             // Herramienta de dibujo
@@ -200,15 +202,47 @@
             document.getElementById('overlay').style.display = 'none'; // Oculta el fondo oscuro
         }
 
-        function saveForm(formId) {
-            // Aquí podrías agregar lógica para guardar los datos del formulario
-            alert('Formulario Guardado');
-            closeForm(formId);
+        function saveProductor() {
+            // Aquí se guardarían los datos del productor (puedes integrarlo con tu backend o base de datos)
+            let productor = document.getElementById('productor').value;
+            let cedula = document.getElementById('cedula').value;
+            let telefono = document.getElementById('telefono').value;
+            let email = document.getElementById('email').value;
+
+            alert('Datos del Productor Guardados:\n' +
+                  'Productor: ' + productor + '\n' +
+                  'Cédula: ' + cedula + '\n' +
+                  'Teléfono: ' + telefono + '\n' +
+                  'Correo: ' + email);
+
+            // Cerrar formulario de Productor
+            closeForm('formProductor');
         }
 
-        $(document).ready(function () {
-            initMap();
-        });
+        function saveFinca() {
+            // Aquí se guardarían los datos de la finca (puedes integrarlo con tu backend o base de datos)
+            let codigoFinca = document.getElementById('codigo_finca').value;
+            let nombreFinca = document.getElementById('nombre_finca').value;
+            let municipio = document.getElementById('municipio').value;
+            let vereda = document.getElementById('vereda').value;
+            let area = (currentPolygon) ? (currentPolygon.getArea() / 10000).toFixed(2) : '0'; // Auto-calcular área en hectáreas
+
+            document.getElementById('area').value = area;
+
+            alert('Datos de la Finca Guardados:\n' +
+                  'Código Finca: ' + codigoFinca + '\n' +
+                  'Nombre Finca: ' + nombreFinca + '\n' +
+                  'Municipio: ' + municipio + '\n' +
+                  'Vereda: ' + vereda + '\n' +
+                  'Área: ' + area + ' ha');
+
+            // Cerrar formulario de Finca
+            closeForm('formFinca');
+        }
+
+        // Inicializar el mapa cuando la página cargue
+        window.onload = initMap;
     </script>
+
 </body>
 </html>
