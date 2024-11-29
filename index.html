@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tablas de Productores, Finca, Variedades, Tipos de Labor y Luminosidad</title>
+    <title>Tablas de Productores, Fincas, Variedades y Más</title>
     <style>
         table {
             width: 100%;
@@ -18,139 +18,133 @@
         th {
             background-color: #f2f2f2;
         }
+        caption {
+            font-size: 1.5em;
+            margin: 10px;
+        }
     </style>
 </head>
 <body>
 
-    <!-- Tabla de Productores -->
-    <h2>Productores</h2>
-    <table>
-        <thead>
-            <tr>
-                <th>Nombre</th>
-                <th>Identificación</th>
-                <th>Género</th>
-                <th>Teléfono</th>
-                <th>Correo</th>
-            </tr>
-        </thead>
-        <tbody>
-            <tr>
-                <td>Juan Pérez</td>
-                <td>12345678</td>
-                <td>Masculino</td>
-                <td>1234-5678</td>
-                <td>juanperez@email.com</td>
-            </tr>
-            <tr>
-                <td>María Gómez</td>
-                <td>87654321</td>
-                <td>Femenino</td>
-                <td>8765-4321</td>
-                <td>mariagomez@email.com</td>
-            </tr>
-        </tbody>
-    </table>
+<!-- Tabla de Productores -->
+<table>
+    <caption>Tabla de Productores</caption>
+    <thead>
+        <tr>
+            <th>Nombre</th>
+            <th>Identificación</th>
+            <th>Género</th>
+            <th>Teléfono</th>
+            <th>Correo</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td>Juan Pérez</td>
+            <td>12345678</td>
+            <td>Masculino</td>
+            <td>+505 1234-5678</td>
+            <td>juan@email.com</td>
+        </tr>
+        <!-- Agregar más productores aquí -->
+    </tbody>
+</table>
 
-    <!-- Tabla de Finca -->
-    <h2>Finca</h2>
-    <table>
-        <thead>
-            <tr>
-                <th>Código Finca</th>
-                <th>Nombre</th>
-                <th>Propietario</th>
-                <th>Área Tentativa</th>
-                <th>Vereda</th>
-                <th>Municipio</th>
-            </tr>
-        </thead>
-        <tbody>
-            <tr>
-                <td>F001</td>
-                <td>Finca El Roble</td>
-                <td>Juan Pérez</td>
-                <td>20 ha</td>
-                <td>La Vega</td>
-                <td>Municipio A</td>
-            </tr>
-            <tr>
-                <td>F002</td>
-                <td>Finca Los Pinos</td>
-                <td>María Gómez</td>
-                <td>15 ha</td>
-                <td>Los Lirios</td>
-                <td>Municipio B</td>
-            </tr>
-        </tbody>
-    </table>
+<!-- Tabla de Fincas -->
+<table>
+    <caption>Tabla de Fincas</caption>
+    <thead>
+        <tr>
+            <th>Código Finca</th>
+            <th>Nombre</th>
+            <th>Propietario</th>
+            <th>Área Tentativa</th>
+            <th>Vereda</th>
+            <th>Municipio</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td>F001</td>
+            <td>Finca La Esperanza</td>
+            <td>Juan Pérez</td>
+            <td>50 ha</td>
+            <td>Vereda El Sol</td>
+            <td>Municipio A</td>
+        </tr>
+        <!-- Agregar más fincas aquí -->
+    </tbody>
+</table>
 
-    <!-- Tabla de Variedades -->
-    <h2>Variedades</h2>
-    <table>
-        <thead>
-            <tr>
-                <th>Código Variedad</th>
-                <th>Nombre Variedad</th>
-            </tr>
-        </thead>
-        <tbody>
-            <tr>
-                <td>V001</td>
-                <td>Variedad A</td>
-            </tr>
-            <tr>
-                <td>V002</td>
-                <td>Variedad B</td>
-            </tr>
-        </tbody>
-    </table>
+<!-- Tabla de Variedades -->
+<table>
+    <caption>Tabla de Variedades</caption>
+    <thead>
+        <tr>
+            <th>Código Variedad</th>
+            <th>Variedad</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td>V001</td>
+            <td>Arabica</td>
+        </tr>
+        <tr>
+            <td>V002</td>
+            <td>Robusta</td>
+        </tr>
+        <!-- Agregar más variedades aquí -->
+    </tbody>
+</table>
 
-    <!-- Tabla de Tipos de Labor -->
-    <h2>Tipos de Labor</h2>
-    <table>
-        <thead>
-            <tr>
-                <th>Código Labor</th>
-                <th>Tipo de Labor</th>
-            </tr>
-        </thead>
-        <tbody>
-            <tr>
-                <td>L001</td>
-                <td>Cultivo</td>
-            </tr>
-            <tr>
-                <td>L002</td>
-                <td>Cosecha</td>
-            </tr>
-        </tbody>
-    </table>
+<!-- Tabla de Tipos de Labor -->
+<table>
+    <caption>Tabla de Tipos de Labor</caption>
+    <thead>
+        <tr>
+            <th>Código Labor</th>
+            <th>Labor</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td>L001</td>
+            <td>Siembra</td>
+        </tr>
+        <tr>
+            <td>L002</td>
+            <td>Cosecha</td>
+        </tr>
+        <!-- Agregar más tipos de labor aquí -->
+    </tbody>
+</table>
 
-    <!-- Tabla de Luminosidad -->
-    <h2>Luminosidad</h2>
-    <table>
-        <thead>
-            <tr>
-                <th>Código Luminosidad</th>
-                <th>Tipo de Luminosidad</th>
-            </tr>
-        </thead>
-        <tbody>
-            <tr>
-                <td>LU001</td>
-                <td>Baja</td>
-            </tr>
-            <tr>
-                <td>LU002</td>
-                <td>Media</td>
-            </tr>
-            <tr>
-                <td>LU003</td>
-                <td>Alta</td>
-            </tr>
-        </tbody>
-    </table>
+<!-- Tabla de Luminosidad -->
+<table>
+    <caption>Tabla de Luminosidad</caption>
+    <thead>
+        <tr>
+            <th>Código Luminosidad</th>
+            <th>Nivel de Luminosidad</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td>LU001</td>
+            <td>Baja</td>
+        </tr>
+        <tr>
+            <td>LU002</td>
+            <td>Media</td>
+        </tr>
+        <tr>
+            <td>LU003</td>
+            <td>Alta</td>
+        </tr>
+        <!-- Agregar más niveles de luminosidad aquí -->
+    </tbody>
+</table>
 
 </body>
 </html>
