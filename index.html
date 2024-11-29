@@ -62,6 +62,9 @@
             z-index: 2000;
             opacity: 0;
             transition: opacity 0.3s ease;
+            resize: both;
+            overflow: auto;
+            cursor: move;
         }
 
         .form-container.show {
@@ -135,6 +138,7 @@
 <div class="button-container">
     <button onclick="mostrarFormulario('productor')">Agregar Productor</button>
     <button onclick="mostrarFormulario('finca')">Agregar Finca</button>
+    <button onclick="obtenerUbicacionGPS()">Ubicarme</button>
 </div>
 
 <!-- Formulario de Productor -->
@@ -201,6 +205,25 @@
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
     }).addTo(map);
 
+    // Añadir herramientas de dibujo
+    var drawnItems = new L.FeatureGroup();
+    map.addLayer(drawnItems);
+    
+    var drawControl = new L.Control.Draw({
+        edit: {
+            featureGroup: drawnItems
+        },
+        draw: {
+            polygon: true,
+            circle: false,
+            rectangle: false,
+            marker: false,
+            polyline: false
+        }
+    });
+    
+    map.addControl(drawControl);
+
     // Variables para almacenar los productores y la ubicación
     var productores = [];
     var ubicacionProd = null;
@@ -208,49 +231,56 @@
 
     // Función para mostrar el formulario correspondiente
     function mostrarFormulario(modulo) {
-        // Ocultar todos los formularios
-        var formularios = document.querySelectorAll('.form-container');
-        formularios.forEach(function(form) {
-            form.classList.add('hide');
-            form.classList.remove('show');
-        });
-
-        // Mostrar el formulario correspondiente
         document.getElementById('form' + capitalizeFirstLetter(modulo)).classList.add('show');
-        document.getElementById('form' + capitalizeFirstLetter(modulo)).classList.remove('hide');
+    }
+
+    // Función para cerrar los formularios
+    function cerrarFormulario(modulo) {
+        document.getElementById('form' + capitalizeFirstLetter(modulo)).classList.remove('show');
     }
 
     // Función para guardar el productor
     function guardarProductor() {
-        var nombre = document.getElementById("nombreProd").value;
-        var identificacion = document.getElementById("idProd").value;
-        var genero = document.getElementById("generoProd").value;
-        var telefono = document.getElementById("telefonoProd").value;
-        var correo = document.getElementById("correoProd").value;
+        var nombre = document.getElementById('nombreProd').value;
+        var id = document.getElementById('idProd').value;
+        var genero = document.getElementById('generoProd').value;
+        var telefono = document.getElementById('telefonoProd').value;
+        var correo = document.getElementById('correoProd').value;
 
-        productores.push({ nombre, identificacion, genero, telefono, correo });
-        alert('Productor guardado correctamente!');
+        productores.push({ nombre, id, genero, telefono, correo });
+
+        alert('Productor guardado');
         cerrarFormulario('productor');
     }
 
     // Función para guardar la finca
     function guardarFinca() {
-        var codigo = document.getElementById("codigoFinca").value;
-        var nombre = document.getElementById("nombreFinca").value;
-        var propietario = document.getElementById("propietarioFinca").value;
-        var area = document.getElementById("areaFinca").value;
-        var vereda = document.getElementById("veredaFinca").value;
-        var municipio = document.getElementById("municipioFinca").value;
-        var productor = document.getElementById("productorFinca").value;
+        var codigo = document.getElementById('codigoFinca').value;
+        var nombre = document.getElementById('nombreFinca').value;
+        var propietario = document.getElementById('propietarioFinca').value;
+        var area = document.getElementById('areaFinca').value;
+        var vereda = document.getElementById('veredaFinca').value;
+        var municipio = document.getElementById('municipioFinca').value;
+        var productor = document.getElementById('productorFinca').value;
 
-        alert('Finca guardada correctamente!');
+        alert('Finca guardada');
         cerrarFormulario('finca');
     }
 
-    // Función para cerrar el formulario
-    function cerrarFormulario(modulo) {
-        document.getElementById('form' + capitalizeFirstLetter(modulo)).classList.add('hide');
-        document.getElementById('form' + capitalizeFirstLetter(modulo)).classList.remove('show');
+    // Función para obtener ubicación GPS
+    function obtenerUbicacionGPS() {
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(function(position) {
+                var lat = position.coords.latitude;
+                var lon = position.coords.longitude;
+                map.setView(new L.LatLng(lat, lon), 15);
+                L.marker([lat, lon]).addTo(map)
+                    .bindPopup("Ubicación actual")
+                    .openPopup();
+            });
+        } else {
+            alert("Geolocalización no es soportada por este navegador.");
+        }
     }
 
     // Función auxiliar para capitalizar la primera letra
@@ -258,21 +288,17 @@
         return string.charAt(0).toUpperCase() + string.slice(1);
     }
 
-    // Función para agregar los productores al select de la finca
-    function actualizarSelectProductor() {
-        var select = document.getElementById("productorFinca");
-        select.innerHTML = '<option value="">Seleccione un productor</option>';
-        productores.forEach(function(productor) {
-            var option = document.createElement("option");
-            option.value = productor.nombre;
-            option.textContent = productor.nombre;
-            select.appendChild(option);
+    // Función para hacer los formularios movibles
+    interact('.form-container')
+        .draggable({
+            restrict: {
+                restriction: 'parent',
+                endOnly: true
+            }
+        })
+        .resizable({
+            edges: { left: true, right: true, bottom: true, top: true }
         });
-    }
-
-    // Llamar a la función para actualizar el select de productores
-    actualizarSelectProductor();
 </script>
-
 </body>
 </html>
