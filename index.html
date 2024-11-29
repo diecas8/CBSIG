@@ -162,6 +162,7 @@
     var productores = [];
     var ubicacionProd = null;
     var ubicacionFinca = null;
+    var userMarker = null; // Marcador para la ubicación del usuario
 
     // Crear el controlador de dibujo de polígonos
     var drawnItems = new L.FeatureGroup();
@@ -218,17 +219,17 @@
             ubicacion: ubicacionProd
         };
 
-        // Guardar el productor
+        // Agregar productor al array
         productores.push(productor);
-
-        // Agregar productor a la lista desplegable de finca
-        var selectProductor = document.getElementById("productorFinca");
+        
+        // Actualizar la lista de productores en finca
+        var productorSelect = document.getElementById("productorFinca");
         var option = document.createElement("option");
-        option.value = productores.length - 1;
-        option.text = nombre;
-        selectProductor.appendChild(option);
+        option.value = identificacion;
+        option.textContent = nombre;
+        productorSelect.appendChild(option);
 
-        alert("Productor guardado correctamente");
+        alert("Productor guardado exitosamente.");
         cerrarFormulario('productor');
     }
 
@@ -242,24 +243,12 @@
         var municipioFinca = document.getElementById("municipioFinca").value;
         var productorFinca = document.getElementById("productorFinca").value;
 
-        // Verificar si un productor ha sido seleccionado
-        if (productorFinca === "") {
-            alert('Por favor, seleccione un productor.');
-            return;
+        // Verificar si se ingresó la ubicación
+        if (!ubicacionFinca) {
+            alert('Finca guardada sin ubicación.');
         }
 
-        // Crear objeto finca
-        var finca = {
-            codigoFinca: codigoFinca,
-            nombreFinca: nombreFinca,
-            propietarioFinca: propietarioFinca,
-            areaFinca: areaFinca,
-            veredaFinca: veredaFinca,
-            municipioFinca: municipioFinca,
-            productor: productores[productorFinca]
-        };
-
-        alert('Finca guardada correctamente');
+        alert("Finca guardada exitosamente.");
         cerrarFormulario('finca');
     }
 
@@ -269,28 +258,37 @@
         document.getElementById('form' + capitalizeFirstLetter(modulo)).classList.remove('show');
     }
 
-    // Función para capitalizar la primera letra de un string
-    function capitalizeFirstLetter(string) {
-        return string.charAt(0).toUpperCase() + string.slice(1);
-    }
-
-    // Función para obtener la ubicación GPS del usuario
+    // Función para obtener ubicación mediante GPS
     function obtenerUbicacionGPS() {
         if (navigator.geolocation) {
             navigator.geolocation.getCurrentPosition(function(position) {
                 var lat = position.coords.latitude;
                 var lon = position.coords.longitude;
-                map.setView([lat, lon], 15); // Centra el mapa en la ubicación obtenida
-                alert("Ubicación obtenida: " + lat + ", " + lon);
-            }, function(error) {
-                alert("No se pudo obtener la ubicación: " + error.message);
+
+                // Si no hay marcador de usuario, lo creamos
+                if (userMarker) {
+                    userMarker.setLatLng([lat, lon]);
+                } else {
+                    userMarker = L.marker([lat, lon]).addTo(map)
+                        .bindPopup("Ubicación actual").openPopup();
+                }
+
+                // Mostrar la ubicación en el campo de texto (opcional)
+                document.getElementById("ubicacionProd").value = lat + ", " + lon;
+                document.getElementById("ubicacionFinca").value = lat + ", " + lon;
+
+                // Centrar el mapa en la ubicación del usuario
+                map.setView([lat, lon], 13);
             });
         } else {
-            alert("Geolocalización no es soportada por este navegador.");
+            alert("Geolocalización no soportada por este navegador.");
         }
     }
-</script>
 
+    // Función para capitalizar la primera letra de un string
+    function capitalizeFirstLetter(string) {
+        return string.charAt(0).toUpperCase() + string.slice(1);
+    }
+</script>
 </body>
 </html>
-
