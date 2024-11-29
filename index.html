@@ -37,7 +37,7 @@
             left: 50%;
             transform: translateX(-50%);
             background-color: rgba(255, 255, 255, 0.9);
-            padding: 15px;
+            padding: 12px;
             border-radius: 10px;
             width: 250px; /* Reducido el ancho */
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
@@ -54,8 +54,9 @@
         .form-container input, .form-container select {
             width: 100%;
             padding: 6px;
-            margin-bottom: 6px; /* Reducido el espacio entre los campos */
+            margin-bottom: 4px; /* Reducido el espacio entre los campos */
             font-size: 14px;
+            line-height: 1.4; /* Ajustado el interlineado */
         }
         .form-container button {
             width: 100%;
@@ -65,6 +66,7 @@
             font-size: 16px;
             border: none;
             cursor: pointer;
+            margin-top: 6px;
         }
         .form-container button:hover {
             background-color: #45a049;
@@ -74,6 +76,8 @@
         }
         .form-container label {
             font-size: 14px;
+            margin-bottom: 4px; /* Reducido el espacio entre etiqueta y campo */
+            display: block; /* Asegura que las etiquetas no se alineen horizontalmente */
         }
     </style>
 </head>
@@ -207,86 +211,65 @@
         var telefono = document.getElementById("telefonoProd").value;
         var correo = document.getElementById("correoProd").value;
 
-        // Verificar si la ubicación fue ingresada (opcional)
+        // Verificar si la ubicación fue proporcionada
         if (!ubicacionProd) {
-            alert('Productor guardado sin ubicación.');
+            alert('Productor guardado sin ubicación');
         }
 
-        // Guardar productor
-        var productor = {
-            nombre: nombre,
-            identificacion: identificacion,
-            genero: genero,
-            telefono: telefono,
-            correo: correo
-        };
-
-        productores.push(productor);
-
-        // Actualizar la lista de productores en finca
-        var productorSelect = document.getElementById("productorFinca");
-        var option = document.createElement("option");
-        option.value = identificacion;
-        option.textContent = nombre;
-        productorSelect.appendChild(option);
-
-        alert("Productor guardado exitosamente.");
+        productores.push({ nombre, identificacion, genero, telefono, correo, ubicacion: ubicacionProd });
+        alert('Productor guardado correctamente!');
         cerrarFormulario('productor');
     }
 
     // Función para guardar la finca
     function guardarFinca() {
-        var codigoFinca = document.getElementById("codigoFinca").value;
-        var nombreFinca = document.getElementById("nombreFinca").value;
-        var propietarioFinca = document.getElementById("propietarioFinca").value;
-        var areaFinca = document.getElementById("areaFinca").value;
-        var veredaFinca = document.getElementById("veredaFinca").value;
-        var municipioFinca = document.getElementById("municipioFinca").value;
-        var productorFinca = document.getElementById("productorFinca").value;
+        var codigo = document.getElementById("codigoFinca").value;
+        var nombre = document.getElementById("nombreFinca").value;
+        var propietario = document.getElementById("propietarioFinca").value;
+        var area = document.getElementById("areaFinca").value;
+        var vereda = document.getElementById("veredaFinca").value;
+        var municipio = document.getElementById("municipioFinca").value;
+        var productor = document.getElementById("productorFinca").value;
 
-        // Verificar si se ingresó la ubicación
+        // Verificar si la ubicación fue proporcionada
         if (!ubicacionFinca) {
-            alert('Finca guardada sin ubicación.');
+            alert('Finca guardada sin ubicación');
         }
 
-        alert("Finca guardada exitosamente.");
+        alert('Finca guardada correctamente!');
         cerrarFormulario('finca');
     }
 
-    // Función para cerrar el formulario
+    // Función para cerrar los formularios
     function cerrarFormulario(modulo) {
         document.getElementById('form' + capitalizeFirstLetter(modulo)).classList.add('hide');
         document.getElementById('form' + capitalizeFirstLetter(modulo)).classList.remove('show');
     }
 
-    // Función para obtener ubicación mediante GPS
+    // Función para obtener la ubicación del GPS (del usuario)
     function obtenerUbicacionGPS() {
         if (navigator.geolocation) {
             navigator.geolocation.getCurrentPosition(function(position) {
                 var lat = position.coords.latitude;
                 var lon = position.coords.longitude;
 
-                // Si no hay marcador de usuario, lo creamos
+                // Centrar el mapa en la ubicación del usuario
+                map.setView([lat, lon], 13);
+
                 if (userMarker) {
                     userMarker.setLatLng([lat, lon]);
                 } else {
-                    userMarker = L.marker([lat, lon]).addTo(map)
-                        .bindPopup("Ubicación actual").openPopup();
+                    userMarker = L.marker([lat, lon]).addTo(map).bindPopup('Tu ubicación actual').openPopup();
                 }
 
-                // Mostrar la ubicación en el campo de texto (opcional)
-                document.getElementById("ubicacionProd").value = lat + ", " + lon;
-                document.getElementById("ubicacionFinca").value = lat + ", " + lon;
-
-                // Centrar el mapa en la ubicación del usuario
-                map.setView([lat, lon], 13);
+                alert('Ubicación obtenida: ' + lat + ', ' + lon);
             });
         } else {
-            alert("Geolocalización no soportada por este navegador.");
+            alert("Geolocalización no es compatible con este navegador.");
         }
     }
 
-    // Función para capitalizar la primera letra de un string
+    // Función auxiliar para capitalizar la primera letra
     function capitalizeFirstLetter(string) {
         return string.charAt(0).toUpperCase() + string.slice(1);
     }
