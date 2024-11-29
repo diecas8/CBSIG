@@ -69,6 +69,9 @@
         .form-container button:hover {
             background-color: #45a049;
         }
+        .button-container button.ubicar {
+            margin-top: 20px;
+        }
     </style>
 </head>
 <body>
@@ -80,6 +83,7 @@
 <div class="button-container">
     <button onclick="mostrarFormulario('productor')">Agregar Productor</button>
     <button onclick="mostrarFormulario('finca')">Agregar Finca</button>
+    <button class="ubicar" onclick="activarUbicacion()">Ubicación</button>
 </div>
 
 <!-- Formulario de Productor -->
@@ -106,6 +110,7 @@
         <input type="text" id="ubicacionProd" readonly placeholder="Opcional"><br>
 
         <button type="button" onclick="guardarProductor()">Guardar Productor</button>
+        <button type="button" onclick="cerrarFormulario('productor')">Cerrar</button>
     </form>
 </div>
 
@@ -137,6 +142,7 @@
         <input type="text" id="ubicacionFinca" readonly placeholder="Opcional"><br>
 
         <button type="button" onclick="guardarFinca()">Guardar Finca</button>
+        <button type="button" onclick="cerrarFormulario('finca')">Cerrar</button>
     </form>
 </div>
 
@@ -215,23 +221,15 @@
         // Guardar el productor
         productores.push(productor);
 
-        // Actualizar la lista desplegable de productores en el formulario de finca
-        actualizarSelectProductor();
+        // Actualizar el selector de productores en el formulario de finca
+        var selectProductor = document.getElementById("productorFinca");
+        var option = document.createElement("option");
+        option.value = productores.length - 1;
+        option.text = nombre;
+        selectProductor.appendChild(option);
 
-        alert('Productor guardado correctamente');
-    }
-
-    // Función para actualizar la lista de productores en el formulario de finca
-    function actualizarSelectProductor() {
-        var selectProductor = document.getElementById('productorFinca');
-        selectProductor.innerHTML = '<option value="">Seleccione un productor</option>'; // Limpiar las opciones
-
-        productores.forEach(function(productor, index) {
-            var option = document.createElement('option');
-            option.value = index;
-            option.textContent = productor.nombre;
-            selectProductor.appendChild(option);
-        });
+        alert("Productor guardado correctamente");
+        cerrarFormulario('productor');
     }
 
     // Función para guardar la finca
@@ -262,9 +260,40 @@
         };
 
         alert('Finca guardada correctamente');
+        cerrarFormulario('finca');
     }
 
-    // Capitalizar la primera letra de una cadena
+    // Función para cerrar el formulario
+    function cerrarFormulario(modulo) {
+        document.getElementById('form' + capitalizeFirstLetter(modulo)).classList.add('hide');
+        document.getElementById('form' + capitalizeFirstLetter(modulo)).classList.remove('show');
+    }
+
+    // Función para activar la herramienta de ubicación
+    function activarUbicacion() {
+        map.on('draw:created', function (e) {
+            var layer = e.layer;
+            drawnItems.addLayer(layer);
+
+            // Obtener la ubicación (punto central del polígono)
+            var latlng = layer.getBounds().getCenter();
+            var lat = latlng.lat;
+            var lon = latlng.lng;
+
+            if (document.getElementById('formProductor').classList.contains('show')) {
+                document.getElementById("ubicacionProd").value = lat + ", " + lon;
+                ubicacionProd = { lat: lat, lon: lon };
+            } else if (document.getElementById('formFinca').classList.contains('show')) {
+                document.getElementById("ubicacionFinca").value = lat + ", " + lon;
+                ubicacionFinca = { lat: lat, lon: lon };
+            }
+        });
+
+        // Habilitar la herramienta de dibujo de polígonos
+        map.addControl(drawControl);
+    }
+
+    // Función para capitalizar la primera letra de un string
     function capitalizeFirstLetter(string) {
         return string.charAt(0).toUpperCase() + string.slice(1);
     }
