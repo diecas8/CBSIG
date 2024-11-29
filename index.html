@@ -59,12 +59,6 @@
         .form-container button:hover {
             background-color: #45a049;
         }
-        .form-container .location-button {
-            background-color: #008CBA;
-        }
-        .form-container .location-button:hover {
-            background-color: #007bb5;
-        }
     </style>
 </head>
 <body>
@@ -99,13 +93,11 @@
         <input type="tel" id="telefonoProd" required><br>
         <label for="correoProd">Correo:</label>
         <input type="email" id="correoProd" required><br>
-        
-        <button type="button" class="location-button" onclick="agregarUbicacion('productor')">Agregar Ubicación</button><br>
-        
-        <label for="latProd">Latitud:</label>
-        <input type="text" id="latProd" readonly><br>
-        <label for="lonProd">Longitud:</label>
-        <input type="text" id="lonProd" readonly><br>
+
+        <!-- Ubicación -->
+        <button type="button" id="btnUbicacionProd">Agregar Ubicación</button><br>
+        <label for="ubicacionProd">Ubicación (Lat, Lon):</label>
+        <input type="text" id="ubicacionProd" readonly><br>
 
         <button type="button" onclick="guardarProductor()">Guardar</button>
     </form>
@@ -128,12 +120,10 @@
         <label for="municipioFinca">Municipio:</label>
         <input type="text" id="municipioFinca" required><br>
 
-        <button type="button" class="location-button" onclick="agregarUbicacion('finca')">Agregar Ubicación</button><br>
-
-        <label for="latFinca">Latitud:</label>
-        <input type="text" id="latFinca" readonly><br>
-        <label for="lonFinca">Longitud:</label>
-        <input type="text" id="lonFinca" readonly><br>
+        <!-- Ubicación -->
+        <button type="button" id="btnUbicacionFinca">Agregar Ubicación</button><br>
+        <label for="ubicacionFinca">Ubicación (Lat, Lon):</label>
+        <input type="text" id="ubicacionFinca" readonly><br>
 
         <button type="button" onclick="guardarFinca()">Guardar</button>
     </form>
@@ -150,9 +140,9 @@
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
     }).addTo(map);
 
-    // Variables para almacenar las coordenadas
-    var latitud = 0;
-    var longitud = 0;
+    // Variables para almacenar las ubicaciones seleccionadas
+    var ubicacionProd = null;
+    var ubicacionFinca = null;
 
     // Función para mostrar el formulario correspondiente
     function mostrarFormulario(modulo) {
@@ -166,31 +156,32 @@
         document.getElementById('form' + capitalizeFirstLetter(modulo)).style.display = 'block';
     }
 
-    // Función para agregar ubicación en el mapa
-    function agregarUbicacion(modulo) {
-        // Limpiar cualquier marcador previo
-        map.eachLayer(function(layer) {
-            if (layer instanceof L.Marker) {
-                map.removeLayer(layer);
+    // Función para mostrar el mapa y agregar una ubicación
+    function agregarUbicacion(formulario) {
+        // Limpiar los marcadores previos
+        if (formulario === 'productor') {
+            ubicacionProd = null;
+        } else if (formulario === 'finca') {
+            ubicacionFinca = null;
+        }
+
+        // Agregar el evento de clic en el mapa para obtener las coordenadas
+        map.once('click', function(e) {
+            var latLon = e.latlng;
+            var lat = latLon.lat.toFixed(6);
+            var lon = latLon.lng.toFixed(6);
+
+            // Agregar un marcador al mapa en la ubicación seleccionada
+            L.marker([lat, lon]).addTo(map).bindPopup("Ubicación seleccionada: " + lat + ", " + lon).openPopup();
+
+            // Mostrar las coordenadas en el formulario
+            if (formulario === 'productor') {
+                ubicacionProd = { lat: lat, lon: lon };
+                document.getElementById('ubicacionProd').value = lat + ", " + lon;
+            } else if (formulario === 'finca') {
+                ubicacionFinca = { lat: lat, lon: lon };
+                document.getElementById('ubicacionFinca').value = lat + ", " + lon;
             }
-        });
-
-        // Permitir que el usuario seleccione una ubicación en el mapa
-        map.on('click', function(e) {
-            latitud = e.latlng.lat;
-            longitud = e.latlng.lng;
-
-            // Agregar marcador en el mapa
-            L.marker([latitud, longitud]).addTo(map)
-                .bindPopup('Ubicación seleccionada')
-                .openPopup();
-
-            // Actualizar los campos de latitud y longitud
-            document.getElementById('lat' + capitalizeFirstLetter(modulo)).value = latitud;
-            document.getElementById('lon' + capitalizeFirstLetter(modulo)).value = longitud;
-
-            // Deshabilitar el mapa después de seleccionar la ubicación
-            map.off('click');
         });
     }
 
@@ -201,10 +192,8 @@
         var genero = document.getElementById("generoProd").value;
         var telefono = document.getElementById("telefonoProd").value;
         var correo = document.getElementById("correoProd").value;
-        var lat = document.getElementById("latProd").value;
-        var lon = document.getElementById("lonProd").value;
-        
-        console.log('Productor Guardado:', nombre, identificacion, genero, telefono, correo, lat, lon);
+
+        console.log('Productor Guardado:', nombre, identificacion, genero, telefono, correo, ubicacionProd);
         alert('Productor guardado correctamente');
     }
 
@@ -216,10 +205,8 @@
         var area = document.getElementById("areaFinca").value;
         var vereda = document.getElementById("veredaFinca").value;
         var municipio = document.getElementById("municipioFinca").value;
-        var lat = document.getElementById("latFinca").value;
-        var lon = document.getElementById("lonFinca").value;
-        
-        console.log('Finca Guardada:', codigo, nombre, propietario, area, vereda, municipio, lat, lon);
+
+        console.log('Finca Guardada:', codigo, nombre, propietario, area, vereda, municipio, ubicacionFinca);
         alert('Finca guardada correctamente');
     }
 
@@ -227,6 +214,14 @@
     function capitalizeFirstLetter(string) {
         return string.charAt(0).toUpperCase() + string.slice(1);
     }
+
+    // Event listeners para los botones de ubicación
+    document.getElementById('btnUbicacionProd').addEventListener('click', function() {
+        agregarUbicacion('productor');
+    });
+    document.getElementById('btnUbicacionFinca').addEventListener('click', function() {
+        agregarUbicacion('finca');
+    });
 </script>
 
 </body>
