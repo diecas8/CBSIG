@@ -12,7 +12,7 @@
         body {
             font-family: 'Roboto', sans-serif;
             margin: 0;
-            padding: 20px;
+            padding: 0;
             box-sizing: border-box;
             background-color: #f4f6f9;
         }
@@ -23,23 +23,32 @@
             color: #333;
         }
 
-        /* Banda de selección horizontal */
+        /* Mapa a pantalla completa */
+        #map {
+            width: 100%;
+            height: 100vh;  /* El mapa cubre toda la pantalla */
+            margin-top: 0;
+        }
+
+        /* Banda de selección de formularios */
         .navbar {
             display: flex;
             justify-content: center;
             background-color: #5c6bc0;
             padding: 10px;
             border-radius: 8px;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-            margin-bottom: 20px;
+            position: absolute;
+            top: 20px;
+            width: 100%;
+            z-index: 1000;
         }
         .navbar button {
             background: none;
             border: none;
             color: white;
             font-size: 1.1em;
-            margin: 0 15px;
-            padding: 10px;
+            margin: 0 10px;
+            padding: 8px 12px;
             cursor: pointer;
             transition: background-color 0.3s;
             border-radius: 8px;
@@ -57,21 +66,21 @@
             background-color: white;
             border-radius: 10px;
             padding: 20px;
-            margin-bottom: 20px;
+            margin: 20px;
             box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
             display: none;
+            position: absolute;
+            top: 100px;
+            left: 10%;
+            width: 80%;
+            z-index: 1000;
         }
         .form-section.show {
             display: block;
         }
 
-        .form-section h2 {
-            color: #5c6bc0;
-            font-size: 1.5em;
-            margin-bottom: 10px;
-        }
         .form-section label {
-            font-size: 1.1em;
+            font-size: 1em;
             margin-bottom: 5px;
             display: block;
             color: #333;
@@ -85,20 +94,7 @@
             font-size: 1em;
             background-color: #fafafa;
         }
-        .form-section input:focus, .form-section select:focus {
-            border-color: #5c6bc0;
-            outline: none;
-        }
 
-        /* Mapa */
-        #map {
-            width: 100%;
-            height: 400px;
-            margin-top: 20px;
-            border-radius: 10px;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-        }
-        
         /* Estilos para dispositivos móviles */
         @media (max-width: 768px) {
             .navbar {
@@ -108,9 +104,23 @@
             .navbar button {
                 margin: 10px 0;
             }
-            h1 {
-                font-size: 1.6em;
+            .form-section {
+                width: 95%;
             }
+        }
+
+        .btn-small {
+            font-size: 1.1em;
+            padding: 5px 10px;
+            background-color: #3949ab;
+            border: none;
+            color: white;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        .btn-small:hover {
+            background-color: #5c6bc0;
         }
     </style>
 </head>
@@ -147,7 +157,7 @@
             <label for="correo">Correo Electrónico:</label>
             <input type="email" id="correo" name="correo" required><br><br>
         </form>
-        <button onclick="saveForm('formProductor')">Guardar</button>
+        <button class="btn-small" onclick="saveForm('formProductor')">Guardar</button>
     </div>
 
     <!-- Formulario de Registro de Finca -->
@@ -169,13 +179,23 @@
             <label for="area">Área (hectáreas):</label>
             <input type="text" id="area" name="area" readonly><br><br>
         </form>
-        <button onclick="saveForm('formFinca')">Guardar</button>
+        <button class="btn-small" onclick="saveForm('formFinca')">Guardar</button>
     </div>
 
     <!-- Formulario de Registro de Lote -->
     <div id="formLote" class="form-section">
         <h2>Datos del Lote</h2>
         <form>
+            <label for="productor">Seleccionar Productor:</label>
+            <select id="productor" name="productor">
+                <!-- Opciones dinámicas -->
+            </select><br><br>
+
+            <label for="finca">Seleccionar Finca:</label>
+            <select id="finca" name="finca">
+                <!-- Opciones dinámicas -->
+            </select><br><br>
+
             <label for="variedad">Variedad de Café:</label>
             <select id="variedad" name="variedad">
                 <option value="castillo">Castillo</option>
@@ -190,28 +210,6 @@
                 <option value="otras">Otras</option>
             </select><br><br>
 
-            <label for="fecha_labor">Fecha de la Labor:</label>
-            <input type="date" id="fecha_labor" name="fecha_labor"><br><br>
-
-            <label for="tipo_labor">Tipo de Labor:</label>
-            <select id="tipo_labor" name="tipo_labor">
-                <option value="siembra_nueva">Siembra nueva</option>
-                <option value="reno_zoca">Reno por zoca</option>
-                <option value="reno_siembra">Reno por siembra</option>
-            </select><br><br>
-
-            <label for="distancia_surcos">Distancia entre Surcos (m):</label>
-            <input type="number" id="distancia_surcos" name="distancia_surcos" oninput="calcularDensidad()"><br><br>
-
-            <label for="distancia_plantas">Distancia entre Plantas (m):</label>
-            <input type="number" id="distancia_plantas" name="distancia_plantas" oninput="calcularDensidad()"><br><br>
-
-            <label for="densidad">Densidad (plantas/ha):</label>
-            <input type="text" id="densidad" name="densidad" readonly><br><br>
-
-            <label for="cantidad_arboles">Cantidad de Árboles:</label>
-            <input type="text" id="cantidad_arboles" name="cantidad_arboles" readonly><br><br>
-
             <label for="luminosidad">Luminosidad:</label>
             <select id="luminosidad" name="luminosidad">
                 <option value="sol">Sol</option>
@@ -219,17 +217,37 @@
                 <option value="semisombra">Semisombra</option>
             </select><br><br>
 
+            <label for="tipo_labor">Tipo de Labor:</label>
+            <select id="tipo_labor" name="tipo_labor">
+                <option value="siembra_nueva">Siembra Nueva</option>
+                <option value="reno_zoca">Renovación por Zoca</option>
+                <option value="reno_siembra">Renovación por Siembra</option>
+            </select><br><br>
+
+            <label for="distancia_surco">Distancia entre Surcos (m):</label>
+            <input type="number" id="distancia_surco" name="distancia_surco" required><br><br>
+
+            <label for="distancia_planta">Distancia entre Plantas (m):</label>
+            <input type="number" id="distancia_planta" name="distancia_planta" required><br><br>
+
+            <label for="densidad">Densidad (plantas/ha):</label>
+            <input type="text" id="densidad" name="densidad" readonly><br><br>
+
+            <label for="cantidad_arboles">Cantidad de Árboles:</label>
+            <input type="text" id="cantidad_arboles" name="cantidad_arboles" readonly><br><br>
+
             <label for="altura">Altura sobre el nivel del mar:</label>
             <input type="text" id="altura" name="altura" readonly><br><br>
         </form>
-        <button onclick="saveForm('formLote')">Guardar</button>
+        <button class="btn-small" onclick="saveForm('formLote')">Guardar</button>
     </div>
 
     <!-- Mapa -->
     <div id="map"></div>
 
-    <button onclick="exportGeoJSON()">Exportar como GeoJSON</button>
+    <button class="btn-small" onclick="exportGeoJSON()">Exportar como GeoJSON</button>
 
+    <!-- Scripts -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
@@ -237,6 +255,7 @@
         let map, drawnItems;
 
         function toggleForm(formId) {
+            // Ocultar formularios cuando se seleccione otro
             $('.form-section').not('#' + formId).removeClass('show').addClass('compact');
             $('#' + formId).toggleClass('show compact');
             $('.navbar button').removeClass('active');
@@ -263,6 +282,7 @@
 
             map.on('draw:created', function(event) {
                 drawnItems.addLayer(event.layer);
+                toggleForm('formLote'); // Activar formulario después de dibujar el polígono
             });
 
             if (navigator.geolocation) {
