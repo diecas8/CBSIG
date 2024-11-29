@@ -127,6 +127,22 @@
             margin-bottom: 5px;
             color: #555;
         }
+
+        /* Botón de cierre (X) en la parte superior derecha */
+        .close-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: none;
+            border: none;
+            font-size: 20px;
+            color: #999;
+            cursor: pointer;
+        }
+
+        .close-btn:hover {
+            color: #f44336;
+        }
     </style>
 </head>
 <body>
@@ -143,6 +159,7 @@
 
 <!-- Formulario de Productor -->
 <div class="form-container" id="formProductor">
+    <button class="close-btn" onclick="cerrarFormulario('productor')">×</button>
     <h3>Formulario de Productor</h3>
     <form id="formProductorContent">
         <label for="nombreProd">Nombre:</label>
@@ -167,6 +184,7 @@
 
 <!-- Formulario de Finca -->
 <div class="form-container" id="formFinca">
+    <button class="close-btn" onclick="cerrarFormulario('finca')">×</button>
     <h3>Formulario de Finca</h3>
     <form id="formFincaContent">
         <label for="codigoFinca">Código Finca:</label>
@@ -196,6 +214,7 @@
 <!-- Mapa y Scripts -->
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 <script src="https://unpkg.com/leaflet-draw/dist/leaflet.draw.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/interactjs@1.10.11/dist/interact.min.js"></script>
 <script>
     // Crear el mapa base centrado en Colombia
     var map = L.map('map').setView([4.5709, -74.2973], 6); // Coordenadas de Colombia
@@ -224,14 +243,17 @@
     
     map.addControl(drawControl);
 
-    // Variables para almacenar los productores y la ubicación
-    var productores = [];
-    var ubicacionProd = null;
-    var ubicacionFinca = null;
-
-    // Función para mostrar el formulario correspondiente
+    // Función para mostrar los formularios
     function mostrarFormulario(modulo) {
         document.getElementById('form' + capitalizeFirstLetter(modulo)).classList.add('show');
+        interact('.form-container').draggable({
+            restrict: {
+                restriction: 'parent',
+                endOnly: true
+            }
+        }).resizable({
+            edges: { left: true, right: true, bottom: true, top: true }
+        });
     }
 
     // Función para cerrar los formularios
@@ -247,8 +269,7 @@
         var telefono = document.getElementById('telefonoProd').value;
         var correo = document.getElementById('correoProd').value;
 
-        productores.push({ nombre, id, genero, telefono, correo });
-
+        // Aquí deberías agregar el productor a la lista o base de datos
         alert('Productor guardado');
         cerrarFormulario('productor');
     }
@@ -263,11 +284,12 @@
         var municipio = document.getElementById('municipioFinca').value;
         var productor = document.getElementById('productorFinca').value;
 
+        // Aquí deberías agregar la finca a la lista o base de datos
         alert('Finca guardada');
         cerrarFormulario('finca');
     }
 
-    // Función para obtener ubicación GPS
+    // Función para obtener la ubicación GPS y centrar el mapa
     function obtenerUbicacionGPS() {
         if (navigator.geolocation) {
             navigator.geolocation.getCurrentPosition(function(position) {
@@ -287,18 +309,6 @@
     function capitalizeFirstLetter(string) {
         return string.charAt(0).toUpperCase() + string.slice(1);
     }
-
-    // Función para hacer los formularios movibles
-    interact('.form-container')
-        .draggable({
-            restrict: {
-                restriction: 'parent',
-                endOnly: true
-            }
-        })
-        .resizable({
-            edges: { left: true, right: true, bottom: true, top: true }
-        });
 </script>
 </body>
 </html>
