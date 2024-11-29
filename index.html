@@ -19,7 +19,7 @@
         .button-container {
             position: absolute;
             top: 20px;
-            left: 20px;
+            right: 20px;
             z-index: 1000;
             display: flex;
             flex-direction: column;
@@ -126,6 +126,12 @@
         <label for="municipioFinca">Municipio:</label>
         <input type="text" id="municipioFinca"><br>
 
+        <!-- Selección de Productor -->
+        <label for="productorFinca">Productor:</label>
+        <select id="productorFinca">
+            <option value="">Seleccione un productor</option>
+        </select><br>
+
         <!-- Ubicación (Opcional) -->
         <label for="ubicacionFinca">Ubicación (Lat, Lon):</label>
         <input type="text" id="ubicacionFinca" readonly placeholder="Opcional"><br>
@@ -146,7 +152,8 @@
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
     }).addTo(map);
 
-    // Variables para almacenar las ubicaciones seleccionadas
+    // Variables para almacenar los productores y la ubicación
+    var productores = [];
     var ubicacionProd = null;
     var ubicacionFinca = null;
 
@@ -195,66 +202,72 @@
             alert('Productor guardado sin ubicación.');
         }
 
-        // Guardar los datos del productor
-        console.log('Productor Guardado:', nombre, identificacion, genero, telefono, correo, ubicacionProd);
+        // Crear objeto productor
+        var productor = {
+            nombre: nombre,
+            identificacion: identificacion,
+            genero: genero,
+            telefono: telefono,
+            correo: correo,
+            ubicacion: ubicacionProd
+        };
+
+        // Guardar el productor
+        productores.push(productor);
+
+        // Actualizar la lista desplegable de productores en el formulario de finca
+        actualizarSelectProductor();
+
         alert('Productor guardado correctamente');
+    }
+
+    // Función para actualizar la lista de productores en el formulario de finca
+    function actualizarSelectProductor() {
+        var selectProductor = document.getElementById('productorFinca');
+        selectProductor.innerHTML = '<option value="">Seleccione un productor</option>'; // Limpiar las opciones
+
+        productores.forEach(function(productor, index) {
+            var option = document.createElement('option');
+            option.value = index;
+            option.textContent = productor.nombre;
+            selectProductor.appendChild(option);
+        });
     }
 
     // Función para guardar la finca
     function guardarFinca() {
-        var codigo = document.getElementById("codigoFinca").value;
-        var nombre = document.getElementById("nombreFinca").value;
-        var propietario = document.getElementById("propietarioFinca").value;
-        var area = document.getElementById("areaFinca").value;
-        var vereda = document.getElementById("veredaFinca").value;
-        var municipio = document.getElementById("municipioFinca").value;
+        var codigoFinca = document.getElementById("codigoFinca").value;
+        var nombreFinca = document.getElementById("nombreFinca").value;
+        var propietarioFinca = document.getElementById("propietarioFinca").value;
+        var areaFinca = document.getElementById("areaFinca").value;
+        var veredaFinca = document.getElementById("veredaFinca").value;
+        var municipioFinca = document.getElementById("municipioFinca").value;
+        var productorFinca = document.getElementById("productorFinca").value;
 
-        // Verificar si la ubicación fue ingresada (opcional)
-        if (!ubicacionFinca) {
-            alert('Finca guardada sin ubicación.');
+        // Verificar si un productor ha sido seleccionado
+        if (productorFinca === "") {
+            alert('Por favor, seleccione un productor.');
+            return;
         }
 
-        // Guardar los datos de la finca
-        console.log('Finca Guardada:', codigo, nombre, propietario, area, vereda, municipio, ubicacionFinca);
+        // Crear objeto finca
+        var finca = {
+            codigoFinca: codigoFinca,
+            nombreFinca: nombreFinca,
+            propietarioFinca: propietarioFinca,
+            areaFinca: areaFinca,
+            veredaFinca: veredaFinca,
+            municipioFinca: municipioFinca,
+            productor: productores[productorFinca]
+        };
+
         alert('Finca guardada correctamente');
     }
 
-    // Función para capitalizar la primera letra de una palabra
+    // Capitalizar la primera letra de una cadena
     function capitalizeFirstLetter(string) {
         return string.charAt(0).toUpperCase() + string.slice(1);
     }
-
-    // Evento para agregar polígono
-    map.on('draw:created', function(event) {
-        var layer = event.layer;
-        drawnItems.addLayer(layer);
-
-        // Obtener coordenadas del polígono
-        var coords = layer.getLatLngs()[0].map(function(latlng) {
-            return latlng.lat.toFixed(6) + ',' + latlng.lng.toFixed(6);
-        }).join('; ');
-        
-        // Mostrar las coordenadas en el formulario
-        if (document.getElementById('ubicacionProd').readOnly) {
-            document.getElementById('ubicacionProd').value = coords;
-            ubicacionProd = coords;
-        } else {
-            document.getElementById('ubicacionFinca').value = coords;
-            ubicacionFinca = coords;
-        }
-    });
-
-    // Herramientas de edición y eliminación de polígonos
-    map.on('draw:edited', function(event) {
-        var layers = event.layers;
-        layers.eachLayer(function(layer) {
-            console.log('Polygon edited:', layer.getLatLngs());
-        });
-    });
-
-    map.on('draw:deleted', function(event) {
-        console.log('Polygon deleted:', event.layers);
-    });
 </script>
 
 </body>
