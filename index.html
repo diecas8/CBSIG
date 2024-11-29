@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mapa Base con Formularios</title>
+    <title>Formulario Productor y Finca</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
     <style>
         body {
@@ -12,7 +12,7 @@
             padding: 0;
         }
         #map {
-            height: 100vh;
+            height: 50vh;
             width: 100%;
         }
         .button-container {
@@ -32,7 +32,7 @@
         .form-container {
             display: none;
             position: absolute;
-            top: 100px;
+            top: 80px;
             left: 50%;
             transform: translateX(-50%);
             background-color: rgba(255, 255, 255, 0.9);
@@ -70,9 +70,6 @@
 <div class="button-container">
     <button onclick="mostrarFormulario('productor')">Agregar Productor</button>
     <button onclick="mostrarFormulario('finca')">Agregar Finca</button>
-    <button onclick="mostrarFormulario('variedad')">Agregar Variedad</button>
-    <button onclick="mostrarFormulario('labor')">Agregar Labor</button>
-    <button onclick="mostrarFormulario('luminosidad')">Agregar Luminosidad</button>
 </div>
 
 <!-- Formulario de Productor -->
@@ -80,26 +77,26 @@
     <h3>Formulario de Productor</h3>
     <form id="formProductorContent">
         <label for="nombreProd">Nombre:</label>
-        <input type="text" id="nombreProd" required><br>
+        <input type="text" id="nombreProd"><br>
         <label for="idProd">Identificación:</label>
-        <input type="text" id="idProd" required><br>
+        <input type="text" id="idProd"><br>
         <label for="generoProd">Género:</label>
-        <select id="generoProd" required>
+        <select id="generoProd">
             <option value="Masculino">Masculino</option>
             <option value="Femenino">Femenino</option>
             <option value="Otro">Otro</option>
         </select><br>
         <label for="telefonoProd">Teléfono:</label>
-        <input type="tel" id="telefonoProd" required><br>
+        <input type="tel" id="telefonoProd"><br>
         <label for="correoProd">Correo:</label>
-        <input type="email" id="correoProd" required><br>
+        <input type="email" id="correoProd"><br>
 
         <!-- Ubicación -->
         <button type="button" id="btnUbicacionProd">Agregar Ubicación</button><br>
         <label for="ubicacionProd">Ubicación (Lat, Lon):</label>
         <input type="text" id="ubicacionProd" readonly><br>
 
-        <button type="button" onclick="guardarProductor()">Guardar</button>
+        <button type="button" onclick="guardarProductor()">Guardar Productor</button>
     </form>
 </div>
 
@@ -108,24 +105,24 @@
     <h3>Formulario de Finca</h3>
     <form id="formFincaContent">
         <label for="codigoFinca">Código Finca:</label>
-        <input type="text" id="codigoFinca" required><br>
+        <input type="text" id="codigoFinca"><br>
         <label for="nombreFinca">Nombre:</label>
-        <input type="text" id="nombreFinca" required><br>
+        <input type="text" id="nombreFinca"><br>
         <label for="propietarioFinca">Propietario:</label>
-        <input type="text" id="propietarioFinca" required><br>
-        <label for="areaFinca">Área Tentativa:</label>
-        <input type="text" id="areaFinca" required><br>
+        <input type="text" id="propietarioFinca"><br>
+        <label for="areaFinca">Área:</label>
+        <input type="text" id="areaFinca"><br>
         <label for="veredaFinca">Vereda:</label>
-        <input type="text" id="veredaFinca" required><br>
+        <input type="text" id="veredaFinca"><br>
         <label for="municipioFinca">Municipio:</label>
-        <input type="text" id="municipioFinca" required><br>
+        <input type="text" id="municipioFinca"><br>
 
         <!-- Ubicación -->
         <button type="button" id="btnUbicacionFinca">Agregar Ubicación</button><br>
         <label for="ubicacionFinca">Ubicación (Lat, Lon):</label>
         <input type="text" id="ubicacionFinca" readonly><br>
 
-        <button type="button" onclick="guardarFinca()">Guardar</button>
+        <button type="button" onclick="guardarFinca()">Guardar Finca</button>
     </form>
 </div>
 
@@ -133,7 +130,7 @@
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 <script>
     // Crear el mapa base
-    var map = L.map('map').setView([14.6349, -90.5069], 13); // Ajusta la ubicación y el zoom de acuerdo a tus necesidades
+    var map = L.map('map').setView([14.6349, -90.5069], 13); // Coordenadas de ejemplo (Guatemala)
 
     // Agregar capa base de OpenStreetMap
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -199,6 +196,7 @@
             return;
         }
 
+        // Guardar los datos del productor
         console.log('Productor Guardado:', nombre, identificacion, genero, telefono, correo, ubicacionProd);
         alert('Productor guardado correctamente');
     }
@@ -218,6 +216,7 @@
             return;
         }
 
+        // Guardar los datos de la finca
         console.log('Finca Guardada:', codigo, nombre, propietario, area, vereda, municipio, ubicacionFinca);
         alert('Finca guardada correctamente');
     }
