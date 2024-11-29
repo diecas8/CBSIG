@@ -59,6 +59,12 @@
         .form-container button:hover {
             background-color: #45a049;
         }
+        .form-container .location-button {
+            background-color: #008CBA;
+        }
+        .form-container .location-button:hover {
+            background-color: #007bb5;
+        }
     </style>
 </head>
 <body>
@@ -93,6 +99,14 @@
         <input type="tel" id="telefonoProd" required><br>
         <label for="correoProd">Correo:</label>
         <input type="email" id="correoProd" required><br>
+        
+        <button type="button" class="location-button" onclick="agregarUbicacion('productor')">Agregar Ubicación</button><br>
+        
+        <label for="latProd">Latitud:</label>
+        <input type="text" id="latProd" readonly><br>
+        <label for="lonProd">Longitud:</label>
+        <input type="text" id="lonProd" readonly><br>
+
         <button type="button" onclick="guardarProductor()">Guardar</button>
     </form>
 </div>
@@ -113,6 +127,14 @@
         <input type="text" id="veredaFinca" required><br>
         <label for="municipioFinca">Municipio:</label>
         <input type="text" id="municipioFinca" required><br>
+
+        <button type="button" class="location-button" onclick="agregarUbicacion('finca')">Agregar Ubicación</button><br>
+
+        <label for="latFinca">Latitud:</label>
+        <input type="text" id="latFinca" readonly><br>
+        <label for="lonFinca">Longitud:</label>
+        <input type="text" id="lonFinca" readonly><br>
+
         <button type="button" onclick="guardarFinca()">Guardar</button>
     </form>
 </div>
@@ -128,6 +150,10 @@
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
     }).addTo(map);
 
+    // Variables para almacenar las coordenadas
+    var latitud = 0;
+    var longitud = 0;
+
     // Función para mostrar el formulario correspondiente
     function mostrarFormulario(modulo) {
         // Ocultar todos los formularios
@@ -140,6 +166,34 @@
         document.getElementById('form' + capitalizeFirstLetter(modulo)).style.display = 'block';
     }
 
+    // Función para agregar ubicación en el mapa
+    function agregarUbicacion(modulo) {
+        // Limpiar cualquier marcador previo
+        map.eachLayer(function(layer) {
+            if (layer instanceof L.Marker) {
+                map.removeLayer(layer);
+            }
+        });
+
+        // Permitir que el usuario seleccione una ubicación en el mapa
+        map.on('click', function(e) {
+            latitud = e.latlng.lat;
+            longitud = e.latlng.lng;
+
+            // Agregar marcador en el mapa
+            L.marker([latitud, longitud]).addTo(map)
+                .bindPopup('Ubicación seleccionada')
+                .openPopup();
+
+            // Actualizar los campos de latitud y longitud
+            document.getElementById('lat' + capitalizeFirstLetter(modulo)).value = latitud;
+            document.getElementById('lon' + capitalizeFirstLetter(modulo)).value = longitud;
+
+            // Deshabilitar el mapa después de seleccionar la ubicación
+            map.off('click');
+        });
+    }
+
     // Función para guardar el productor
     function guardarProductor() {
         var nombre = document.getElementById("nombreProd").value;
@@ -147,8 +201,10 @@
         var genero = document.getElementById("generoProd").value;
         var telefono = document.getElementById("telefonoProd").value;
         var correo = document.getElementById("correoProd").value;
+        var lat = document.getElementById("latProd").value;
+        var lon = document.getElementById("lonProd").value;
         
-        console.log('Productor Guardado:', nombre, identificacion, genero, telefono, correo);
+        console.log('Productor Guardado:', nombre, identificacion, genero, telefono, correo, lat, lon);
         alert('Productor guardado correctamente');
     }
 
@@ -160,8 +216,10 @@
         var area = document.getElementById("areaFinca").value;
         var vereda = document.getElementById("veredaFinca").value;
         var municipio = document.getElementById("municipioFinca").value;
+        var lat = document.getElementById("latFinca").value;
+        var lon = document.getElementById("lonFinca").value;
         
-        console.log('Finca Guardada:', codigo, nombre, propietario, area, vereda, municipio);
+        console.log('Finca Guardada:', codigo, nombre, propietario, area, vereda, municipio, lat, lon);
         alert('Finca guardada correctamente');
     }
 
