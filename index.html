@@ -13,97 +13,107 @@
             padding: 0;
         }
 
-        /* Estilo general del contenedor de formularios */
-        .form-section {
-            display: none;
+        /* Estilo del mapa */
+        #map {
+            width: 100%;
+            height: 100vh;
+        }
+
+        /* Estilos del formulario flotante */
+        .floating-form {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
             background-color: #fff;
             padding: 20px;
-            margin: 10px 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+            z-index: 1000;
+            width: 80%;
+            max-width: 400px;
+            display: none;
         }
 
-        .form-section.show {
-            display: block;
-        }
-
-        .form-section input, .form-section select {
+        /* Estilo para el overlay que cubre el fondo cuando el formulario está abierto */
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
             width: 100%;
-            padding: 6px 10px;
-            margin: 6px 0 10px 0;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 999;
+            display: none;
+        }
+
+        .floating-form label {
+            font-weight: bold;
+        }
+
+        .floating-form input, .floating-form select {
+            width: 100%;
+            padding: 8px;
+            margin: 6px 0;
             border: 1px solid #ddd;
             border-radius: 8px;
             font-size: 0.9em;
             background-color: #fafafa;
         }
 
-        .form-section label {
-            font-weight: bold;
-        }
-
-        .btn-small {
-            padding: 10px 20px;
-            font-size: 0.9em;
-            border: none;
-            border-radius: 8px;
+        .floating-form button {
             background-color: #28a745;
             color: white;
+            border: none;
+            padding: 10px 20px;
             cursor: pointer;
-            margin: 10px 0;
+            border-radius: 8px;
+            font-size: 1em;
         }
 
-        .btn-small:hover {
+        .floating-form button:hover {
+            background-color: #218838;
+        }
+
+        /* Estilos para los botones flotantes */
+        .btn-float {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background-color: #28a745;
+            color: white;
+            border: none;
+            padding: 15px 25px;
+            border-radius: 50%;
+            font-size: 1.5em;
+            cursor: pointer;
+            z-index: 1001;
+        }
+
+        .btn-float:hover {
             background-color: #218838;
         }
 
         /* Ajustes para dispositivos móviles */
         @media (max-width: 768px) {
-            .form-section select, .form-section input {
-                font-size: 0.8em;
-                padding: 5px 8px;
+            .floating-form {
+                width: 90%;
             }
-        }
 
-        /* Estilos del mapa */
-        #map {
-            width: 100%;
-            height: 500px;
-        }
-
-        /* Estilo para la banda de navegación */
-        .navbar {
-            display: flex;
-            background-color: #333;
-            color: white;
-            padding: 10px;
-            justify-content: space-around;
-        }
-
-        .navbar button {
-            background-color: #444;
-            color: white;
-            border: none;
-            padding: 10px;
-            cursor: pointer;
-            border-radius: 5px;
-        }
-
-        .navbar button.active {
-            background-color: #28a745;
+            .floating-form input, .floating-form select {
+                font-size: 0.8em;
+                padding: 6px;
+            }
         }
     </style>
 </head>
 <body>
 
-    <!-- Barra de navegación -->
-    <div class="navbar">
-        <button id="formProductorButton" class="active" onclick="toggleForm('formProductor')">Productor</button>
-        <button id="formFincaButton" onclick="toggleForm('formFinca')">Finca</button>
-        <button id="formLoteButton" onclick="toggleForm('formLote')">Lote</button>
-    </div>
+    <!-- Mapa -->
+    <div id="map"></div>
 
-    <!-- Formulario para Productor -->
-    <div id="formProductor" class="form-section show">
+    <!-- Formulario para Productor (flotante) -->
+    <div id="formProductor" class="floating-form">
         <h2>Datos del Productor</h2>
         <form>
             <label for="productor">Nombre del Productor:</label>
@@ -118,11 +128,12 @@
             <label for="email">Correo Electrónico:</label>
             <input type="email" id="email" name="email" required><br><br>
         </form>
-        <button class="btn-small" onclick="saveForm('formProductor')">Guardar</button>
+        <button onclick="saveForm('formProductor')">Guardar</button>
+        <button onclick="closeForm('formProductor')">Cerrar</button>
     </div>
 
-    <!-- Formulario para Finca -->
-    <div id="formFinca" class="form-section">
+    <!-- Formulario para Finca (flotante) -->
+    <div id="formFinca" class="floating-form">
         <h2>Datos de la Finca</h2>
         <form>
             <label for="codigo_finca">Código de la Finca:</label>
@@ -140,82 +151,24 @@
             <label for="area">Área (hectáreas):</label>
             <input type="text" id="area" name="area" readonly><br><br>
         </form>
-        <button class="btn-small" onclick="saveForm('formFinca')">Guardar</button>
+        <button onclick="saveForm('formFinca')">Guardar</button>
+        <button onclick="closeForm('formFinca')">Cerrar</button>
     </div>
 
-    <!-- Formulario para Lote -->
-    <div id="formLote" class="form-section">
-        <h2>Datos del Lote</h2>
-        <form>
-            <label for="productor_lote">Seleccionar Productor:</label>
-            <select id="productor_lote" name="productor_lote">
-                <option value="">Seleccionar Productor</option>
-                <!-- Opciones dinámicas de productores -->
-            </select><br><br>
+    <!-- Overlay (fondo oscuro cuando el formulario está abierto) -->
+    <div id="overlay" class="overlay"></div>
 
-            <label for="finca_lote">Seleccionar Finca:</label>
-            <select id="finca_lote" name="finca_lote">
-                <option value="">Seleccionar Finca</option>
-                <!-- Opciones dinámicas de fincas -->
-            </select><br><br>
-
-            <label for="variedad">Variedad de Café:</label>
-            <select id="variedad" name="variedad">
-                <option value="castillo">Castillo</option>
-                <option value="cenicafe">Cenicafe</option>
-                <option value="colombia">Colombia</option>
-                <option value="caturra">Caturra</option>
-                <option value="tabi">Tabi</option>
-                <option value="geisha">Geisha</option>
-                <option value="costa_rica">Costa Rica</option>
-                <option value="suprema">Suprema</option>
-                <option value="borbon">Borbón</option>
-                <option value="otras">Otras</option>
-            </select><br><br>
-
-            <label for="luminosidad">Luminosidad:</label>
-            <select id="luminosidad" name="luminosidad">
-                <option value="sol">Sol</option>
-                <option value="sombra">Sombra</option>
-                <option value="semisombra">Semisombra</option>
-            </select><br><br>
-
-            <label for="tipo_labor">Tipo de Labor:</label>
-            <select id="tipo_labor" name="tipo_labor">
-                <option value="siembra_nueva">Siembra Nueva</option>
-                <option value="reno_zoca">Renovación por Zoca</option>
-                <option value="reno_siembra">Renovación por Siembra</option>
-            </select><br><br>
-
-            <label for="distancia_surco">Distancia entre Surcos (m):</label>
-            <input type="number" id="distancia_surco" name="distancia_surco" required><br><br>
-
-            <label for="distancia_planta">Distancia entre Plantas (m):</label>
-            <input type="number" id="distancia_planta" name="distancia_planta" required><br><br>
-
-            <label for="densidad">Densidad (plantas/ha):</label>
-            <input type="text" id="densidad" name="densidad" readonly><br><br>
-
-            <label for="cantidad_arboles">Cantidad de Árboles:</label>
-            <input type="text" id="cantidad_arboles" name="cantidad_arboles" readonly><br><br>
-
-            <label for="altura">Altura sobre el nivel del mar:</label>
-            <input type="text" id="altura" name="altura" readonly><br><br>
-        </form>
-        <button class="btn-small" onclick="saveForm('formLote')">Guardar</button>
-    </div>
-
-    <!-- Mapa -->
-    <div id="map"></div>
-
-    <button class="btn-small" onclick="exportGeoJSON()">Exportar como GeoJSON</button>
+    <!-- Botón flotante para abrir el formulario de Productor -->
+    <button class="btn-float" onclick="openForm('formProductor')">+</button>
+    <!-- Botón flotante para abrir el formulario de Finca -->
+    <button class="btn-float" onclick="openForm('formFinca')">+</button>
 
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
 
     <script>
-        let map, drawnItems, currentForm;
+        let map, drawnItems;
 
         function initMap() {
             map = L.map('map').setView([10.0, -84.0], 6); // Establece la vista inicial del mapa
@@ -226,7 +179,6 @@
                 let layer = e.layer;
                 drawnItems.addLayer(layer);
                 // Cuando se dibuja un polígono, activa el formulario de Lote
-                toggleForm('formLote');
             });
 
             // Herramienta de dibujo
@@ -236,27 +188,22 @@
             }).addTo(map);
         }
 
-        function toggleForm(formId) {
-            if (currentForm) {
-                document.getElementById(currentForm).classList.remove('show');
-            }
-            document.getElementById(formId).classList.add('show');
-            currentForm = formId;
+        function openForm(formId) {
+            // Muestra el formulario flotante
+            document.getElementById(formId).style.display = 'block';
+            document.getElementById('overlay').style.display = 'block'; // Muestra el fondo oscuro
+        }
+
+        function closeForm(formId) {
+            // Oculta el formulario flotante
+            document.getElementById(formId).style.display = 'none';
+            document.getElementById('overlay').style.display = 'none'; // Oculta el fondo oscuro
         }
 
         function saveForm(formId) {
             // Aquí podrías agregar lógica para guardar los datos del formulario
             alert('Formulario Guardado');
-        }
-
-        function exportGeoJSON() {
-            let geojsonData = drawnItems.toGeoJSON();
-            let geojsonStr = JSON.stringify(geojsonData);
-            let blob = new Blob([geojsonStr], { type: 'application/json' });
-            let link = document.createElement('a');
-            link.href = URL.createObjectURL(blob);
-            link.download = 'lote.geojson';
-            link.click();
+            closeForm(formId);
         }
 
         $(document).ready(function () {
