@@ -232,6 +232,7 @@
         </div>
 
         <button type="button" onclick="guardarProductor()">Guardar Productor</button>
+        <button type="button" onclick="guardarNuevoProductor()">Guardar Nuevo Productor</button>
     </form>
 </div>
 
@@ -264,134 +265,128 @@
             <input type="text" id="municipioFinca" required>
             <label for="municipioFinca">Municipio:</label>
         </div>
-        <div class="input-container">
-            <select id="productorFinca" required>
-                <option value="">Seleccione un Productor</option>
-            </select>
-            <label for="productorFinca">Productor:</label>
-        </div>
 
         <button type="button" onclick="guardarFinca()">Guardar Finca</button>
+        <button type="button" onclick="guardarNuevaFinca()">Guardar Nueva Finca</button>
     </form>
 </div>
 
-<!-- Lista de Productores y Fincas -->
-<div class="records-container">
-    <h4>Productores Registrados</h4>
-    <div id="productorList"></div>
-
-    <h4>Fincas Registradas</h4>
-    <div id="fincaList"></div>
+<!-- Contenedor de Registros -->
+<div class="records-container" id="recordsContainer">
+    <h4>Registros</h4>
+    <div id="productorRecords"></div>
+    <div id="fincaRecords"></div>
 </div>
 
-<!-- Librerías -->
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 <script src="https://unpkg.com/leaflet-draw/dist/leaflet.draw.js"></script>
-
 <script>
-    // Mapa de Leaflet
-    var map = L.map('map').setView([4.5709, -74.2973], 6); // Centrado en Colombia
+    let productores = [];
+    let fincas = [];
+    
+    // Inicializar el mapa
+    const map = L.map('map').setView([14.6349, -90.5069], 13);
+    
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
-    // Herramientas de Dibujo
-    var drawnItems = new L.FeatureGroup();
-    map.addLayer(drawnItems);
-
-    var drawControl = new L.Control.Draw({
-        draw: {
-            polygon: true,
-            marker: true,
-            polyline: true,
-            circle: true,
-            rectangle: true
-        },
-        edit: {
-            featureGroup: drawnItems
-        }
+    const drawControl = new L.Control.Draw({
+        edit: { featureGroup: new L.FeatureGroup() }
     });
     map.addControl(drawControl);
 
-    // Listas para almacenar los productores y fincas
-    var productores = [];
-    var fincas = [];
-
-    // Función para mostrar los formularios
+    // Funciones para mostrar y ocultar formularios
     function mostrarFormulario(tipo) {
         if (tipo === 'productor') {
-            document.getElementById("formProductor").classList.add("show");
+            document.getElementById('formProductor').classList.add('show');
+            document.getElementById('formFinca').classList.remove('show');
         } else if (tipo === 'finca') {
-            document.getElementById("formFinca").classList.add("show");
+            document.getElementById('formFinca').classList.add('show');
+            document.getElementById('formProductor').classList.remove('show');
         }
     }
 
-    // Función para cerrar los formularios
     function cerrarFormulario(tipo) {
         if (tipo === 'productor') {
-            document.getElementById("formProductor").classList.remove("show");
+            document.getElementById('formProductor').classList.remove('show');
         } else if (tipo === 'finca') {
-            document.getElementById("formFinca").classList.remove("show");
+            document.getElementById('formFinca').classList.remove('show');
         }
     }
 
-    // Función para guardar productor
+    // Funciones para guardar los registros
     function guardarProductor() {
-        var nombre = document.getElementById("nombreProd").value;
-        var id = document.getElementById("idProd").value;
-        var genero = document.getElementById("generoProd").value;
-        var telefono = document.getElementById("telefonoProd").value;
-        var correo = document.getElementById("correoProd").value;
+        const nombreProd = document.getElementById('nombreProd').value;
+        const idProd = document.getElementById('idProd').value;
+        const generoProd = document.getElementById('generoProd').value;
+        const telefonoProd = document.getElementById('telefonoProd').value;
+        const correoProd = document.getElementById('correoProd').value;
 
-        productores.push({nombre, id, genero, telefono, correo});
-        alert("Productor Guardado: " + nombre);
-        cerrarFormulario('productor');
-        
-        // Actualizar lista de productores
-        var productorList = document.getElementById("productorList");
-        var li = document.createElement("li");
-        li.textContent = "Productor: " + nombre + " | ID: " + id;
-        productorList.appendChild(li);
-        
-        // Actualizar lista desplegable de productores en finca
-        var select = document.getElementById("productorFinca");
-        var option = document.createElement("option");
-        option.value = nombre;
-        option.text = nombre;
-        select.appendChild(option);
+        const productor = {
+            nombre: nombreProd,
+            id: idProd,
+            genero: generoProd,
+            telefono: telefonoProd,
+            correo: correoProd
+        };
+
+        productores.push(productor);
+        actualizarRegistros();
     }
 
-    // Función para guardar finca
-    function guardarFinca() {
-        var codigo = document.getElementById("codigoFinca").value;
-        var nombre = document.getElementById("nombreFinca").value;
-        var propietario = document.getElementById("propietarioFinca").value;
-        var area = document.getElementById("areaFinca").value;
-        var vereda = document.getElementById("veredaFinca").value;
-        var municipio = document.getElementById("municipioFinca").value;
-        var productor = document.getElementById("productorFinca").value;
+    function guardarNuevaFinca() {
+        const codigoFinca = document.getElementById('codigoFinca').value;
+        const nombreFinca = document.getElementById('nombreFinca').value;
+        const propietarioFinca = document.getElementById('propietarioFinca').value;
+        const areaFinca = document.getElementById('areaFinca').value;
+        const veredaFinca = document.getElementById('veredaFinca').value;
+        const municipioFinca = document.getElementById('municipioFinca').value;
 
-        fincas.push({codigo, nombre, propietario, area, vereda, municipio, productor});
-        alert("Finca Guardada: " + nombre);
-        cerrarFormulario('finca');
-        
-        // Actualizar lista de fincas
-        var fincaList = document.getElementById("fincaList");
-        var li = document.createElement("li");
-        li.textContent = "Finca: " + nombre + " | Código: " + codigo + " | Productor: " + productor;
-        fincaList.appendChild(li);
+        const finca = {
+            codigo: codigoFinca,
+            nombre: nombreFinca,
+            propietario: propietarioFinca,
+            area: areaFinca,
+            vereda: veredaFinca,
+            municipio: municipioFinca
+        };
+
+        fincas.push(finca);
+        actualizarRegistros();
     }
 
-    // Función para obtener ubicación GPS
-    function obtenerUbicacionGPS() {
-        if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition(function(position) {
-                var lat = position.coords.latitude;
-                var lon = position.coords.longitude;
-                map.setView([lat, lon], 13);
-                L.marker([lat, lon]).addTo(map).bindPopup("Tu ubicación").openPopup();
-            });
-        } else {
-            alert("La geolocalización no es soportada por este navegador.");
-        }
+    function actualizarRegistros() {
+        const productorRecords = document.getElementById('productorRecords');
+        const fincaRecords = document.getElementById('fincaRecords');
+        
+        productorRecords.innerHTML = '';
+        fincaRecords.innerHTML = '';
+        
+        productores.forEach(productor => {
+            const recordCard = document.createElement('div');
+            recordCard.classList.add('record-card');
+            recordCard.innerHTML = `
+                <h5>${productor.nombre}</h5>
+                <p>ID: ${productor.id}</p>
+                <p>Género: ${productor.genero}</p>
+                <p>Teléfono: ${productor.telefono}</p>
+                <p>Correo: ${productor.correo}</p>
+            `;
+            productorRecords.appendChild(recordCard);
+        });
+        
+        fincas.forEach(finca => {
+            const recordCard = document.createElement('div');
+            recordCard.classList.add('record-card');
+            recordCard.innerHTML = `
+                <h5>${finca.nombre}</h5>
+                <p>Código: ${finca.codigo}</p>
+                <p>Propietario: ${finca.propietario}</p>
+                <p>Área: ${finca.area}</p>
+                <p>Vereda: ${finca.vereda}</p>
+                <p>Municipio: ${finca.municipio}</p>
+            `;
+            fincaRecords.appendChild(recordCard);
+        });
     }
 </script>
 
