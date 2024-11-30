@@ -109,6 +109,34 @@
             background-color: #0056b3;
         }
 
+        /* Lista de productores y fincas */
+        .records-container {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background-color: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            max-height: 80vh;
+            overflow-y: scroll;
+            z-index: 999;
+            width: 300px;
+        }
+
+        .records-container h4 {
+            margin-bottom: 10px;
+        }
+
+        .records-container ul {
+            list-style-type: none;
+            padding: 0;
+        }
+
+        .records-container ul li {
+            margin-bottom: 5px;
+            font-size: 14px;
+        }
     </style>
 </head>
 <body>
@@ -197,6 +225,13 @@
     </form>
 </div>
 
+<!-- Contenedor de Registros -->
+<div class="records-container" id="recordsContainer">
+    <h4>Registros</h4>
+    <ul id="productorList"></ul>
+    <ul id="fincaList"></ul>
+</div>
+
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 <script src="https://unpkg.com/leaflet-draw/dist/leaflet.draw.js"></script>
 <script>
@@ -212,10 +247,10 @@
     var drawControl = new L.Control.Draw({
         draw: {
             polygon: true,
+            marker: true,
             polyline: true,
-            rectangle: true,
             circle: true,
-            marker: true
+            rectangle: true
         },
         edit: {
             featureGroup: drawnItems
@@ -223,24 +258,29 @@
     });
     map.addControl(drawControl);
 
+    // Listas para almacenar los productores y fincas
     var productores = [];
+    var fincas = [];
 
-    function mostrarFormulario(formType) {
-        document.getElementById('form' + formType.charAt(0).toUpperCase() + formType.slice(1)).classList.add('show');
+    // Función para mostrar los formularios
+    function mostrarFormulario(tipo) {
+        if (tipo === 'productor') {
+            document.getElementById("formProductor").classList.add("show");
+        } else if (tipo === 'finca') {
+            document.getElementById("formFinca").classList.add("show");
+        }
     }
 
-    function cerrarFormulario(formType) {
-        document.getElementById('form' + formType.charAt(0).toUpperCase() + formType.slice(1)).classList.remove('show');
+    // Función para cerrar los formularios
+    function cerrarFormulario(tipo) {
+        if (tipo === 'productor') {
+            document.getElementById("formProductor").classList.remove("show");
+        } else if (tipo === 'finca') {
+            document.getElementById("formFinca").classList.remove("show");
+        }
     }
 
-    function obtenerUbicacionGPS() {
-        navigator.geolocation.getCurrentPosition(function (position) {
-            map.setView([position.coords.latitude, position.coords.longitude], 13);
-            L.marker([position.coords.latitude, position.coords.longitude]).addTo(map)
-                .bindPopup("Tu ubicación actual");
-        });
-    }
-
+    // Función para guardar productor
     function guardarProductor() {
         var nombre = document.getElementById("nombreProd").value;
         var id = document.getElementById("idProd").value;
@@ -252,7 +292,13 @@
         alert("Productor Guardado: " + nombre);
         cerrarFormulario('productor');
         
-        // Actualizar lista desplegable en Finca
+        // Actualizar lista de productores
+        var productorList = document.getElementById("productorList");
+        var li = document.createElement("li");
+        li.textContent = "Productor: " + nombre + " | ID: " + id;
+        productorList.appendChild(li);
+        
+        // Actualizar lista desplegable de productores en finca
         var select = document.getElementById("productorFinca");
         var option = document.createElement("option");
         option.value = nombre;
@@ -260,6 +306,7 @@
         select.appendChild(option);
     }
 
+    // Función para guardar finca
     function guardarFinca() {
         var codigo = document.getElementById("codigoFinca").value;
         var nombre = document.getElementById("nombreFinca").value;
@@ -269,8 +316,29 @@
         var municipio = document.getElementById("municipioFinca").value;
         var productor = document.getElementById("productorFinca").value;
 
+        fincas.push({codigo, nombre, propietario, area, vereda, municipio, productor});
         alert("Finca Guardada: " + nombre);
         cerrarFormulario('finca');
+        
+        // Actualizar lista de fincas
+        var fincaList = document.getElementById("fincaList");
+        var li = document.createElement("li");
+        li.textContent = "Finca: " + nombre + " | Código: " + codigo + " | Productor: " + productor;
+        fincaList.appendChild(li);
+    }
+
+    // Función para obtener ubicación GPS
+    function obtenerUbicacionGPS() {
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(function(position) {
+                var lat = position.coords.latitude;
+                var lon = position.coords.longitude;
+                map.setView([lat, lon], 13);
+                L.marker([lat, lon]).addTo(map).bindPopup("Tu ubicación").openPopup();
+            });
+        } else {
+            alert("La geolocalización no es soportada por este navegador.");
+        }
     }
 </script>
 
