@@ -7,20 +7,17 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet-draw/dist/leaflet.draw.css" />
     <style>
-        /* General */
         body {
-            font-family: 'Arial', sans-serif;
+            font-family: Arial, sans-serif;
             margin: 0;
             padding: 0;
             background-color: #f4f4f4;
         }
-
         /* Mapa */
         #map {
             height: 100vh;
             width: 100%;
         }
-
         /* Contenedor de botones */
         .button-container {
             position: absolute;
@@ -31,7 +28,6 @@
             flex-direction: column;
             gap: 10px;
         }
-
         .button-container button {
             padding: 12px 16px;
             font-size: 16px;
@@ -42,11 +38,9 @@
             color: white;
             transition: background-color 0.3s;
         }
-
         .button-container button:hover {
             background-color: #218838;
         }
-
         /* Estilos del formulario flotante */
         .form-container {
             position: absolute;
@@ -65,22 +59,18 @@
             resize: both;
             overflow: auto;
             min-width: 250px;
+            cursor: move;
         }
-
         .form-container.show {
             display: block;
             opacity: 1;
         }
-
-        /* Títulos de los formularios */
         .form-container h3 {
             text-align: center;
             color: #333;
             font-size: 20px;
             margin-bottom: 20px;
         }
-
-        /* Estilos de los inputs con labels al frente */
         .form-container label {
             font-size: 14px;
             color: #333;
@@ -92,12 +82,10 @@
             padding: 0 5px;
             transition: all 0.3s ease;
         }
-
         .form-container .input-container {
             position: relative;
             margin-bottom: 20px;
         }
-
         .form-container input, .form-container select {
             width: 100%;
             padding: 12px;
@@ -109,20 +97,16 @@
             position: relative;
             z-index: 1;
         }
-
         .form-container input:focus, .form-container select:focus {
             border-color: #28a745;
             background-color: #e8f5e9;
         }
-
-        /* Estilo para los inputs cuando están enfocados */
         .form-container input:focus + label,
         .form-container select:focus + label {
             font-size: 12px;
             top: -10px;
             color: #28a745;
         }
-
         /* Botones del formulario */
         .form-container button {
             width: 100%;
@@ -134,11 +118,9 @@
             border-radius: 8px;
             cursor: pointer;
         }
-
         .form-container button:hover {
             background-color: #218838;
         }
-
         /* Botón de cierre (X) en la parte superior derecha */
         .close-btn {
             position: absolute;
@@ -150,30 +132,8 @@
             color: #999;
             cursor: pointer;
         }
-
         .close-btn:hover {
             color: #f44336;
-        }
-
-        /* Estilos para hacer que los formularios sean movibles */
-        .form-container {
-            cursor: move;
-        }
-
-        /* Media Queries para Responsividad */
-        @media (max-width: 600px) {
-            .form-container {
-                top: 10%;
-                left: 5%;
-                transform: translateX(0);
-                width: 90%;
-                padding: 20px;
-            }
-
-            .button-container button {
-                font-size: 14px;
-                padding: 10px;
-            }
         }
     </style>
 </head>
@@ -296,16 +256,32 @@
     function obtenerUbicacionGPS() {
         navigator.geolocation.getCurrentPosition(function (position) {
             map.setView([position.coords.latitude, position.coords.longitude], 13);
-            L.marker([position.coords.latitude, position.coords.longitude]).addTo(map);
+            L.marker([position.coords.latitude, position.coords.longitude]).addTo(map)
+                .bindPopup("Tu ubicación actual");
         });
     }
 
     function guardarProductor() {
-        alert("Productor Guardado");
+        var nombre = document.getElementById("nombreProd").value;
+        var id = document.getElementById("idProd").value;
+        var genero = document.getElementById("generoProd").value;
+        var telefono = document.getElementById("telefonoProd").value;
+        var correo = document.getElementById("correoProd").value;
+
+        alert("Productor Guardado: " + nombre);
+        cerrarFormulario('productor');
     }
 
     function guardarFinca() {
-        alert("Finca Guardada");
+        var codigo = document.getElementById("codigoFinca").value;
+        var nombre = document.getElementById("nombreFinca").value;
+        var propietario = document.getElementById("propietarioFinca").value;
+        var area = document.getElementById("areaFinca").value;
+        var vereda = document.getElementById("veredaFinca").value;
+        var municipio = document.getElementById("municipioFinca").value;
+
+        alert("Finca Guardada: " + nombre);
+        cerrarFormulario('finca');
     }
 </script>
 
