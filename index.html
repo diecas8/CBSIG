@@ -79,7 +79,18 @@
             margin-bottom: 20px;
         }
 
-        /* Campos del formulario */
+        /* Estilos de los inputs con labels flotantes */
+        .form-container label {
+            font-size: 16px;
+            color: #333;
+            position: absolute;
+            top: 0;
+            left: 10px;
+            transition: all 0.3s ease;
+            pointer-events: none;
+            margin-top: 10px;
+        }
+
         .form-container input, .form-container select {
             width: 100%;
             padding: 12px;
@@ -88,6 +99,8 @@
             border-radius: 8px;
             background-color: #f9f9f9;
             font-size: 14px;
+            position: relative;
+            z-index: 1;
         }
 
         .form-container input:focus, .form-container select:focus {
@@ -95,6 +108,16 @@
             background-color: #e8f5e9;
         }
 
+        /* Estilo para los inputs cuando están enfocados */
+        .form-container input:focus + label,
+        .form-container select:focus + label {
+            top: -10px;
+            left: 10px;
+            font-size: 12px;
+            color: #28a745;
+        }
+
+        /* Botones del formulario */
         .form-container button {
             width: 100%;
             padding: 14px;
@@ -149,23 +172,32 @@
     <button class="close-btn" onclick="cerrarFormulario('productor')">×</button>
     <h3>Formulario de Productor</h3>
     <form id="formProductorContent">
-        <label for="nombreProd">Nombre:</label>
-        <input type="text" id="nombreProd"><br>
-        <label for="idProd">Identificación:</label>
-        <input type="text" id="idProd"><br>
-        <label for="generoProd">Género:</label>
-        <select id="generoProd">
-            <option value="Masculino">Masculino</option>
-            <option value="Femenino">Femenino</option>
-            <option value="Otro">Otro</option>
-        </select><br>
-        <label for="telefonoProd">Teléfono:</label>
-        <input type="tel" id="telefonoProd"><br>
-        <label for="correoProd">Correo:</label>
-        <input type="email" id="correoProd"><br>
+        <div class="input-container">
+            <input type="text" id="nombreProd" required>
+            <label for="nombreProd">Nombre:</label>
+        </div>
+        <div class="input-container">
+            <input type="text" id="idProd" required>
+            <label for="idProd">Identificación:</label>
+        </div>
+        <div class="input-container">
+            <select id="generoProd" required>
+                <option value="Masculino">Masculino</option>
+                <option value="Femenino">Femenino</option>
+                <option value="Otro">Otro</option>
+            </select>
+            <label for="generoProd">Género:</label>
+        </div>
+        <div class="input-container">
+            <input type="tel" id="telefonoProd" required>
+            <label for="telefonoProd">Teléfono:</label>
+        </div>
+        <div class="input-container">
+            <input type="email" id="correoProd" required>
+            <label for="correoProd">Correo:</label>
+        </div>
 
         <button type="button" onclick="guardarProductor()">Guardar Productor</button>
-        <button type="button" class="close-button" onclick="cerrarFormulario('productor')">Cerrar</button>
     </form>
 </div>
 
@@ -174,27 +206,39 @@
     <button class="close-btn" onclick="cerrarFormulario('finca')">×</button>
     <h3>Formulario de Finca</h3>
     <form id="formFincaContent">
-        <label for="codigoFinca">Código Finca:</label>
-        <input type="text" id="codigoFinca"><br>
-        <label for="nombreFinca">Nombre:</label>
-        <input type="text" id="nombreFinca"><br>
-        <label for="propietarioFinca">Propietario:</label>
-        <input type="text" id="propietarioFinca"><br>
-        <label for="areaFinca">Área:</label>
-        <input type="text" id="areaFinca"><br>
-        <label for="veredaFinca">Vereda:</label>
-        <input type="text" id="veredaFinca"><br>
-        <label for="municipioFinca">Municipio:</label>
-        <input type="text" id="municipioFinca"><br>
+        <div class="input-container">
+            <input type="text" id="codigoFinca" required>
+            <label for="codigoFinca">Código Finca:</label>
+        </div>
+        <div class="input-container">
+            <input type="text" id="nombreFinca" required>
+            <label for="nombreFinca">Nombre:</label>
+        </div>
+        <div class="input-container">
+            <input type="text" id="propietarioFinca" required>
+            <label for="propietarioFinca">Propietario:</label>
+        </div>
+        <div class="input-container">
+            <input type="text" id="areaFinca" required>
+            <label for="areaFinca">Área:</label>
+        </div>
+        <div class="input-container">
+            <input type="text" id="veredaFinca" required>
+            <label for="veredaFinca">Vereda:</label>
+        </div>
+        <div class="input-container">
+            <input type="text" id="municipioFinca" required>
+            <label for="municipioFinca">Municipio:</label>
+        </div>
 
-        <!-- Selección de Productor -->
-        <label for="productorFinca">Productor:</label>
-        <select id="productorFinca">
-            <option value="">Seleccione un productor</option>
-        </select><br>
+        <div class="input-container">
+            <label for="productorFinca">Productor:</label>
+            <select id="productorFinca" required>
+                <option value="">Seleccione un productor</option>
+            </select>
+        </div>
 
         <button type="button" onclick="guardarFinca()">Guardar Finca</button>
-        <button type="button" class="close-button" onclick="cerrarFormulario('finca')">Cerrar</button>
     </form>
 </div>
 
@@ -211,35 +255,34 @@
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
     }).addTo(map);
 
-    // Añadir herramientas de dibujo
-    var drawnItems = new L.FeatureGroup();
-    map.addLayer(drawnItems);
-    
-    var drawControl = new L.Control.Draw({
-        edit: {
-            featureGroup: drawnItems
-        },
-        draw: {
-            polygon: true,
-            circle: false,
-            rectangle: false,
-            marker: false,
-            polyline: false
-        }
-    });
-    map.addControl(drawControl);
+    // Función para mostrar el formulario de productor o finca
+    function mostrarFormulario(tipo) {
+        var formProductor = document.getElementById('formProductor');
+        var formFinca = document.getElementById('formFinca');
 
-    // Función para mostrar el formulario (Productor o Finca)
-    function mostrarFormulario(modulo) {
-        document.getElementById('form' + capitalizeFirstLetter(modulo)).classList.add('show');
+        // Mostrar el formulario correspondiente
+        if (tipo === 'productor') {
+            formProductor.classList.add('show');
+            formFinca.classList.remove('show');
+        } else if (tipo === 'finca') {
+            formFinca.classList.add('show');
+            formProductor.classList.remove('show');
+        }
     }
 
     // Función para cerrar el formulario
-    function cerrarFormulario(modulo) {
-        document.getElementById('form' + capitalizeFirstLetter(modulo)).classList.remove('show');
+    function cerrarFormulario(tipo) {
+        var formProductor = document.getElementById('formProductor');
+        var formFinca = document.getElementById('formFinca');
+
+        if (tipo === 'productor') {
+            formProductor.classList.remove('show');
+        } else if (tipo === 'finca') {
+            formFinca.classList.remove('show');
+        }
     }
 
-    // Función para guardar el productor
+    // Función para guardar la información del productor
     function guardarProductor() {
         var nombre = document.getElementById('nombreProd').value;
         var id = document.getElementById('idProd').value;
@@ -297,11 +340,6 @@
                 form.style.height = event.rect.height + 'px';
             }
         });
-
-    // Capitalizar la primera letra de una palabra
-    function capitalizeFirstLetter(string) {
-        return string.charAt(0).toUpperCase() + string.slice(1);
-    }
 </script>
 
 </body>
