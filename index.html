@@ -254,32 +254,23 @@
         </div>
 
         <div class="input-container">
-            <label for="productorFinca">Productor:</label>
-            <select id="productorFinca" required>
-                <option value="1">Productor 1</option>
-                <option value="2">Productor 2</option>
-                <option value="3">Productor 3</option>
-            </select>
+            <button type="button" onclick="guardarFinca()">Guardar Finca</button>
         </div>
-
-        <button type="button" onclick="guardarFinca()">Guardar Finca</button>
     </form>
 </div>
 
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 <script src="https://unpkg.com/leaflet-draw/dist/leaflet.draw.js"></script>
 <script>
-    // Inicializar mapa
-    var map = L.map('map').setView([4.60971, -74.08175], 13); // Coordenadas para Bogotá
+    var map = L.map('map').setView([4.60971, -74.08175], 13); // Centrado en Bogotá, Colombia
 
-    // Capa del mapa
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
     }).addTo(map);
 
-    // Inicializar el controlador para dibujar en el mapa
     var drawnItems = new L.FeatureGroup();
     map.addLayer(drawnItems);
+
     var drawControl = new L.Control.Draw({
         draw: {
             polygon: true,
@@ -294,17 +285,14 @@
     });
     map.addControl(drawControl);
 
-    // Mostrar formulario
     function mostrarFormulario(formType) {
         document.getElementById('form' + formType.charAt(0).toUpperCase() + formType.slice(1)).classList.add('show');
     }
 
-    // Cerrar formulario
     function cerrarFormulario(formType) {
         document.getElementById('form' + formType.charAt(0).toUpperCase() + formType.slice(1)).classList.remove('show');
     }
 
-    // Obtener ubicación GPS
     function obtenerUbicacionGPS() {
         navigator.geolocation.getCurrentPosition(function (position) {
             map.setView([position.coords.latitude, position.coords.longitude], 13);
@@ -312,15 +300,14 @@
         });
     }
 
-    // Guardar Productor
     function guardarProductor() {
         alert("Productor Guardado");
     }
 
-    // Guardar Finca
     function guardarFinca() {
         alert("Finca Guardada");
     }
 </script>
+
 </body>
 </html>
