@@ -13,19 +13,29 @@
             width: 100%;
         }
 
-        /* Formularios flotantes */
+        /* Estilos Generales */
+        body {
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f7fa;
+        }
+
+        /* Formularios Flotantes */
         .form-container {
-            position: absolute;
+            position: fixed;
             top: 50px;
             left: 50%;
             transform: translateX(-50%);
-            background-color: white;
-            padding: 15px;
+            background-color: #ffffff;
+            padding: 20px;
             border-radius: 8px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-            width: 300px;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+            width: 350px;
             display: none;
-            z-index: 999;
+            z-index: 1000;
+            max-height: 80%;
+            overflow-y: auto;
         }
 
         .form-container.show {
@@ -45,97 +55,137 @@
         .form-container h3 {
             text-align: center;
             margin-bottom: 15px;
+            color: #007bff;
         }
 
         .input-container {
-            margin-bottom: 10px;
+            margin-bottom: 15px;
             position: relative;
         }
 
         .input-container input,
         .input-container select {
             width: 100%;
-            padding: 10px;
+            padding: 12px;
             border: 1px solid #ccc;
             border-radius: 4px;
             font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        .input-container input:focus,
+        .input-container select:focus {
+            border-color: #007bff;
+            outline: none;
         }
 
         .input-container label {
             position: absolute;
-            top: -10px;
+            top: -12px;
             left: 10px;
-            font-size: 12px;
+            font-size: 14px;
+            color: #007bff;
             background: white;
             padding: 0 5px;
         }
 
         .form-container button {
             width: 100%;
-            padding: 12px;
-            background-color: #28a745;
+            padding: 14px;
+            background-color: #007bff;
             color: white;
             border: none;
             font-size: 16px;
             cursor: pointer;
             border-radius: 5px;
+            transition: background-color 0.3s ease;
         }
 
         .form-container button:hover {
-            background-color: #218838;
+            background-color: #0056b3;
         }
 
+        /* Contenedor de Botones */
         .button-container {
-            position: absolute;
+            position: fixed;
             top: 20px;
             left: 20px;
             z-index: 1000;
-            display: flex;
-            flex-direction: column;
         }
 
         .button-container button {
-            padding: 12px 16px;
-            background-color: #007bff;
+            padding: 14px 20px;
+            background-color: #28a745;
             color: white;
             font-size: 16px;
             border: none;
             border-radius: 8px;
-            margin-bottom: 10px;
+            margin-bottom: 15px;
             cursor: pointer;
+            transition: background-color 0.3s ease;
         }
 
         .button-container button:hover {
-            background-color: #0056b3;
+            background-color: #218838;
         }
 
-        /* Lista de productores y fincas */
+        /* Lista de Productores y Fincas */
         .records-container {
-            position: absolute;
+            position: fixed;
             top: 20px;
             right: 20px;
             background-color: white;
             padding: 15px;
             border-radius: 8px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
             max-height: 80vh;
-            overflow-y: scroll;
-            z-index: 999;
+            overflow-y: auto;
+            z-index: 1000;
             width: 300px;
+            background-color: #ffffff;
         }
 
         .records-container h4 {
+            margin-bottom: 15px;
+            color: #007bff;
+            text-align: center;
+        }
+
+        .record-card {
+            background-color: #f8f9fa;
+            padding: 10px;
             margin-bottom: 10px;
+            border-radius: 6px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
         }
 
-        .records-container ul {
-            list-style-type: none;
-            padding: 0;
-        }
-
-        .records-container ul li {
+        .record-card h5 {
+            color: #007bff;
+            font-size: 16px;
             margin-bottom: 5px;
+        }
+
+        .record-card p {
             font-size: 14px;
+            margin: 0;
+            color: #333;
+        }
+
+        /* Responsividad */
+        @media (max-width: 768px) {
+            .button-container button {
+                width: 100%;
+                margin-bottom: 10px;
+            }
+
+            .form-container {
+                width: 90%;
+            }
+
+            .records-container {
+                width: 100%;
+                max-height: 60vh;
+            }
         }
     </style>
 </head>
@@ -216,31 +266,34 @@
         </div>
         <div class="input-container">
             <select id="productorFinca" required>
-                <!-- Lista de productores se cargará dinámicamente -->
+                <option value="">Seleccione un Productor</option>
             </select>
-            <label for="productorFinca">Seleccionar Productor:</label>
+            <label for="productorFinca">Productor:</label>
         </div>
 
         <button type="button" onclick="guardarFinca()">Guardar Finca</button>
     </form>
 </div>
 
-<!-- Contenedor de Registros -->
-<div class="records-container" id="recordsContainer">
-    <h4>Registros</h4>
-    <ul id="productorList"></ul>
-    <ul id="fincaList"></ul>
+<!-- Lista de Productores y Fincas -->
+<div class="records-container">
+    <h4>Productores Registrados</h4>
+    <div id="productorList"></div>
+
+    <h4>Fincas Registradas</h4>
+    <div id="fincaList"></div>
 </div>
 
+<!-- Librerías -->
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 <script src="https://unpkg.com/leaflet-draw/dist/leaflet.draw.js"></script>
+
 <script>
-    var map = L.map('map').setView([4.60971, -74.08175], 13); // Centrado en Colombia
+    // Mapa de Leaflet
+    var map = L.map('map').setView([4.5709, -74.2973], 6); // Centrado en Colombia
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-    }).addTo(map);
-
+    // Herramientas de Dibujo
     var drawnItems = new L.FeatureGroup();
     map.addLayer(drawnItems);
 
