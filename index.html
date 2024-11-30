@@ -7,107 +7,88 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet-draw/dist/leaflet.draw.css" />
     <style>
+        /* General */
         body {
             font-family: Arial, sans-serif;
             margin: 0;
             padding: 0;
             background-color: #f4f4f4;
         }
+
         /* Mapa */
         #map {
             height: 100vh;
             width: 100%;
         }
-        /* Contenedor de botones */
-        .button-container {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            z-index: 1000;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-        .button-container button {
-            padding: 12px 16px;
-            font-size: 16px;
-            cursor: pointer;
-            border-radius: 8px;
-            border: none;
-            background-color: #28a745;
-            color: white;
-            transition: background-color 0.3s;
-        }
-        .button-container button:hover {
-            background-color: #218838;
-        }
-        /* Estilos del formulario flotante */
+
+        /* Estilo de los formularios */
         .form-container {
             position: absolute;
-            top: 15%;
+            top: 10%;
             left: 50%;
             transform: translateX(-50%);
             background-color: #ffffff;
-            padding: 25px;
+            padding: 20px;
             border-radius: 12px;
             width: 100%;
             max-width: 400px;
             box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
             z-index: 2000;
-            opacity: 0;
-            transition: opacity 0.3s ease;
-            resize: both;
-            overflow: auto;
-            min-width: 250px;
-            cursor: move;
+            display: none;
         }
+
         .form-container.show {
             display: block;
-            opacity: 1;
         }
+
         .form-container h3 {
             text-align: center;
-            color: #333;
-            font-size: 20px;
+            margin-bottom: 15px;
+        }
+
+        .input-container {
             margin-bottom: 20px;
-        }
-        .form-container label {
-            font-size: 14px;
-            color: #333;
-            font-weight: bold;
-            position: absolute;
-            top: 10px;
-            left: 12px;
-            background-color: white;
-            padding: 0 5px;
-            transition: all 0.3s ease;
-        }
-        .form-container .input-container {
             position: relative;
-            margin-bottom: 20px;
         }
-        .form-container input, .form-container select {
+
+        .input-container input,
+        .input-container select {
             width: 100%;
             padding: 12px;
-            margin-bottom: 15px;
             border: 1px solid #ddd;
             border-radius: 8px;
             background-color: #f9f9f9;
             font-size: 14px;
-            position: relative;
-            z-index: 1;
+            box-sizing: border-box;
         }
-        .form-container input:focus, .form-container select:focus {
-            border-color: #28a745;
-            background-color: #e8f5e9;
-        }
-        .form-container input:focus + label,
-        .form-container select:focus + label {
-            font-size: 12px;
+
+        .input-container label {
+            position: absolute;
             top: -10px;
-            color: #28a745;
+            left: 12px;
+            font-size: 12px;
+            color: #333;
+            background-color: #fff;
+            padding: 0 5px;
+            font-weight: bold;
         }
-        /* Botones del formulario */
+
+        /* Estilo de botones */
+        .close-btn {
+            position: absolute;
+            top: 5px;
+            right: 10px;
+            background: none;
+            border: none;
+            font-size: 25px;
+            color: #999;
+            cursor: pointer;
+        }
+
+        .close-btn:hover {
+            color: #f44336;
+        }
+
         .form-container button {
             width: 100%;
             padding: 14px;
@@ -117,32 +98,45 @@
             font-size: 16px;
             border-radius: 8px;
             cursor: pointer;
+            margin-top: 10px;
         }
+
         .form-container button:hover {
             background-color: #218838;
         }
-        /* Botón de cierre (X) en la parte superior derecha */
-        .close-btn {
+
+        .button-container {
             position: absolute;
-            top: 10px;
-            right: 10px;
-            background: none;
-            border: none;
-            font-size: 25px;
-            color: #999;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .button-container button {
+            padding: 12px 16px;
+            font-size: 16px;
             cursor: pointer;
+            border-radius: 8px;
+            border: none;
+            background-color: #007bff;
+            color: white;
         }
-        .close-btn:hover {
-            color: #f44336;
+
+        .button-container button:hover {
+            background-color: #0056b3;
         }
+
     </style>
 </head>
 <body>
 
-<!-- Mapa Base -->
+<!-- Mapa -->
 <div id="map"></div>
 
-<!-- Contenedor de los botones -->
+<!-- Contenedor de Botones -->
 <div class="button-container">
     <button onclick="mostrarFormulario('productor')">Agregar Productor</button>
     <button onclick="mostrarFormulario('finca')">Agregar Finca</button>
@@ -212,17 +206,21 @@
             <input type="text" id="municipioFinca" required>
             <label for="municipioFinca">Municipio:</label>
         </div>
-
         <div class="input-container">
-            <button type="button" onclick="guardarFinca()">Guardar Finca</button>
+            <select id="productorFinca" required>
+                <!-- Aquí irán los productores cargados dinámicamente -->
+            </select>
+            <label for="productorFinca">Seleccionar Productor:</label>
         </div>
+
+        <button type="button" onclick="guardarFinca()">Guardar Finca</button>
     </form>
 </div>
 
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 <script src="https://unpkg.com/leaflet-draw/dist/leaflet.draw.js"></script>
 <script>
-    var map = L.map('map').setView([4.60971, -74.08175], 13); // Centrado en Bogotá, Colombia
+    var map = L.map('map').setView([4.60971, -74.08175], 13); // Centrado en Colombia
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
@@ -244,6 +242,8 @@
         }
     });
     map.addControl(drawControl);
+
+    var productores = [];
 
     function mostrarFormulario(formType) {
         document.getElementById('form' + formType.charAt(0).toUpperCase() + formType.slice(1)).classList.add('show');
@@ -268,8 +268,16 @@
         var telefono = document.getElementById("telefonoProd").value;
         var correo = document.getElementById("correoProd").value;
 
+        productores.push({nombre, id, genero, telefono, correo});
         alert("Productor Guardado: " + nombre);
         cerrarFormulario('productor');
+        
+        // Actualizar lista desplegable en Finca
+        var select = document.getElementById("productorFinca");
+        var option = document.createElement("option");
+        option.value = nombre;
+        option.text = nombre;
+        select.appendChild(option);
     }
 
     function guardarFinca() {
@@ -279,6 +287,7 @@
         var area = document.getElementById("areaFinca").value;
         var vereda = document.getElementById("veredaFinca").value;
         var municipio = document.getElementById("municipioFinca").value;
+        var productor = document.getElementById("productorFinca").value;
 
         alert("Finca Guardada: " + nombre);
         cerrarFormulario('finca');
