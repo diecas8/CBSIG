@@ -46,9 +46,8 @@
             background-color: #218838;
         }
 
-        /* Estilos del formulario */
+        /* Estilos del formulario flotante */
         .form-container {
-            display: none;
             position: absolute;
             top: 15%;
             left: 50%;
@@ -56,13 +55,15 @@
             background-color: #ffffff;
             padding: 25px;
             border-radius: 12px;
-            width: 350px;
+            width: 300px;
             box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
             z-index: 2000;
             opacity: 0;
             transition: opacity 0.3s ease;
             resize: both;
             overflow: auto;
+            max-width: 400px;
+            min-width: 250px;
         }
 
         .form-container.show {
@@ -123,6 +124,11 @@
 
         .close-btn:hover {
             color: #f44336;
+        }
+
+        /* Estilos para hacer que los formularios sean movibles */
+        .form-container {
+            cursor: move;
         }
     </style>
 </head>
@@ -228,7 +234,7 @@
         document.getElementById('form' + capitalizeFirstLetter(modulo)).classList.add('show');
     }
 
-    // Función para cerrar los formularios
+    // Función para cerrar el formulario
     function cerrarFormulario(modulo) {
         document.getElementById('form' + capitalizeFirstLetter(modulo)).classList.remove('show');
     }
@@ -240,9 +246,8 @@
         var genero = document.getElementById('generoProd').value;
         var telefono = document.getElementById('telefonoProd').value;
         var correo = document.getElementById('correoProd').value;
-        // Aquí deberías agregar el productor a la lista o base de datos
-        alert('Productor guardado');
-        cerrarFormulario('productor');
+
+        alert('Productor Guardado: ' + nombre);
     }
 
     // Función para guardar la finca
@@ -253,36 +258,50 @@
         var area = document.getElementById('areaFinca').value;
         var vereda = document.getElementById('veredaFinca').value;
         var municipio = document.getElementById('municipioFinca').value;
-        var productor = document.getElementById('productorFinca').value;
-        // Aquí deberías agregar la finca a la lista o base de datos
-        alert('Finca guardada');
-        cerrarFormulario('finca');
+
+        alert('Finca Guardada: ' + nombre);
     }
 
-    // Función para obtener la ubicación GPS y centrar el mapa
+    // Función para obtener la ubicación del usuario
     function obtenerUbicacionGPS() {
         if (navigator.geolocation) {
             navigator.geolocation.getCurrentPosition(function(position) {
                 var lat = position.coords.latitude;
                 var lon = position.coords.longitude;
-                map.setView(new L.LatLng(lat, lon), 15);
-                L.marker([lat, lon]).addTo(map)
-                    .bindPopup("Ubicación actual")
-                    .openPopup();
+
+                // Centrar el mapa en la ubicación del usuario
+                map.setView([lat, lon], 14);
+
+                // Agregar marcador
+                L.marker([lat, lon]).addTo(map).bindPopup("Tu Ubicación").openPopup();
             });
         } else {
-            alert("Geolocalización no es soportada por este navegador.");
+            alert("Geolocalización no soportada por este navegador.");
         }
     }
 
-    // Función auxiliar para capitalizar la primera letra
+    // Interact.js para permitir mover y redimensionar formularios
+    interact('.form-container')
+        .draggable({
+            onmove(event) {
+                var form = event.target;
+                form.style.top = (form.offsetTop + event.dy) + 'px';
+                form.style.left = (form.offsetLeft + event.dx) + 'px';
+            }
+        })
+        .resizable({
+            edges: { top: true, left: true, bottom: true, right: true },
+            onmove(event) {
+                var form = event.target;
+                form.style.width = event.rect.width + 'px';
+                form.style.height = event.rect.height + 'px';
+            }
+        });
+
+    // Capitalizar la primera letra de una palabra
     function capitalizeFirstLetter(string) {
         return string.charAt(0).toUpperCase() + string.slice(1);
     }
-
-    // Agregar productor a la lista de opciones del formulario de finca (para pruebas)
-    document.getElementById('productorFinca').innerHTML += '<option value="1">Juan Pérez</option>';
-    document.getElementById('productorFinca').innerHTML += '<option value="2">Ana Gómez</option>';
 </script>
 
 </body>
