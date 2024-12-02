@@ -5,105 +5,59 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mapa con Capas GeoJSON</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
-    <style>
-        #map {
-            height: 600px;
-            width: 100%;
-        }
-    </style>
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 </head>
 <body>
-    <h1>Mapa Interactivo con Capas GeoJSON</h1>
-    <div id="map"></div>
+    <div id="map" style="width: 100%; height: 600px;"></div>
 
-    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
     <script>
-        // Inicialización del mapa
-        var map = L.map("map").setView([13.4977, -83.1513], 8); // Ajusta las coordenadas y el zoom a tu preferencia
+        // Inicializar el mapa
+        var map = L.map('map').setView([4.60971, -74.08175], 13); // Coordenadas de ejemplo (Bogotá)
 
-        // Definición de las capas de fondo del mapa
-        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-        }).addTo(map);
+        // Agregar capa base de OpenStreetMap
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
-        // Variables para las capas
-        var overlayMaps = {};
-
-        // Función para cargar los archivos GeoJSON desde el repositorio
+        // Función para cargar Sitios
         function cargarSitios() {
-            fetch("file:///H:/Mi unidad/PNUD_FEMNCAFE/geojson naturalpaz/Sitios.geojson")
+            fetch("http://mi-servidor.com/geojson/Sitios.geojson")
                 .then(response => response.json())
                 .then(data => {
-                    const sitiosLayer = L.geoJSON(data, {
-                        style: { color: "purple", weight: 2, fillOpacity: 0.4 },
-                        onEachFeature: (feature, layer) => {
-                            const { nombre, tipo } = feature.properties;
-                            layer.bindPopup(`<b>Nombre:</b> ${nombre}<br><b>Tipo:</b> ${tipo}`);
-                        }
-                    });
-                    overlayMaps["Sitios"] = sitiosLayer;
-                    sitiosLayer.addTo(map);
-                    actualizarControlCapas();
+                    L.geoJSON(data).addTo(map);
                 })
                 .catch(error => console.error("Error al cargar la capa de sitios:", error));
         }
 
+        // Función para cargar Cercas
         function cargarCercas() {
-            fetch("file:///H:/Mi unidad/PNUD_FEMNCAFE/geojson naturalpaz/cercas.geojson")
+            fetch("http://mi-servidor.com/geojson/cercas.geojson")
                 .then(response => response.json())
                 .then(data => {
-                    const cercasLayer = L.geoJSON(data, {
-                        style: { color: "orange", weight: 2, fillOpacity: 0.2 }
-                    });
-                    overlayMaps["Cercas"] = cercasLayer;
-                    cercasLayer.addTo(map);
-                    actualizarControlCapas();
+                    L.geoJSON(data).addTo(map);
                 })
                 .catch(error => console.error("Error al cargar la capa de cercas:", error));
         }
 
+        // Función para cargar Fincas
         function cargarFincas() {
-            fetch("file:///H:/Mi unidad/PNUD_FEMNCAFE/geojson naturalpaz/Fincas.geojson")
+            fetch("http://mi-servidor.com/geojson/Fincas.geojson")
                 .then(response => response.json())
                 .then(data => {
-                    const fincasLayer = L.geoJSON(data, {
-                        style: { color: "blue", weight: 2, fillOpacity: 0.1 },
-                        onEachFeature: (feature, layer) => {
-                            const { cod_finca, nom_finca_, area } = feature.properties;
-                            layer.bindPopup(`
-                                <b>Finca:</b> ${nom_finca_}<br>
-                                <b>Código:</b> ${cod_finca}<br>
-                                <b>Área:</b> ${parseFloat(area).toFixed(2)} ha
-                            `);
-                        }
-                    });
-                    overlayMaps["Fincas"] = fincasLayer;
-                    fincasLayer.addTo(map);
-                    actualizarControlCapas();
+                    L.geoJSON(data).addTo(map);
                 })
                 .catch(error => console.error("Error al cargar la capa de fincas:", error));
         }
 
+        // Función para cargar Hmp_pol
         function cargarHmpPol() {
-            fetch("file:///H:/Mi unidad/PNUD_FEMNCAFE/geojson naturalpaz/Hmp_pol.geojson")
+            fetch("http://mi-servidor.com/geojson/Hmp_pol.geojson")
                 .then(response => response.json())
                 .then(data => {
-                    const hmpPolLayer = L.geoJSON(data, {
-                        style: { color: "red", weight: 2, fillOpacity: 0.1 }
-                    });
-                    overlayMaps["Hmp_pol"] = hmpPolLayer;
-                    hmpPolLayer.addTo(map);
-                    actualizarControlCapas();
+                    L.geoJSON(data).addTo(map);
                 })
                 .catch(error => console.error("Error al cargar la capa de Hmp_pol:", error));
         }
 
-        // Función para actualizar el control de capas
-        function actualizarControlCapas() {
-            L.control.layers(null, overlayMaps, { collapsed: false }).addTo(map);
-        }
-
-        // Llamar a las funciones para cargar los GeoJSON al iniciar
+        // Cargar todas las capas cuando se inicializa el mapa
         cargarSitios();
         cargarCercas();
         cargarFincas();
