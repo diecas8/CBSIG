@@ -3,392 +3,335 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Formulario de Productor y Finca</title>
+    <title>Geoportal con Dibujo y Exportación</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
-    <link rel="stylesheet" href="https://unpkg.com/leaflet-draw/dist/leaflet.draw.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css" />
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
-        /* Mapa */
-        #map {
-            height: 100vh;
-            width: 100%;
+        body { margin: 0; padding: 0; font-family: Arial, sans-serif; display: flex; height: 100vh; }
+        #map { flex: 1; height: 100%; }
+        .sidebar {
+            width: 350px; padding: 15px; background-color: #f8f9fa; overflow-y: auto;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1); border-right: 1px solid #ddd;
         }
-
-        /* Estilos Generales */
-        body {
-            font-family: 'Arial', sans-serif;
-            margin: 0;
-            padding: 0;
-            background-color: #f4f7fa;
-        }
-
-        /* Formularios Flotantes */
-        .form-container {
-            position: fixed;
-            top: 50px;
-            left: 50%;
-            transform: translateX(-50%);
-            background-color: #ffffff;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
-            width: 350px;
-            display: none;
-            z-index: 1000;
-            max-height: 80%;
-            overflow-y: auto;
-        }
-
-        .form-container.show {
-            display: block;
-        }
-
-        .form-container .close-btn {
-            position: absolute;
-            top: 5px;
-            right: 10px;
-            background: none;
-            border: none;
-            font-size: 20px;
-            cursor: pointer;
-        }
-
-        .form-container h3 {
-            text-align: center;
-            margin-bottom: 15px;
-            color: #007bff;
-        }
-
-        .input-container {
-            margin-bottom: 15px;
-            position: relative;
-        }
-
-        .input-container input,
-        .input-container select {
-            width: 100%;
-            padding: 12px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            font-size: 14px;
-            transition: all 0.3s ease;
-        }
-
-        .input-container input:focus,
-        .input-container select:focus {
-            border-color: #007bff;
-            outline: none;
-        }
-
-        .input-container label {
-            position: absolute;
-            top: -12px;
-            left: 10px;
-            font-size: 14px;
-            color: #007bff;
-            background: white;
-            padding: 0 5px;
-        }
-
-        .form-container button {
-            width: 100%;
-            padding: 14px;
-            background-color: #007bff;
-            color: white;
-            border: none;
-            font-size: 16px;
-            cursor: pointer;
-            border-radius: 5px;
-            transition: background-color 0.3s ease;
-        }
-
-        .form-container button:hover {
-            background-color: #0056b3;
-        }
-
-        /* Contenedor de Botones */
-        .button-container {
-            position: fixed;
-            top: 20px;
-            left: 20px;
-            z-index: 1000;
-        }
-
-        .button-container button {
-            padding: 14px 20px;
-            background-color: #28a745;
-            color: white;
-            font-size: 16px;
-            border: none;
-            border-radius: 8px;
-            margin-bottom: 15px;
-            cursor: pointer;
-            transition: background-color 0.3s ease;
-        }
-
-        .button-container button:hover {
-            background-color: #218838;
-        }
-
-        /* Lista de Productores y Fincas */
-        .records-container {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            background-color: white;
-            padding: 15px;
-            border-radius: 8px;
-            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
-            max-height: 80vh;
-            overflow-y: auto;
-            z-index: 1000;
-            width: 300px;
-            background-color: #ffffff;
-        }
-
-        .records-container h4 {
-            margin-bottom: 15px;
-            color: #007bff;
-            text-align: center;
-        }
-
-        .record-card {
-            background-color: #f8f9fa;
-            padding: 10px;
-            margin-bottom: 10px;
-            border-radius: 6px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        }
-
-        .record-card h5 {
-            color: #007bff;
-            font-size: 16px;
-            margin-bottom: 5px;
-        }
-
-        .record-card p {
-            font-size: 14px;
-            margin: 0;
-            color: #333;
-        }
-
-        /* Responsividad */
-        @media (max-width: 768px) {
-            .button-container button {
-                width: 100%;
-                margin-bottom: 10px;
-            }
-
-            .form-container {
-                width: 90%;
-            }
-
-            .records-container {
-                width: 100%;
-                max-height: 60vh;
-            }
-        }
+        .logo { display: block; margin: 0 auto 15px; max-width: 100px; }
+        .filter, .summary, .chart-container, .export-container { margin-bottom: 20px; }
+        .filter select { width: 100%; padding: 5px; margin-top: 5px; }
+        .summary, .chart-container, .export-container { background: white; padding: 10px; border-radius: 5px; border: 1px solid #ddd; }
+        .export-container button { width: 100%; padding: 10px; background-color: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        .export-container button:hover { background-color: #0056b3; }
     </style>
 </head>
 <body>
-
-<!-- Mapa -->
-<div id="map"></div>
-
-<!-- Contenedor de Botones -->
-<div class="button-container">
-    <button onclick="mostrarFormulario('productor')">Agregar Productor</button>
-    <button onclick="mostrarFormulario('finca')">Agregar Finca</button>
-    <button onclick="obtenerUbicacionGPS()">Ubicarme</button>
-</div>
-
-<!-- Formulario de Productor -->
-<div class="form-container" id="formProductor">
-    <button class="close-btn" onclick="cerrarFormulario('productor')">×</button>
-    <h3>Formulario de Productor</h3>
-    <form id="formProductorContent">
-        <div class="input-container">
-            <input type="text" id="nombreProd" required>
-            <label for="nombreProd">Nombre:</label>
-        </div>
-        <div class="input-container">
-            <input type="text" id="idProd" required>
-            <label for="idProd">Identificación:</label>
-        </div>
-        <div class="input-container">
-            <select id="generoProd" required>
-                <option value="Masculino">Masculino</option>
-                <option value="Femenino">Femenino</option>
-                <option value="Otro">Otro</option>
+    <div class="sidebar">
+        <img src="CBS.png" alt="Logo" class="logo">
+        <div class="filter">
+            <label for="codigoFinca"><strong>Seleccionar Finca</strong></label>
+            <select id="codigoFinca" onchange="filtrarPorFinca()">
+                <option value="">Seleccione una finca</option>
             </select>
-            <label for="generoProd">Género:</label>
         </div>
-        <div class="input-container">
-            <input type="tel" id="telefonoProd" required>
-            <label for="telefonoProd">Teléfono:</label>
+        <div id="summary" class="summary">
+            <strong>Resumen</strong>
+            <p>Seleccione una finca para ver los detalles.</p>
         </div>
-        <div class="input-container">
-            <input type="email" id="correoProd" required>
-            <label for="correoProd">Correo:</label>
+        <div class="chart-container">
+            <canvas id="chart"></canvas>
         </div>
-
-        <button type="button" onclick="guardarProductor()">Guardar Productor</button>
-        <button type="button" onclick="guardarNuevoProductor()">Guardar Nuevo Productor</button>
-    </form>
-</div>
-
-<!-- Formulario de Finca -->
-<div class="form-container" id="formFinca">
-    <button class="close-btn" onclick="cerrarFormulario('finca')">×</button>
-    <h3>Formulario de Finca</h3>
-    <form id="formFincaContent">
-        <div class="input-container">
-            <input type="text" id="codigoFinca" required>
-            <label for="codigoFinca">Código Finca:</label>
+        <div class="export-container">
+            <button onclick="exportarDatos()">Exportar Datos de la Finca</button>
         </div>
-        <div class="input-container">
-            <input type="text" id="nombreFinca" required>
-            <label for="nombreFinca">Nombre:</label>
+        <div class="export-container">
+            <button onclick="exportarGeoJSON()">Exportar GeoJSON</button>
         </div>
-        <div class="input-container">
-            <input type="text" id="propietarioFinca" required>
-            <label for="propietarioFinca">Propietario:</label>
-        </div>
-        <div class="input-container">
-            <input type="text" id="areaFinca" required>
-            <label for="areaFinca">Área:</label>
-        </div>
-        <div class="input-container">
-            <input type="text" id="veredaFinca" required>
-            <label for="veredaFinca">Vereda:</label>
-        </div>
-        <div class="input-container">
-            <input type="text" id="municipioFinca" required>
-            <label for="municipioFinca">Municipio:</label>
-        </div>
+    </div>
+    <div id="map"></div>
 
-        <button type="button" onclick="guardarFinca()">Guardar Finca</button>
-        <button type="button" onclick="guardarNuevaFinca()">Guardar Nueva Finca</button>
-    </form>
-</div>
+    <script>
+        const map = L.map('map').setView([5.5, -73.0], 6);
 
-<!-- Contenedor de Registros -->
-<div class="records-container" id="recordsContainer">
-    <h4>Registros</h4>
-    <div id="productorRecords"></div>
-    <div id="fincaRecords"></div>
-</div>
-
-<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-<script src="https://unpkg.com/leaflet-draw/dist/leaflet.draw.js"></script>
-<script>
-    let productores = [];
-    let fincas = [];
-    
-    // Inicializar el mapa
-    const map = L.map('map').setView([14.6349, -90.5069], 13);
-    
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
-
-    const drawControl = new L.Control.Draw({
-        edit: { featureGroup: new L.FeatureGroup() }
-    });
-    map.addControl(drawControl);
-
-    // Funciones para mostrar y ocultar formularios
-    function mostrarFormulario(tipo) {
-        if (tipo === 'productor') {
-            document.getElementById('formProductor').classList.add('show');
-            document.getElementById('formFinca').classList.remove('show');
-        } else if (tipo === 'finca') {
-            document.getElementById('formFinca').classList.add('show');
-            document.getElementById('formProductor').classList.remove('show');
-        }
-    }
-
-    function cerrarFormulario(tipo) {
-        if (tipo === 'productor') {
-            document.getElementById('formProductor').classList.remove('show');
-        } else if (tipo === 'finca') {
-            document.getElementById('formFinca').classList.remove('show');
-        }
-    }
-
-    // Funciones para guardar los registros
-    function guardarProductor() {
-        const nombreProd = document.getElementById('nombreProd').value;
-        const idProd = document.getElementById('idProd').value;
-        const generoProd = document.getElementById('generoProd').value;
-        const telefonoProd = document.getElementById('telefonoProd').value;
-        const correoProd = document.getElementById('correoProd').value;
-
-        const productor = {
-            nombre: nombreProd,
-            id: idProd,
-            genero: generoProd,
-            telefono: telefonoProd,
-            correo: correoProd
+        const baseMaps = {
+            "OpenStreetMap": L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19,
+                attribution: '© OpenStreetMap contributors'
+            }),
+            "Google Satélite": L.tileLayer('https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', {
+                maxZoom: 20,
+                attribution: '© Google Maps'
+            }),
+            "Google Híbrido": L.tileLayer('https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {
+                maxZoom: 20,
+                attribution: '© Google Maps'
+            })
         };
 
-        productores.push(productor);
-        actualizarRegistros();
-    }
+        baseMaps["OpenStreetMap"].addTo(map);
 
-    function guardarNuevaFinca() {
-        const codigoFinca = document.getElementById('codigoFinca').value;
-        const nombreFinca = document.getElementById('nombreFinca').value;
-        const propietarioFinca = document.getElementById('propietarioFinca').value;
-        const areaFinca = document.getElementById('areaFinca').value;
-        const veredaFinca = document.getElementById('veredaFinca').value;
-        const municipioFinca = document.getElementById('municipioFinca').value;
+        let bosquesLayer, cultivosLayer, fincasLayer, chart, datosFincaSeleccionada = [], datosFincas = [];
+        const overlayMaps = {}; // Capas dinámicas para el control de capas
+        let controlCapas = null; // Variable para evitar múltiples controles
 
-        const finca = {
-            codigo: codigoFinca,
-            nombre: nombreFinca,
-            propietario: propietarioFinca,
-            area: areaFinca,
-            vereda: veredaFinca,
-            municipio: municipioFinca
+        const drawnItems = new L.FeatureGroup();
+        map.addLayer(drawnItems);
+
+        const drawControl = new L.Control.Draw({
+            edit: {
+                featureGroup: drawnItems,
+                remove: true
+            },
+            draw: {
+                polyline: false,
+                circle: false,
+                rectangle: {
+                    shapeOptions: {
+                        color: 'blue'
+                    }
+                },
+                polygon: {
+                    shapeOptions: {
+                        color: 'green'
+                    }
+                },
+                marker: true
+            }
+        });
+        map.addControl(drawControl);
+
+        map.on(L.Draw.Event.CREATED, function (e) {
+            const layer = e.layer;
+
+            if (e.layerType === 'marker') {
+                layer.feature = {
+                    type: 'Feature',
+                    properties: {
+                        type: 'Cultivo',
+                        name: prompt("Nombre del cultivo:")
+                    },
+                    geometry: {}
+                };
+            } else if (e.layerType === 'polygon' || e.layerType === 'rectangle') {
+                layer.feature = {
+                    type: 'Feature',
+                    properties: {
+                        type: 'Finca',
+                        name: prompt("Nombre de la finca:")
+                    },
+                    geometry: {}
+                };
+            }
+
+            drawnItems.addLayer(layer);
+        });
+
+        function exportarGeoJSON() {
+            const geojson = drawnItems.toGeoJSON();
+            const blob = new Blob([JSON.stringify(geojson, null, 2)], { type: "application/json" });
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(blob);
+            link.download = "nuevas_fincas_y_cultivos.geojson";
+            link.click();
+        }
+
+        const colorMap = {
+            'bosque de galería': '#006400',
+            'arroz': '#FFD700',
+            'pasto limpio': '#D2B48C',
+            'pasto arbolado': '#FF6347',
+            'pasto enmalezado': '#ADFF2F',
+            'palma aceite': '#CD853F',
+            'cacao': '#8B4513',
+            'maíz': '#FFD700',
+            'banano': '#228B22',
+            'plátano': '#32CD32',
+            'café': '#8B0000',
+            'papaya': '#FFA500',
+            'otros': '#FF0000'
         };
 
-        fincas.push(finca);
-        actualizarRegistros();
-    }
+        function cargarBosques() {
+            fetch("Bosques.geojson")
+                .then(response => response.json())
+                .then(data => {
+                    bosquesLayer = L.geoJSON(data, {
+                        style: { color: "darkgreen", weight: 2, fillOpacity: 0 }
+                    });
+                    overlayMaps["Bosques"] = bosquesLayer;
+                    bosquesLayer.addTo(map);
+                    actualizarControlCapas();
+                })
+                .catch(error => console.error("Error al cargar la capa de bosques:", error));
+        }
 
-    function actualizarRegistros() {
-        const productorRecords = document.getElementById('productorRecords');
-        const fincaRecords = document.getElementById('fincaRecords');
-        
-        productorRecords.innerHTML = '';
-        fincaRecords.innerHTML = '';
-        
-        productores.forEach(productor => {
-            const recordCard = document.createElement('div');
-            recordCard.classList.add('record-card');
-            recordCard.innerHTML = `
-                <h5>${productor.nombre}</h5>
-                <p>ID: ${productor.id}</p>
-                <p>Género: ${productor.genero}</p>
-                <p>Teléfono: ${productor.telefono}</p>
-                <p>Correo: ${productor.correo}</p>
-            `;
-            productorRecords.appendChild(recordCard);
-        });
-        
-        fincas.forEach(finca => {
-            const recordCard = document.createElement('div');
-            recordCard.classList.add('record-card');
-            recordCard.innerHTML = `
-                <h5>${finca.nombre}</h5>
-                <p>Código: ${finca.codigo}</p>
-                <p>Propietario: ${finca.propietario}</p>
-                <p>Área: ${finca.area}</p>
-                <p>Vereda: ${finca.vereda}</p>
-                <p>Municipio: ${finca.municipio}</p>
-            `;
-            fincaRecords.appendChild(recordCard);
-        });
-    }
-</script>
+        function cargarCultivos() {
+            fetch("cultivos.geojson")
+                .then(response => response.json())
+                .then(data => {
+                    cultivosLayer = L.geoJSON(data, {
+                        style: feature => ({
+                            color: colorMap[feature.properties.cultivo?.toLowerCase()] || 'gray',
+                            weight: 1,
+                            fillOpacity: 0.5
+                        }),
+                        onEachFeature: (feature, layer) => {
+                            const { cod_finca, nom_finca_, cultivo, has } = feature.properties;
 
+                            layer.bindPopup(`
+                                <b>Cultivo:</b> ${cultivo}<br>
+                                <b>Área:</b> ${parseFloat(has).toFixed(2)} ha<br>
+                                <b>Finca:</b> ${nom_finca_}
+                            `);
+
+                            datosFincas.push({
+                                Codigo: cod_finca,
+                                Finca: nom_finca_,
+                                Cultivo: cultivo,
+                                Hectareas: has
+                            });
+                        }
+                    });
+                    overlayMaps["Cultivos"] = cultivosLayer;
+                    cultivosLayer.addTo(map);
+                    cargarListaDesplegable();
+                    actualizarControlCapas();
+                })
+                .catch(error => console.error("Error al cargar la capa de cultivos:", error));
+        }
+
+        function cargarFincas() {
+            fetch("fincas.geojson")
+                .then(response => response.json())
+                .then(data => {
+                    fincasLayer = L.geoJSON(data, {
+                        style: { color: "blue", weight: 2, fillOpacity: 0.1 },
+                        onEachFeature: (feature, layer) => {
+                            const { cod_finca, nom_finca_, area } = feature.properties;
+                            layer.bindPopup(`
+                                <b>Finca:</b> ${nom_finca_}<br>
+                                <b>Código:</b> ${cod_finca}<br>
+                                <b>Área:</b> ${parseFloat(area).toFixed(2)} ha
+                            `);
+                        }
+                    });
+                    overlayMaps["Fincas"] = fincasLayer;
+                    fincasLayer.addTo(map);
+                    actualizarControlCapas();
+                })
+                .catch(error => console.error("Error al cargar la capa de fincas:", error));
+        }
+
+        function actualizarControlCapas() {
+            if (controlCapas) map.removeControl(controlCapas);
+            controlCapas = L.control.layers(baseMaps, overlayMaps, { collapsed: false }).addTo(map);
+        }
+
+        function cargarListaDesplegable() {
+            const select = document.getElementById("codigoFinca");
+            select.innerHTML = `<option value="">Seleccione una finca</option>`;
+            const fincas = [];
+
+            datosFincas.forEach(finca => {
+                if (!fincas.find(f => f.codigo === finca.Codigo)) {
+                    fincas.push({ codigo: finca.Codigo, nombre: finca.Finca });
+                }
+            });
+
+            fincas.sort((a, b) => a.codigo.localeCompare(b.codigo));
+
+            fincas.forEach(finca => {
+                const option = document.createElement("option");
+                option.value = finca.codigo;
+                option.textContent = `${finca.codigo} (${finca.nombre})`;
+                select.appendChild(option);
+            });
+        }
+
+        function filtrarPorFinca() {
+            const codigoFinca = document.getElementById("codigoFinca").value;
+            const resumen = {};
+            datosFincaSeleccionada = [];
+            let totalArea = 0;
+            let fincaBounds = L.latLngBounds();
+
+            cultivosLayer.eachLayer(layer => {
+                const { cod_finca, cultivo, has } = layer.feature.properties;
+
+                if (cod_finca === codigoFinca) {
+                    layer.setStyle({ opacity: 1, fillOpacity: 0.5 });
+                    fincaBounds.extend(layer.getBounds());
+
+                    if (!resumen[cultivo]) resumen[cultivo] = 0;
+                    resumen[cultivo] += parseFloat(has) || 0;
+
+                    datosFincaSeleccionada.push({
+                        Codigo: cod_finca,
+                        Cultivo: cultivo,
+                        Hectareas: parseFloat(has).toFixed(2)
+                    });
+
+                    totalArea += parseFloat(has) || 0;
+                } else {
+                    layer.setStyle({ opacity: 0, fillOpacity: 0 });
+                }
+            });
+
+            if (fincaBounds.isValid()) map.fitBounds(fincaBounds);
+
+            mostrarResumen(resumen, totalArea, codigoFinca);
+            generarGrafico(Object.entries(resumen).map(([cultivo, hectareas]) => ({ Cultivo: cultivo, Hectareas: hectareas })));
+        }
+
+        function mostrarResumen(resumen, totalArea, codigoFinca) {
+            const summaryDiv = document.getElementById("summary");
+            summaryDiv.innerHTML = `<strong>Resumen</strong><br>`;
+            summaryDiv.innerHTML += `<b>Finca:</b> ${codigoFinca}<br>`;
+            summaryDiv.innerHTML += `<b>Área Total:</b> ${totalArea.toFixed(2)} ha<br><br>`;
+
+            for (const [cultivo, hectareas] of Object.entries(resumen)) {
+                summaryDiv.innerHTML += `${cultivo}: ${hectareas.toFixed(2)} ha<br>`;
+            }
+        }
+
+        function generarGrafico(resumen) {
+            const labels = resumen.map(item => item.Cultivo);
+            const data = resumen.map(item => parseFloat(item.Hectareas));
+            const backgroundColors = labels.map(label => colorMap[label.toLowerCase()] || 'gray');
+
+            if (chart) chart.destroy();
+            const ctx = document.getElementById('chart').getContext('2d');
+            chart = new Chart(ctx, {
+                type: 'pie',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: data,
+                        backgroundColor: backgroundColors
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false
+                }
+            });
+        }
+
+        function exportarDatos() {
+            if (datosFincaSeleccionada.length === 0) {
+                alert("Por favor, seleccione una finca primero.");
+                return;
+            }
+
+            const ws = XLSX.utils.json_to_sheet(datosFincaSeleccionada);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Datos Finca");
+            XLSX.writeFile(wb, "Datos_Finca_Seleccionada.xlsx");
+        }
+
+        cargarBosques();
+        cargarCultivos();
+        cargarFincas();
+    </script>
 </body>
 </html>
