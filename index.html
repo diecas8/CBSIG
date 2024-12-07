@@ -17,100 +17,51 @@
         // Agregar capa base de OpenStreetMap
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
-        // Crear un objeto para almacenar las capas
-        var capas = {};
-
-        // Función genérica para cargar capas GeoJSON con atributos y estilos personalizados
-        function cargarCapaGeoJSON(nombre, url, estilo, popup) {
-            fetch(url)
+        // Función para cargar Sitios
+        function cargarSitios() {
+            fetch("http://mi-servidor.com/geojson/Sitios.geojson")
                 .then(response => response.json())
                 .then(data => {
-                    // Crear una capa para el GeoJSON
-                    capas[nombre] = L.geoJSON(data, {
-                        style: estilo, // Aplicar estilo personalizado
-                        onEachFeature: function (feature, layer) {
-                            if (popup) {
-                                layer.bindPopup(popup(feature)); // Agregar popup con los atributos
-                            }
-                        }
-                    });
-
-                    // Agregar la capa al mapa
-                    capas[nombre].addTo(map);
-
-                    // Agregar la capa al control de capas
-                    controlCapas.addOverlay(capas[nombre], nombre);
+                    L.geoJSON(data).addTo(map);
                 })
-                .catch(error => console.error(`Error al cargar la capa de ${nombre}:`, error));
+                .catch(error => console.error("Error al cargar la capa de sitios:", error));
         }
 
-        // Crear el control de capas
-        var controlCapas = L.control.layers({}, {}, {collapsed: false}).addTo(map);
-
-        // Estilo para las capas (puedes modificar según lo necesites)
-        function estiloSitios(feature) {
-            return {
-                color: "blue",
-                weight: 2,
-                opacity: 1,
-                fillColor: "blue",
-                fillOpacity: 0.5
-            };
+        // Función para cargar Cercas
+        function cargarCercas() {
+            fetch("http://mi-servidor.com/geojson/cercas.geojson")
+                .then(response => response.json())
+                .then(data => {
+                    L.geoJSON(data).addTo(map);
+                })
+                .catch(error => console.error("Error al cargar la capa de cercas:", error));
         }
 
-        function estiloCercas(feature) {
-            return {
-                color: "green",
-                weight: 2,
-                opacity: 1,
-                fillColor: "green",
-                fillOpacity: 0.3
-            };
+        // Función para cargar Fincas
+        function cargarFincas() {
+            fetch("http://mi-servidor.com/geojson/Fincas.geojson")
+                .then(response => response.json())
+                .then(data => {
+                    L.geoJSON(data).addTo(map);
+                })
+                .catch(error => console.error("Error al cargar la capa de fincas:", error));
         }
 
-        function estiloFincas(feature) {
-            return {
-                color: "orange",
-                weight: 2,
-                opacity: 1,
-                fillColor: "orange",
-                fillOpacity: 0.5
-            };
+        // Función para cargar Hmp_pol
+        function cargarHmpPol() {
+            fetch("http://mi-servidor.com/geojson/Hmp_pol.geojson")
+                .then(response => response.json())
+                .then(data => {
+                    L.geoJSON(data).addTo(map);
+                })
+                .catch(error => console.error("Error al cargar la capa de Hmp_pol:", error));
         }
 
-        function estiloHmpPol(feature) {
-            return {
-                color: "red",
-                weight: 2,
-                opacity: 1,
-                fillColor: "red",
-                fillOpacity: 0.3
-            };
-        }
-
-        // Función para mostrar atributos en los popups
-        function popupSitios(feature) {
-            return `<h3>Sitio: ${feature.properties.nombre}</h3><p>Descripción: ${feature.properties.descripcion}</p>`;
-        }
-
-        function popupCercas(feature) {
-            return `<h3>Cerca: ${feature.properties.nombre}</h3><p>Tipo: ${feature.properties.tipo}</p>`;
-        }
-
-        function popupFincas(feature) {
-            return `<h3>Finca: ${feature.properties.nombre}</h3><p>Propietario: ${feature.properties.propietario}</p>`;
-        }
-
-        function popupHmpPol(feature) {
-            return `<h3>Hmp_pol: ${feature.properties.nombre}</h3><p>Área: ${feature.properties.area} m²</p>`;
-        }
-
-        // Cargar las capas con estilo y popups
-        cargarCapaGeoJSON("Sitios", "http://mi-servidor.com/geojson/Sitios.geojson", estiloSitios, popupSitios);
-        cargarCapaGeoJSON("Cercas", "http://mi-servidor.com/geojson/cercas.geojson", estiloCercas, popupCercas);
-        cargarCapaGeoJSON("Fincas", "http://mi-servidor.com/geojson/Fincas.geojson", estiloFincas, popupFincas);
-        cargarCapaGeoJSON("Hmp_pol", "http://mi-servidor.com/geojson/Hmp_pol.geojson", estiloHmpPol, popupHmpPol);
-
+        // Cargar todas las capas cuando se inicializa el mapa
+        cargarSitios();
+        cargarCercas();
+        cargarFincas();
+        cargarHmpPol();
     </script>
 </body>
 </html>
