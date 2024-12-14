@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Geoportal con GPS y Control de Dibujo</title>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
-    <link rel="stylesheet" href="https://unpkg.com/leaflet-geoman-free@2.13.0/dist/leaflet-geoman.css" />
+    <title>Geoportal con GPS y Dibujo</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-geoman-free@2.13.0/dist/leaflet-geoman.css">
     <style>
         body { margin: 0; padding: 0; }
         #map { height: 100vh; }
@@ -36,9 +36,9 @@
 <body>
     <div id="map"></div>
     <div class="controls">
-        <button class="btn" onclick="startPolygon()">Añadir Polígono</button>
-        <button class="btn" onclick="startLine()">Añadir Línea</button>
-        <button class="btn" onclick="startPoint()">Añadir Punto</button>
+        <button class="btn" onclick="startPolygon()">Dibujar Polígono</button>
+        <button class="btn" onclick="startLine()">Dibujar Línea</button>
+        <button class="btn" onclick="startPoint()">Dibujar Punto</button>
         <button class="btn btn-secondary" onclick="centerToLocation()">Centrar en Mi Ubicación</button>
         <button class="btn" onclick="saveData()">Guardar Datos</button>
         <button class="btn" onclick="exportGeoJSON()">Exportar GeoJSON</button>
@@ -48,54 +48,50 @@
     <script src="https://unpkg.com/leaflet-geoman-free@2.13.0/dist/leaflet-geoman.min.js"></script>
     <script src="https://unpkg.com/@turf/turf@6.5.0"></script>
     <script>
-        let map;
-        let geoJsonData = [];
-        let currentShapeType = null;
-        let userLocation = null; // Guarda la ubicación del usuario
+        let map; // Instancia del mapa
+        let geoJsonData = []; // Datos en formato GeoJSON
+        let currentShapeType = null; // Tipo de forma en dibujo
+        let userLocation = null; // Almacena la ubicación del usuario
 
+        // Inicializa el mapa
         function initMap() {
-            // Inicializa el mapa
-            map = L.map('map').setView([0, 0], 2); // Vista global por defecto
+            // Crea el mapa
+            map = L.map('map').setView([0, 0], 2); // Vista global inicial
 
-            // Añade una capa base
+            // Añade una capa base de OpenStreetMap
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                 attribution: '© OpenStreetMap contributors'
             }).addTo(map);
 
-            // Activa los controles de Leaflet-Geoman
-            if (typeof map.pm !== 'undefined') {
-                map.pm.addControls({
-                    position: 'topleft',
-                    drawMarker: true,
-                    drawPolygon: true,
-                    drawPolyline: true,
-                    editMode: true,
-                    removalMode: true
-                });
+            // Activa los controles de dibujo y edición con Leaflet-Geoman
+            map.pm.addControls({
+                position: 'topleft',
+                drawMarker: true,
+                drawPolygon: true,
+                drawPolyline: true,
+                editMode: true,
+                removalMode: true
+            });
 
-                // Detecta nuevas geometrías dibujadas
-                map.on('pm:create', function (e) {
-                    handleNewShape(e.layer);
-                });
+            // Evento: Detecta una nueva forma dibujada
+            map.on('pm:create', function (e) {
+                handleNewShape(e.layer);
+            });
 
-                // Obtiene la ubicación del usuario y centra el mapa
-                getUserLocation();
-            } else {
-                alert("Leaflet-Geoman no está disponible. Revisa la carga de las librerías.");
-            }
+            // Intentar obtener la ubicación del usuario
+            getUserLocation();
         }
 
-        // Obtiene la ubicación actual del usuario
+        // Obtiene la ubicación del usuario
         function getUserLocation() {
             if (navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition(function (position) {
                     const { latitude, longitude } = position.coords;
                     userLocation = [latitude, longitude]; // Guarda la ubicación
-                    map.setView(userLocation, 14); // Centra el mapa en la ubicación
+                    map.setView(userLocation, 14); // Centra el mapa
                     L.marker(userLocation).addTo(map).bindPopup("Tu ubicación actual").openPopup();
                 }, function (error) {
-                    console.error("Error al obtener la ubicación:", error.message);
-                    alert("No se pudo obtener la ubicación. Usa el botón de centrar.");
+                    alert("No se pudo obtener tu ubicación: " + error.message);
                 });
             } else {
                 alert("Geolocalización no soportada en este navegador.");
@@ -105,44 +101,37 @@
         // Centra el mapa en la ubicación del usuario
         function centerToLocation() {
             if (userLocation) {
-                map.setView(userLocation, 14); // Centra el mapa en la última ubicación conocida
-                L.marker(userLocation).addTo(map).bindPopup("Tu ubicación actual").openPopup();
+                map.setView(userLocation, 14); // Centra el mapa
             } else {
-                alert("No se ha detectado la ubicación. Asegúrate de habilitar el GPS.");
+                alert("No se ha detectado la ubicación. Por favor, habilita el GPS.");
             }
         }
 
         // Inicia el dibujo de polígonos
         function startPolygon() {
-            if (map.pm) {
-                currentShapeType = 'polygon';
-                map.pm.enableDraw('Polygon');
-            } else {
-                alert("El control de dibujo no está disponible.");
-            }
+            currentShapeType = 'polygon';
+            map.pm.enableDraw('Polygon', {
+                snappable: true,
+                snapDistance: 20
+            });
         }
 
         // Inicia el dibujo de líneas
         function startLine() {
-            if (map.pm) {
-                currentShapeType = 'line';
-                map.pm.enableDraw('Line');
-            } else {
-                alert("El control de dibujo no está disponible.");
-            }
+            currentShapeType = 'line';
+            map.pm.enableDraw('Line', {
+                snappable: true,
+                snapDistance: 20
+            });
         }
 
         // Inicia el dibujo de puntos
         function startPoint() {
-            if (map.pm) {
-                currentShapeType = 'point';
-                map.pm.enableDraw('Marker');
-            } else {
-                alert("El control de dibujo no está disponible.");
-            }
+            currentShapeType = 'point';
+            map.pm.enableDraw('Marker');
         }
 
-        // Maneja las geometrías nuevas creadas por el usuario
+        // Maneja una nueva forma dibujada
         function handleNewShape(layer) {
             const geojson = layer.toGeoJSON();
             const attributes = {};
@@ -152,7 +141,7 @@
                 attributes.hectareas = (turf.area(geojson) / 10000).toFixed(2); // Calcula área en hectáreas
             } else if (currentShapeType === 'line') {
                 attributes.tipoLinea = prompt("Introduce el tipo de línea:");
-                attributes.longitud = turf.length(geojson, { units: 'kilometers' }).toFixed(2); // Longitud en kilómetros
+                attributes.longitud = turf.length(geojson, { units: 'kilometers' }).toFixed(2); // Longitud en km
             } else if (currentShapeType === 'point') {
                 attributes.nombre = prompt("Introduce el nombre del sitio:");
             }
@@ -166,7 +155,7 @@
             map.pm.disableDraw(); // Desactiva el modo de dibujo
         }
 
-        // Guarda los datos en el almacenamiento local
+        // Guarda los datos en almacenamiento local
         function saveData() {
             localStorage.setItem('geoData', JSON.stringify(geoJsonData));
             alert("Datos guardados localmente.");
@@ -185,7 +174,7 @@
             link.click();
         }
 
-        // Inicializa el mapa al cargar la página
+        // Ejecuta la inicialización del mapa al cargar la página
         initMap();
     </script>
 </body>
