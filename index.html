@@ -6,9 +6,11 @@
     <title>Geoportal</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet-draw@0.4.15/dist/leaflet.draw.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.locatecontrol/dist/L.Control.Locate.min.css" />
     <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
     <script src="https://unpkg.com/leaflet-draw@0.4.15/dist/leaflet.draw.js"></script>
     <script src="https://unpkg.com/@turf/turf@6.0.1/turf.min.js"></script>
+    <script src="https://unpkg.com/leaflet.locatecontrol/dist/L.Control.Locate.min.js"></script>
     <style>
         #map {
             width: 100%;
@@ -35,7 +37,14 @@
     }).addTo(map);
 
     // Agregar control de geolocalización
-    L.control.locate().addTo(map);
+    L.control.locate({
+        position: 'topright',
+        strings: {
+            title: "Mostrar mi ubicación"
+        },
+        drawCircle: true,
+        showPopup: true,
+    }).addTo(map);
 
     // Inicializar el dibujo de geometrías
     const drawnItems = new L.FeatureGroup();
@@ -58,7 +67,7 @@
             layer.bindPopup('Cultivo: [Por definir]<br>Área: ' + hectares + ' ha').openPopup();
         }
 
-        if (layer instanceof L.Line) {
+        if (layer instanceof L.Polyline) {
             const length = turf.length(layer.toGeoJSON(), {units: 'meters'});
             const km = (length / 1000).toFixed(2); // Conversión a kilómetros
             layer.bindPopup('Tipo de Línea: [Por definir]<br>Longitud: ' + km + ' km').openPopup();
@@ -112,3 +121,4 @@
 
 </body>
 </html>
+
