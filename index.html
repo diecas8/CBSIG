@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Geoportal con Leaflet y Geoman</title>
+    <title>Geoportal con GPS y Control de Dibujo</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet-geoman-free@2.13.0/dist/leaflet-geoman.css" />
     <style>
@@ -14,7 +14,7 @@
             top: 10px;
             left: 10px;
             z-index: 1000;
-            background: rgba(255, 255, 255, 0.8);
+            background: rgba(255, 255, 255, 0.9);
             padding: 10px;
             border-radius: 5px;
         }
@@ -28,6 +28,9 @@
             border-radius: 5px;
             cursor: pointer;
         }
+        .btn-secondary {
+            background-color: #007BFF;
+        }
     </style>
 </head>
 <body>
@@ -36,6 +39,7 @@
         <button class="btn" onclick="startPolygon()">Añadir Polígono</button>
         <button class="btn" onclick="startLine()">Añadir Línea</button>
         <button class="btn" onclick="startPoint()">Añadir Punto</button>
+        <button class="btn btn-secondary" onclick="centerToLocation()">Centrar en Mi Ubicación</button>
         <button class="btn" onclick="saveData()">Guardar Datos</button>
         <button class="btn" onclick="exportGeoJSON()">Exportar GeoJSON</button>
     </div>
@@ -47,11 +51,13 @@
         let map;
         let geoJsonData = [];
         let currentShapeType = null;
+        let userLocation = null; // Guarda la ubicación del usuario
 
         function initMap() {
-            // Inicializa el mapa con una capa base
-            map = L.map('map').setView([0, 0], 2);
+            // Inicializa el mapa
+            map = L.map('map').setView([0, 0], 2); // Vista global por defecto
 
+            // Añade una capa base
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                 attribution: '© OpenStreetMap contributors'
             }).addTo(map);
@@ -72,25 +78,37 @@
                     handleNewShape(e.layer);
                 });
 
-                // Obtiene la ubicación del usuario
+                // Obtiene la ubicación del usuario y centra el mapa
                 getUserLocation();
             } else {
                 alert("Leaflet-Geoman no está disponible. Revisa la carga de las librerías.");
             }
         }
 
-        // Obtiene la ubicación actual del usuario mediante GPS
+        // Obtiene la ubicación actual del usuario
         function getUserLocation() {
             if (navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition(function (position) {
                     const { latitude, longitude } = position.coords;
-                    map.setView([latitude, longitude], 14); // Centra el mapa en la ubicación
-                    L.marker([latitude, longitude]).addTo(map).bindPopup("Tu ubicación actual").openPopup();
+                    userLocation = [latitude, longitude]; // Guarda la ubicación
+                    map.setView(userLocation, 14); // Centra el mapa en la ubicación
+                    L.marker(userLocation).addTo(map).bindPopup("Tu ubicación actual").openPopup();
                 }, function (error) {
                     console.error("Error al obtener la ubicación:", error.message);
+                    alert("No se pudo obtener la ubicación. Usa el botón de centrar.");
                 });
             } else {
                 alert("Geolocalización no soportada en este navegador.");
+            }
+        }
+
+        // Centra el mapa en la ubicación del usuario
+        function centerToLocation() {
+            if (userLocation) {
+                map.setView(userLocation, 14); // Centra el mapa en la última ubicación conocida
+                L.marker(userLocation).addTo(map).bindPopup("Tu ubicación actual").openPopup();
+            } else {
+                alert("No se ha detectado la ubicación. Asegúrate de habilitar el GPS.");
             }
         }
 
@@ -124,7 +142,7 @@
             }
         }
 
-        // Maneja nuevas geometrías creadas por el usuario
+        // Maneja las geometrías nuevas creadas por el usuario
         function handleNewShape(layer) {
             const geojson = layer.toGeoJSON();
             const attributes = {};
@@ -134,7 +152,7 @@
                 attributes.hectareas = (turf.area(geojson) / 10000).toFixed(2); // Calcula área en hectáreas
             } else if (currentShapeType === 'line') {
                 attributes.tipoLinea = prompt("Introduce el tipo de línea:");
-                attributes.longitud = turf.length(geojson, { units: 'kilometers' }).toFixed(2); // Longitud en km
+                attributes.longitud = turf.length(geojson, { units: 'kilometers' }).toFixed(2); // Longitud en kilómetros
             } else if (currentShapeType === 'point') {
                 attributes.nombre = prompt("Introduce el nombre del sitio:");
             }
