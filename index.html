@@ -50,32 +50,42 @@
 
         // Inicializa el mapa
         function initMap() {
-            // Inicializa el mapa en una posición predeterminada
-            map = L.map('map').setView([0, 0], 2);
+            try {
+                // Inicializa el mapa
+                map = L.map('map').setView([0, 0], 2);
 
-            // Capa base de OpenStreetMap
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '© OpenStreetMap contributors'
-            }).addTo(map);
+                // Capa base de OpenStreetMap
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    attribution: '© OpenStreetMap contributors'
+                }).addTo(map);
 
-            // Activa los controles de dibujo con Leaflet-Geoman
-            map.pm.addControls({
-                position: 'topleft',
-                drawMarker: true,
-                drawPolygon: true,
-                drawPolyline: true,
-                editMode: true,
-                removalMode: true
-            });
+                // Verifica si Leaflet-Geoman está disponible
+                if (map.pm) {
+                    // Activa los controles de Leaflet-Geoman
+                    map.pm.addControls({
+                        position: 'topleft',
+                        drawMarker: true,
+                        drawPolygon: true,
+                        drawPolyline: true,
+                        editMode: true,
+                        removalMode: true
+                    });
 
-            // Detecta las nuevas geometrías dibujadas en el mapa
-            map.on('pm:create', function (event) {
-                const layer = event.layer;
-                handleNewShape(layer);
-            });
+                    // Detecta las nuevas geometrías dibujadas
+                    map.on('pm:create', function (event) {
+                        const layer = event.layer;
+                        handleNewShape(layer);
+                    });
 
-            // Intenta obtener la ubicación actual del usuario
-            getUserLocation();
+                    // Intenta obtener la ubicación actual del usuario
+                    getUserLocation();
+                } else {
+                    throw new Error("Leaflet-Geoman no está disponible.");
+                }
+            } catch (error) {
+                console.error(error);
+                alert("Error al inicializar el mapa: " + error.message);
+            }
         }
 
         // Obtiene la ubicación del usuario
@@ -105,20 +115,32 @@
 
         // Activa el dibujo de polígonos
         function startPolygon() {
-            currentShapeType = 'polygon';
-            map.pm.enableDraw('Polygon');
+            if (map.pm) {
+                currentShapeType = 'polygon';
+                map.pm.enableDraw('Polygon');
+            } else {
+                alert("El control de dibujo no está disponible.");
+            }
         }
 
         // Activa el dibujo de líneas
         function startLine() {
-            currentShapeType = 'line';
-            map.pm.enableDraw('Line');
+            if (map.pm) {
+                currentShapeType = 'line';
+                map.pm.enableDraw('Line');
+            } else {
+                alert("El control de dibujo no está disponible.");
+            }
         }
 
         // Activa el dibujo de puntos
         function startPoint() {
-            currentShapeType = 'point';
-            map.pm.enableDraw('Marker');
+            if (map.pm) {
+                currentShapeType = 'point';
+                map.pm.enableDraw('Marker');
+            } else {
+                alert("El control de dibujo no está disponible.");
+            }
         }
 
         // Maneja las geometrías nuevas creadas por el usuario
