@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Geoportal con GPS y Dibujo</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css">
-    <link rel="stylesheet" href="https://unpkg.com/leaflet-geoman-free@2.13.0/dist/leaflet-geoman.css">
+    <link rel="stylesheet" href="leaflet-geoman.min.css">
     <style>
         body { margin: 0; padding: 0; }
         #map { height: 100vh; }
@@ -45,25 +45,21 @@
     </div>
 
     <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
-    <script src="https://unpkg.com/leaflet-geoman-free@2.13.0/dist/leaflet-geoman.min.js"></script>
+    <script src="leaflet-geoman.min.js"></script>
     <script src="https://unpkg.com/@turf/turf@6.5.0"></script>
     <script>
-        let map; // Instancia del mapa
-        let geoJsonData = []; // Datos en formato GeoJSON
-        let currentShapeType = null; // Tipo de forma en dibujo
-        let userLocation = null; // Almacena la ubicación del usuario
+        let map;
+        let geoJsonData = [];
+        let currentShapeType = null;
+        let userLocation = null;
 
-        // Inicializa el mapa
         function initMap() {
-            // Crea el mapa
-            map = L.map('map').setView([0, 0], 2); // Vista global inicial
+            map = L.map('map').setView([0, 0], 2);
 
-            // Añade una capa base de OpenStreetMap
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                 attribution: '© OpenStreetMap contributors'
             }).addTo(map);
 
-            // Activa los controles de dibujo y edición con Leaflet-Geoman
             map.pm.addControls({
                 position: 'topleft',
                 drawMarker: true,
@@ -73,22 +69,19 @@
                 removalMode: true
             });
 
-            // Evento: Detecta una nueva forma dibujada
             map.on('pm:create', function (e) {
                 handleNewShape(e.layer);
             });
 
-            // Intentar obtener la ubicación del usuario
             getUserLocation();
         }
 
-        // Obtiene la ubicación del usuario
         function getUserLocation() {
             if (navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition(function (position) {
                     const { latitude, longitude } = position.coords;
-                    userLocation = [latitude, longitude]; // Guarda la ubicación
-                    map.setView(userLocation, 14); // Centra el mapa
+                    userLocation = [latitude, longitude];
+                    map.setView(userLocation, 14);
                     L.marker(userLocation).addTo(map).bindPopup("Tu ubicación actual").openPopup();
                 }, function (error) {
                     alert("No se pudo obtener tu ubicación: " + error.message);
@@ -98,16 +91,14 @@
             }
         }
 
-        // Centra el mapa en la ubicación del usuario
         function centerToLocation() {
             if (userLocation) {
-                map.setView(userLocation, 14); // Centra el mapa
+                map.setView(userLocation, 14);
             } else {
                 alert("No se ha detectado la ubicación. Por favor, habilita el GPS.");
             }
         }
 
-        // Inicia el dibujo de polígonos
         function startPolygon() {
             currentShapeType = 'polygon';
             map.pm.enableDraw('Polygon', {
@@ -116,7 +107,6 @@
             });
         }
 
-        // Inicia el dibujo de líneas
         function startLine() {
             currentShapeType = 'line';
             map.pm.enableDraw('Line', {
@@ -125,23 +115,21 @@
             });
         }
 
-        // Inicia el dibujo de puntos
         function startPoint() {
             currentShapeType = 'point';
             map.pm.enableDraw('Marker');
         }
 
-        // Maneja una nueva forma dibujada
         function handleNewShape(layer) {
             const geojson = layer.toGeoJSON();
             const attributes = {};
 
             if (currentShapeType === 'polygon') {
                 attributes.cultivo = prompt("Introduce el tipo de cultivo:");
-                attributes.hectareas = (turf.area(geojson) / 10000).toFixed(2); // Calcula área en hectáreas
+                attributes.hectareas = (turf.area(geojson) / 10000).toFixed(2);
             } else if (currentShapeType === 'line') {
                 attributes.tipoLinea = prompt("Introduce el tipo de línea:");
-                attributes.longitud = turf.length(geojson, { units: 'kilometers' }).toFixed(2); // Longitud en km
+                attributes.longitud = turf.length(geojson, { units: 'kilometers' }).toFixed(2);
             } else if (currentShapeType === 'point') {
                 attributes.nombre = prompt("Introduce el nombre del sitio:");
             }
@@ -152,16 +140,14 @@
                 properties: attributes
             });
 
-            map.pm.disableDraw(); // Desactiva el modo de dibujo
+            map.pm.disableDraw();
         }
 
-        // Guarda los datos en almacenamiento local
         function saveData() {
             localStorage.setItem('geoData', JSON.stringify(geoJsonData));
             alert("Datos guardados localmente.");
         }
 
-        // Exporta los datos como GeoJSON
         function exportGeoJSON() {
             const geoJson = {
                 type: "FeatureCollection",
@@ -174,7 +160,6 @@
             link.click();
         }
 
-        // Ejecuta la inicialización del mapa al cargar la página
         initMap();
     </script>
 </body>
