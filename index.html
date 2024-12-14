@@ -3,14 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Geoportal</title>
+    <title>Geoportal con GPS</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet-geoman-free@2.13.0/dist/leaflet-geoman.css" />
     <style>
         body { margin: 0; padding: 0; }
         #map { height: 100vh; }
-        .btn { padding: 10px; background-color: #4CAF50; color: white; border: none; border-radius: 5px; cursor: pointer; margin: 5px; }
-        .btn:disabled { background-color: #ccc; }
         .controls {
             position: absolute;
             top: 10px;
@@ -19,6 +17,16 @@
             background: rgba(255, 255, 255, 0.8);
             padding: 10px;
             border-radius: 5px;
+        }
+        .btn {
+            display: block;
+            margin-bottom: 5px;
+            padding: 8px 15px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
         }
     </style>
 </head>
@@ -31,21 +39,26 @@
         <button class="btn" onclick="saveData()">Guardar Datos</button>
         <button class="btn" onclick="exportGeoJSON()">Exportar GeoJSON</button>
     </div>
-    
+
     <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
     <script src="https://unpkg.com/@turf/turf@6.5.0"></script>
     <script src="https://unpkg.com/leaflet-geoman-free@2.13.0/dist/leaflet-geoman.min.js"></script>
     <script>
-        let map, geoJsonData = [], currentShapeType;
+        let map;
+        let geoJsonData = [];
+        let currentShapeType = null;
 
         // Inicializa el mapa
         function initMap() {
-            map = L.map('map').setView([0, 0], 2); // Inicializa con vista global
-            
-            // Capa base de OpenStreetMap
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+            // Inicializa el mapa en una posición predeterminada
+            map = L.map('map').setView([0, 0], 2);
 
-            // Activar controles de Leaflet-Geoman
+            // Capa base de OpenStreetMap
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors'
+            }).addTo(map);
+
+            // Activa los controles de dibujo con Leaflet-Geoman
             map.pm.addControls({
                 position: 'topleft',
                 drawMarker: true,
@@ -55,59 +68,70 @@
                 removalMode: true
             });
 
-            // Habilitar captura de geometrías creadas
-            map.on('pm:create', (e) => handleNewShape(e.layer));
+            // Detecta las nuevas geometrías dibujadas en el mapa
+            map.on('pm:create', function (event) {
+                const layer = event.layer;
+                handleNewShape(layer);
+            });
 
-            // Intentar obtener la ubicación actual del usuario
+            // Intenta obtener la ubicación actual del usuario
             getUserLocation();
         }
 
-        // Obtiene la ubicación actual del usuario mediante GPS
+        // Obtiene la ubicación del usuario
         function getUserLocation() {
             if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition((position) => {
-                    const { latitude, longitude } = position.coords;
-                    map.setView([latitude, longitude], 14); // Centrar el mapa en la ubicación
-                    L.marker([latitude, longitude]).addTo(map)
-                        .bindPopup("Tu ubicación actual")
-                        .openPopup();
-                }, (error) => {
-                    alert("No se pudo obtener la ubicación: " + error.message);
-                });
+                navigator.geolocation.getCurrentPosition(
+                    function (position) {
+                        const lat = position.coords.latitude;
+                        const lng = position.coords.longitude;
+
+                        // Centra el mapa en la ubicación del usuario
+                        map.setView([lat, lng], 14);
+
+                        // Añade un marcador para indicar la ubicación
+                        L.marker([lat, lng]).addTo(map)
+                            .bindPopup('Estás aquí.')
+                            .openPopup();
+                    },
+                    function (error) {
+                        alert("Error al obtener la ubicación: " + error.message);
+                    }
+                );
             } else {
-                alert("Tu navegador no soporta geolocalización.");
+                alert("Geolocalización no soportada en tu navegador.");
             }
         }
 
-        // Captura el dibujo de un polígono
+        // Activa el dibujo de polígonos
         function startPolygon() {
             currentShapeType = 'polygon';
             map.pm.enableDraw('Polygon');
         }
 
-        // Captura el dibujo de una línea
+        // Activa el dibujo de líneas
         function startLine() {
             currentShapeType = 'line';
             map.pm.enableDraw('Line');
         }
 
-        // Captura el dibujo de un punto
+        // Activa el dibujo de puntos
         function startPoint() {
             currentShapeType = 'point';
             map.pm.enableDraw('Marker');
         }
 
-        // Maneja las nuevas formas creadas
+        // Maneja las geometrías nuevas creadas por el usuario
         function handleNewShape(layer) {
-            const attributes = {};
             const geojson = layer.toGeoJSON();
+            const attributes = {};
 
             if (currentShapeType === 'polygon') {
                 attributes.cultivo = prompt("Introduce el tipo de cultivo:");
-                attributes.hectareas = turf.area(geojson) / 10000; // Calcula el área en hectáreas
+                attributes.hectareas = (turf.area(geojson) / 10000).toFixed(2); // Calcula área en hectáreas
             } else if (currentShapeType === 'line') {
                 attributes.tipoLinea = prompt("Introduce el tipo de línea:");
-                attributes.longitud = turf.length(geojson, { units: 'kilometers' }); // Longitud en kilómetros
+                attributes.longitud = turf.length(geojson, { units: 'kilometers' }).toFixed(2); // Longitud en kilómetros
             } else if (currentShapeType === 'point') {
                 attributes.nombre = prompt("Introduce el nombre del sitio:");
             }
@@ -127,20 +151,21 @@
             alert("Datos guardados localmente.");
         }
 
-        // Exporta los datos como GeoJSON
+        // Exporta los datos en formato GeoJSON
         function exportGeoJSON() {
             const geoJson = {
                 type: "FeatureCollection",
                 features: geoJsonData
             };
-            const blob = new Blob([JSON.stringify(geoJson)], { type: 'application/geo+json' });
+
+            const blob = new Blob([JSON.stringify(geoJson)], { type: 'application/json' });
             const link = document.createElement('a');
             link.href = URL.createObjectURL(blob);
             link.download = 'datos.geojson';
             link.click();
         }
 
-        // Inicia el mapa al cargar la página
+        // Inicializa el mapa cuando se carga la página
         initMap();
     </script>
 </body>
