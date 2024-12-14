@@ -4,7 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Geoportal</title>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-geoman-free@2.13.0/dist/leaflet-geoman.css" />
     <style>
         body { margin: 0; padding: 0; }
         #map { height: 100vh; }
@@ -24,40 +25,37 @@
     
     <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
     <script src="https://unpkg.com/@turf/turf@6.5.0"></script>
-    <script src="https://unpkg.com/leaflet-geoman-free/dist/leaflet-geoman.min.js"></script>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet-geoman-free/dist/leaflet-geoman.min.css">
-    
+    <script src="https://unpkg.com/leaflet-geoman-free@2.13.0/dist/leaflet-geoman.min.js"></script>
     <script>
         let map, drawnItems, currentShapeType;
         let geoJsonData = [];
         let currentLocation = null;
 
-        // Inicializa el mapa y los controles
         function initMap() {
-            map = L.map('map').setView([6.2435, -75.5812], 14); // Coordenadas de inicio (cambia según tu ubicación)
-            
+            map = L.map('map').setView([6.2435, -75.5812], 14);
+
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
             
-            drawnItems = new L.FeatureGroup().addTo(map);
-            
+            // Activar Leaflet-Geoman con controles
             map.pm.addControls({
                 position: 'topright',
-                drawCircle: false,
-                drawRectangle: false,
-                drawMarker: false,
-                drawPolyline: false
+                drawMarker: true,
+                drawPolygon: true,
+                drawPolyline: true,
+                editMode: true,
+                dragMode: true,
+                cutPolygon: true,
+                removalMode: true
             });
 
             map.on('pm:create', function(event) {
                 const layer = event.layer;
-                drawnItems.addLayer(layer);
                 handleNewShape(layer);
             });
 
             getUserLocation();
         }
 
-        // Obtiene la ubicación del usuario a través del GPS
         function getUserLocation() {
             if (navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition(function(position) {
@@ -70,37 +68,34 @@
             }
         }
 
-        // Empieza la captura de un polígono
         function startPolygon() {
-            currentShapeType = 'polygon';
-            map.pm.enableDraw('Polygon');
-            map.pm.setPathOptions({ color: '#ff7800', weight: 5 });
+            map.pm.enableDraw('Polygon', {
+                snappable: true,
+                snapDistance: 20
+            });
         }
 
-        // Empieza la captura de una línea
         function startLine() {
-            currentShapeType = 'line';
-            map.pm.enableDraw('Polyline');
-            map.pm.setPathOptions({ color: '#00f', weight: 3 });
+            map.pm.enableDraw('Line', {
+                snappable: true,
+                snapDistance: 20
+            });
         }
 
-        // Empieza la captura de un punto
         function startPoint() {
-            currentShapeType = 'point';
             map.pm.enableDraw('Marker');
         }
 
-        // Maneja los nuevos objetos geográficos creados
         function handleNewShape(layer) {
             let attributes = {};
 
-            if (currentShapeType === 'polygon') {
+            if (layer.pm._shape === 'Polygon') {
                 attributes.cultivo = prompt("Introduce el tipo de cultivo:");
-                attributes.hectareas = turf.area(layer.toGeoJSON()) / 10000; // Convierte a hectáreas
-            } else if (currentShapeType === 'line') {
+                attributes.hectareas = turf.area(layer.toGeoJSON()) / 10000;
+            } else if (layer.pm._shape === 'Line') {
                 attributes.tipoLinea = prompt("Introduce el tipo de línea:");
-                attributes.longitud = turf.length(layer.toGeoJSON(), {units: 'kilometers'}); // Longitud en km
-            } else if (currentShapeType === 'point') {
+                attributes.longitud = turf.length(layer.toGeoJSON(), {units: 'kilometers'});
+            } else if (layer.pm._shape === 'Marker') {
                 attributes.nombre = prompt("Introduce el nombre del sitio:");
             }
 
@@ -110,17 +105,14 @@
                 properties: attributes
             });
 
-            // Desactiva el dibujo
             map.pm.disableDraw();
         }
 
-        // Guarda los datos en el dispositivo local
         function saveData() {
             localStorage.setItem('geoData', JSON.stringify(geoJsonData));
             alert("Datos guardados localmente.");
         }
 
-        // Exporta los datos en formato GeoJSON
         function exportGeoJSON() {
             const geoJson = {
                 type: "FeatureCollection",
@@ -134,7 +126,6 @@
             link.click();
         }
 
-        // Inicia el mapa
         initMap();
     </script>
 </body>
