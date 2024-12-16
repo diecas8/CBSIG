@@ -25,10 +25,17 @@
     <!-- Contenedor del mapa -->
     <div id="map"></div>
 
+    <!-- Botón Exportar y Cargar GeoJSON -->
+    <button id="exportGeoJSON" style="position: absolute; top: 10px; right: 10px; z-index: 1000;">
+        Exportar a GeoJSON
+    </button>
+    <input type="file" id="importGeoJSON" accept=".geojson" style="position: absolute; top: 50px; right: 10px; z-index: 1000;">
+
     <!-- Leaflet JS -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/leaflet.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.locatecontrol/0.76.0/L.Control.Locate.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet-geometryutil/0.9.3/leaflet.geometryutil.min.js"></script>
 
     <script>
         // Inicialización del mapa
@@ -47,18 +54,17 @@
             })
         };
 
-        baseMaps["OpenStreetMap"].addTo(map); // Mapa por defecto
-
-        // Control de mapas base
+        baseMaps["OpenStreetMap"].addTo(map);
         L.control.layers(baseMaps).addTo(map);
 
-        // Botón de ubicación GPS
+        // Agregar botón de ubicación GPS
         L.control.locate({
             position: 'topleft',
             drawCircle: true,
             setView: true,
             flyTo: true,
-            showPopup: true
+            showPopup: true,
+            strings: { title: "Mostrar mi ubicación" }
         }).addTo(map);
 
         // Herramientas de dibujo
@@ -86,13 +92,13 @@
             layer.bindPopup(popupContent).openPopup();
         });
 
-        // Función para crear el formulario de atributos
+        // Formulario de atributos para cada geometría
         function crearFormularioAtributos(type, layer) {
             var html = '<form id="attributeForm">';
             html += '<label>Código de Finca:</label><br><input type="text" id="codigoFinca" /><br><br>';
 
             if (type === 'polygon') {
-                var area = L.GeometryUtil.geodesicArea(layer.getLatLngs()[0]) / 10000; // Área en hectáreas
+                var area = L.GeometryUtil.geodesicArea(layer.getLatLngs()[0]) / 10000;
                 html += '<label>Nombre del Cultivo:</label><br><input type="text" id="nombreCultivo" /><br><br>';
                 html += `<label>Área:</label><br><input type="text" value="${area.toFixed(2)} ha" readonly /><br><br>`;
             }
@@ -111,7 +117,6 @@
             }
             html += '<button type="button" onclick="guardarAtributos()">Guardar</button></form>';
 
-            // Guardar atributos en la capa
             window.guardarAtributos = function () {
                 layer.feature = layer.feature || {};
                 layer.feature.properties = {
@@ -132,7 +137,7 @@
             return html;
         }
 
-        // Función para calcular la longitud de una línea
+        // Función para calcular longitud
         function calcularLongitud(layer) {
             var latlngs = layer.getLatLngs();
             var length = 0;
@@ -142,8 +147,5 @@
             return length;
         }
     </script>
-
-    <!-- Librería adicional para cálculos geométricos -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet-geometryutil/0.9.3/leaflet.geometryutil.min.js"></script>
 </body>
 </html>
