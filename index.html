@@ -3,51 +3,113 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Solución: Leaflet Draw</title>
+    <title>Geoportal</title>
 
-    <!-- Estilos de Leaflet -->
+    <!-- Incluir los estilos de Leaflet -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
-    <!-- Estilos de Leaflet Draw -->
+    
+    <!-- Incluir los estilos de Leaflet Draw -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet.draw@1.0.4/dist/leaflet.draw.css" />
-
+    
     <style>
-        #map { height: 100vh; }
+        /* Definir el tamaño del mapa */
+        #map {
+            height: 100vh; /* El mapa ocupará toda la altura de la ventana */
+        }
     </style>
 </head>
 <body>
+
     <!-- Contenedor del mapa -->
     <div id="map"></div>
 
-    <!-- Scripts de Leaflet -->
+    <!-- Botón de exportación (GeoJSON) -->
+    <button id="exportGeoJSON">Exportar GeoJSON</button>
+
+    <!-- Formulario de carga de archivos GeoJSON -->
+    <input type="file" id="geojsonFile" />
+
+    <!-- Incluir las bibliotecas de Leaflet y Leaflet Draw -->
     <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
-    <!-- Scripts de Leaflet Draw -->
     <script src="https://unpkg.com/leaflet.draw@1.0.4/dist/leaflet.draw.js"></script>
 
     <script>
         // Inicialización del mapa
-        var map = L.map('map').setView([4.60971, -74.08175], 12);
-
-        // Capa base de OpenStreetMap
+        var map = L.map('map').setView([4.60971, -74.08175], 13); // Coordenadas de Bogotá como ejemplo
+        
+        // Agregar una capa base de OpenStreetMap
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '&copy; OpenStreetMap contributors'
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         }).addTo(map);
-
-        // Herramientas de dibujo
+        
+        // Definir el grupo de capas para herramientas de dibujo
         var drawnItems = new L.FeatureGroup();
         map.addLayer(drawnItems);
-
+        
+        // Configuración de herramientas de dibujo
         var drawControl = new L.Control.Draw({
-            edit: { featureGroup: drawnItems },
-            draw: { polygon: true, polyline: true, marker: true, circle: false, rectangle: false }
+            edit: {
+                featureGroup: drawnItems
+            },
+            draw: {
+                polygon: true,
+                polyline: true,
+                marker: true,
+                circle: false, // Si no quieres permitir la creación de círculos
+                rectangle: false // Si no quieres permitir la creación de rectángulos
+            }
         });
         map.addControl(drawControl);
 
-        // Evento cuando se crea una nueva geometría
+        // Evento para cuando se dibuja una nueva geometría
         map.on('draw:created', function (e) {
-            var type = e.layerType, layer = e.layer;
+            var layer = e.layer;
             drawnItems.addLayer(layer);
-            alert("Se ha dibujado un: " + type);
+
+            // Obtener la geometría y los atributos
+            if (layer instanceof L.Polygon) {
+                // Calcular el área en hectáreas
+                var area = L.GeometryUtil.geodesicArea(layer.getLatLngs()[0]) / 10000; // Área en hectáreas
+                alert("Área del polígono: " + area.toFixed(2) + " hectáreas.");
+            }
+
+            if (layer instanceof L.Polyline) {
+                // Calcular la longitud en metros
+                var length = layer.getLength();
+                alert("Longitud de la línea: " + length.toFixed(2) + " metros.");
+            }
+
+            if (layer instanceof L.Marker) {
+                // Aquí puedes agregar un formulario o atributos para los puntos
+                alert("Punto colocado en: " + layer.getLatLng().lat + ", " + layer.getLatLng().lng);
+            }
+        });
+
+        // Código para exportar las geometrías en formato GeoJSON
+        document.getElementById('exportGeoJSON').addEventListener('click', function() {
+            var geojsonData = drawnItems.toGeoJSON(); // Obtener los datos GeoJSON de las geometrías dibujadas
+            var geojsonStr = JSON.stringify(geojsonData);
+            
+            var blob = new Blob([geojsonStr], {type: 'application/json'});
+            var link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = 'data.geojson';
+            link.click(); // Iniciar la descarga
+        });
+
+        // Código para cargar un archivo GeoJSON en el mapa
+        document.getElementById('geojsonFile').addEventListener('change', function(e) {
+            var file = e.target.files[0];
+            if (file) {
+                var reader = new FileReader();
+                reader.onload = function(event) {
+                    var geojson = JSON.parse(event.target.result);
+                    L.geoJSON(geojson).addTo(map); // Añadir el archivo GeoJSON al mapa
+                };
+                reader.readAsText(file);
+            }
         });
     </script>
+
 </body>
 </html>
