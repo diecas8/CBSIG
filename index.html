@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mapa con Leaflet Draw y GPS</title>
+    <title>Geoportal con Atributos y Múltiples Mapas Base</title>
 
     <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/leaflet.css" />
@@ -25,39 +25,40 @@
     <!-- Contenedor del mapa -->
     <div id="map"></div>
 
-    <!-- Botones para exportar y cargar GeoJSON -->
-    <button id="exportGeoJSON" style="position: absolute; top: 10px; right: 10px; z-index: 1000;">
-        Exportar a GeoJSON
-    </button>
-    <input type="file" id="importGeoJSON" accept=".geojson" style="position: absolute; top: 50px; right: 10px; z-index: 1000;">
-
     <!-- Leaflet JS -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/leaflet.js"></script>
-    <!-- Leaflet Draw JS -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
-    <!-- Leaflet LocateControl JS -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.locatecontrol/0.76.0/L.Control.Locate.min.js"></script>
 
     <script>
         // Inicialización del mapa
         var map = L.map('map').setView([4.60971, -74.08175], 12);
 
-        // Agregar capa base de OpenStreetMap
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '&copy; OpenStreetMap contributors'
-        }).addTo(map);
+        // Definición de mapas base
+        var baseMaps = {
+            "OpenStreetMap": L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; OpenStreetMap contributors'
+            }),
+            "ESRI Satelital": L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+                attribution: '&copy; Esri & Contributors'
+            }),
+            "Topográfico (OpenTopoMap)": L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenTopoMap'
+            })
+        };
+
+        baseMaps["OpenStreetMap"].addTo(map); // Mapa por defecto
+
+        // Control de mapas base
+        L.control.layers(baseMaps).addTo(map);
 
         // Botón de ubicación GPS
-        var locateControl = L.control.locate({
-            position: 'topleft',       // Posición del botón
-            drawCircle: true,          // Dibuja un círculo alrededor de la ubicación
-            setView: true,             // Centra el mapa en la ubicación
-            keepCurrentZoomLevel: false,
-            flyTo: true,               // Anima el centrado del mapa
-            showPopup: true,           // Muestra un popup con la ubicación
-            strings: {
-                title: "Mostrar mi ubicación"
-            }
+        L.control.locate({
+            position: 'topleft',
+            drawCircle: true,
+            setView: true,
+            flyTo: true,
+            showPopup: true
         }).addTo(map);
 
         // Herramientas de dibujo
@@ -76,71 +77,73 @@
         });
         map.addControl(drawControl);
 
-        // Evento para crear una geometría con formulario de atributos
+        // Evento al crear geometrías
         map.on('draw:created', function (e) {
             var type = e.layerType, layer = e.layer;
             drawnItems.addLayer(layer);
 
-            var popupContent = '<form id="attributeForm">' +
-                '<label>Código de Finca:</label><br>' +
-                '<input type="text" id="codigoFinca" /><br><br>' +
-                '<label>Nombre del Propietario:</label><br>' +
-                '<input type="text" id="nombrePropietario" /><br><br>' +
-                '<button type="button" onclick="guardarAtributos()">Guardar</button>' +
-                '</form>';
-
+            var popupContent = crearFormularioAtributos(type, layer);
             layer.bindPopup(popupContent).openPopup();
+        });
 
+        // Función para crear el formulario de atributos
+        function crearFormularioAtributos(type, layer) {
+            var html = '<form id="attributeForm">';
+            html += '<label>Código de Finca:</label><br><input type="text" id="codigoFinca" /><br><br>';
+
+            if (type === 'polygon') {
+                var area = L.GeometryUtil.geodesicArea(layer.getLatLngs()[0]) / 10000; // Área en hectáreas
+                html += '<label>Nombre del Cultivo:</label><br><input type="text" id="nombreCultivo" /><br><br>';
+                html += `<label>Área:</label><br><input type="text" value="${area.toFixed(2)} ha" readonly /><br><br>`;
+            }
+            if (type === 'polyline') {
+                var length = calcularLongitud(layer);
+                html += '<label>Tipo de Línea:</label><br><input type="text" id="tipoLinea" /><br><br>';
+                html += `<label>Longitud:</label><br><input type="text" value="${length.toFixed(2)} m" readonly /><br><br>`;
+            }
+            if (type === 'marker') {
+                html += '<label>Nombre del Propietario:</label><br><input type="text" id="nombrePropietario" /><br><br>';
+                html += '<label>Cédula:</label><br><input type="text" id="cedula" /><br><br>';
+                html += '<label>Género:</label><br><input type="text" id="genero" /><br><br>';
+                html += '<label>Teléfono:</label><br><input type="text" id="telefono" /><br><br>';
+                html += '<label>Vereda:</label><br><input type="text" id="vereda" /><br><br>';
+                html += '<label>Municipio:</label><br><input type="text" id="municipio" /><br><br>';
+            }
+            html += '<button type="button" onclick="guardarAtributos()">Guardar</button></form>';
+
+            // Guardar atributos en la capa
             window.guardarAtributos = function () {
-                var codigoFinca = document.getElementById('codigoFinca').value;
-                var nombrePropietario = document.getElementById('nombrePropietario').value;
-
-                // Guardar atributos en la capa
                 layer.feature = layer.feature || {};
                 layer.feature.properties = {
-                    tipo: type,
-                    codigo_finca: codigoFinca,
-                    nombre_propietario: nombrePropietario
+                    codigo_finca: document.getElementById('codigoFinca').value,
+                    nombre_cultivo: document.getElementById('nombreCultivo')?.value || '',
+                    tipo_linea: document.getElementById('tipoLinea')?.value || '',
+                    nombre_propietario: document.getElementById('nombrePropietario')?.value || '',
+                    cedula: document.getElementById('cedula')?.value || '',
+                    genero: document.getElementById('genero')?.value || '',
+                    telefono: document.getElementById('telefono')?.value || '',
+                    vereda: document.getElementById('vereda')?.value || '',
+                    municipio: document.getElementById('municipio')?.value || ''
                 };
-
                 layer.closePopup();
                 alert("Atributos guardados correctamente.");
             };
-        });
 
-        // Exportar a GeoJSON
-        document.getElementById('exportGeoJSON').addEventListener('click', function () {
-            var geojsonData = drawnItems.toGeoJSON();
-            var geojsonStr = JSON.stringify(geojsonData);
-            var blob = new Blob([geojsonStr], { type: "application/json" });
-            var url = URL.createObjectURL(blob);
-            var a = document.createElement('a');
-            a.href = url;
-            a.download = 'mapa-dibujado.geojson';
-            a.click();
-            URL.revokeObjectURL(url);
-        });
+            return html;
+        }
 
-        // Importar un archivo GeoJSON
-        document.getElementById('importGeoJSON').addEventListener('change', function (e) {
-            var file = e.target.files[0];
-            if (file) {
-                var reader = new FileReader();
-                reader.onload = function (event) {
-                    var geojson = JSON.parse(event.target.result);
-                    L.geoJSON(geojson, {
-                        onEachFeature: function (feature, layer) {
-                            var popupContent = '';
-                            for (var key in feature.properties) {
-                                popupContent += `<strong>${key}:</strong> ${feature.properties[key]}<br>`;
-                            }
-                            layer.bindPopup(popupContent);
-                        }
-                    }).addTo(drawnItems);
-                };
-                reader.readAsText(file);
+        // Función para calcular la longitud de una línea
+        function calcularLongitud(layer) {
+            var latlngs = layer.getLatLngs();
+            var length = 0;
+            for (var i = 1; i < latlngs.length; i++) {
+                length += latlngs[i - 1].distanceTo(latlngs[i]);
             }
-        });
+            return length;
+        }
     </script>
+
+    <!-- Librería adicional para cálculos geométricos -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet-geometryutil/0.9.3/leaflet.geometryutil.min.js"></script>
 </body>
 </html>
