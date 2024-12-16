@@ -46,7 +46,7 @@
             font-size: 16px;
         }
 
-        .top-right button i, .top-right input i {
+        .top-right button i {
             margin-right: 4px;
         }
 
@@ -80,6 +80,9 @@
                 <i class="fa fa-file-upload"></i>
             </button>
         </label>
+        <button id="layerControl" title="Seleccionar capas del mapa">
+            <i class="fa fa-layer-group"></i>
+        </button>
     </div>
 
     <!-- Texto en la parte inferior -->
@@ -111,7 +114,7 @@
         };
 
         baseMaps["OpenStreetMap"].addTo(map);
-        L.control.layers(baseMaps).addTo(map);
+        var layerControl = L.control.layers(baseMaps).addTo(map);
 
         // Botón de GPS
         L.control.locate({
@@ -164,6 +167,11 @@
                 };
                 reader.readAsText(file);
             }
+        });
+
+        // Mostrar control de capas al hacer clic en el botón
+        document.getElementById('layerControl').addEventListener('click', function () {
+            alert("Selecciona capas en el control de mapas a la derecha del mapa.");
         });
     </script>
 </body>
