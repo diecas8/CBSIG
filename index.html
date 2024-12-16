@@ -36,8 +36,13 @@
             cursor: pointer;
             box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
         }
+        .controls ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            font-size: 12px;
+        }
 
-        /* Texto autor */
         .bottom-text {
             position: absolute;
             bottom: 10px;
@@ -60,6 +65,8 @@
         <button id="importGeoJSON"><i class="fa fa-upload"></i> Subir GeoJSON</button>
         <input type="file" id="geojsonInput" style="display: none;">
         <button id="gpsButton"><i class="fa fa-location-arrow"></i> GPS</button>
+        <h4>Capas Subidas:</h4>
+        <ul id="layerList"></ul>
     </div>
 
     <!-- Texto autor -->
@@ -76,15 +83,23 @@
             attribution: '&copy; OpenStreetMap contributors'
         });
         var googleSatellite = L.tileLayer('https://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', {
-            maxZoom: 20,
             subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
             attribution: '&copy; Google Maps'
         });
+        var cartoDB = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; CartoDB'
+        });
+        var stamenTerrain = L.tileLayer('https://stamen-tiles.a.ssl.fastly.net/terrain/{z}/{x}/{y}.jpg', {
+            attribution: '&copy; Stamen Design'
+        });
 
         openStreetMap.addTo(map);
+
         L.control.layers({
             "OpenStreetMap": openStreetMap,
-            "Google Satélite": googleSatellite
+            "Google Satélite": googleSatellite,
+            "CartoDB Light": cartoDB,
+            "Stamen Terrain": stamenTerrain
         }).addTo(map);
 
         // Grupo de capas
@@ -97,7 +112,7 @@
         });
         map.addControl(drawControl);
 
-        // Evento de dibujo con atributos
+        // Funciones de atributos
         map.on('draw:created', function (e) {
             var type = e.layerType, layer = e.layer;
             var popupContent = "<b>Código de Finca:</b> <input type='text' placeholder='Ej: 12345'/><br>";
@@ -111,18 +126,18 @@
                 popupContent += "<b>Tipo de Línea:</b> <input type='text' placeholder='Ej: Cercado'/><br>";
                 popupContent += `<b>Longitud (m):</b> ${length.toFixed(2)}<br>`;
             } else if (type === 'marker') {
-                popupContent += "<b>Nombre del Propietario:</b> <input type='text' placeholder='Ej: Juan Pérez'/><br>";
-                popupContent += "<b>Cédula:</b> <input type='text' placeholder='12345678'/><br>";
-                popupContent += "<b>Género:</b> <input type='text' placeholder='Ej: Masculino'/><br>";
-                popupContent += "<b>Teléfono:</b> <input type='text' placeholder='Ej: 3001234567'/><br>";
-                popupContent += "<b>Vereda:</b> <input type='text' placeholder='Ej: San José'/><br>";
-                popupContent += "<b>Municipio:</b> <input type='text' placeholder='Ej: Bogotá'/>";
+                popupContent += "<b>Nombre del Propietario:</b> <input type='text'/><br>";
+                popupContent += "<b>Cédula:</b> <input type='text'/><br>";
+                popupContent += "<b>Género:</b> <input type='text'/><br>";
+                popupContent += "<b>Teléfono:</b> <input type='text'/><br>";
+                popupContent += "<b>Vereda:</b> <input type='text'/><br>";
+                popupContent += "<b>Municipio:</b> <input type='text'/>";
             }
             layer.bindPopup(popupContent).openPopup();
             drawnItems.addLayer(layer);
         });
 
-        // Exportar GeoJSON
+        // Exportar a GeoJSON
         document.getElementById('exportGeoJSON').onclick = function () {
             var geojson = drawnItems.toGeoJSON();
             var blob = new Blob([JSON.stringify(geojson)], { type: 'application/json' });
@@ -132,7 +147,7 @@
             link.click();
         };
 
-        // Importar GeoJSON y hacer zoom
+        // Importar GeoJSON
         document.getElementById('importGeoJSON').onclick = function () {
             document.getElementById('geojsonInput').click();
         };
@@ -145,7 +160,7 @@
                     var geojson = JSON.parse(event.target.result);
                     var layer = L.geoJSON(geojson).addTo(map);
                     map.fitBounds(layer.getBounds()); // Zoom a la capa
-                    drawnItems.addLayer(layer);
+                    addLayerToList(file.name);
                 };
                 reader.readAsText(file);
             }
@@ -155,9 +170,17 @@
         document.getElementById('gpsButton').onclick = function () {
             map.locate({ setView: true, maxZoom: 16 });
         };
+
         map.on('locationfound', function (e) {
             L.marker(e.latlng).addTo(map).bindPopup("Tu ubicación").openPopup();
         });
+
+        // Función para agregar capa a la lista
+        function addLayerToList(name) {
+            var li = document.createElement('li');
+            li.textContent = name;
+            document.getElementById('layerList').appendChild(li);
+        }
     </script>
 </body>
 </html>
