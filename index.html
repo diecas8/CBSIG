@@ -3,14 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Geoportal con Atributos y Google Maps</title>
+    <title>Geoportal con Google Maps y Atributos</title>
 
     <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/leaflet.css" />
     <!-- Leaflet Draw CSS -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css" />
     <!-- Leaflet LocateControl CSS -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.locatecontrol/0.76.0/L.Control.Locate.min.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet-locatecontrol/0.76.0/L.Control.Locate.min.css" />
 
     <style>
         #map { height: 100vh; }
@@ -36,7 +36,7 @@
     <!-- Leaflet Draw JS -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
     <!-- Leaflet LocateControl JS -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.locatecontrol/0.76.0/L.Control.Locate.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet-locatecontrol/0.76.0/L.Control.Locate.min.js"></script>
     <!-- Librería de cálculos geométricos -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet-geometryutil/0.9.3/leaflet.geometryutil.min.js"></script>
 
@@ -80,9 +80,13 @@
         L.control.locate({
             position: 'topleft',
             drawCircle: true,
-            setView: true,
+            setView: 'untilPanOrZoom',
             flyTo: true,
-            showPopup: true
+            showPopup: true,
+            strings: {
+                title: "Mostrar mi ubicación",
+                popup: "Tu ubicación actual"
+            }
         }).addTo(map);
 
         // Herramientas de dibujo
