@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Geoportal con Atributos y GPS</title>
+    <title>Geoportal Optimizado para Móviles</title>
 
     <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/leaflet.css" />
@@ -11,12 +11,14 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css" />
     <!-- Leaflet LocateControl CSS -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet-locatecontrol/0.76.0/L.Control.Locate.min.css" />
+    <!-- Font Awesome CSS para iconos -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <style>
-        body { margin: 0; }
+        body { margin: 0; font-family: Arial, sans-serif; }
         #map { height: 100vh; }
         
-        /* Estilo para los botones y texto */
+        /* Contenedor de botones */
         .top-right {
             position: absolute;
             top: 10px;
@@ -25,24 +27,40 @@
             display: flex;
             flex-direction: column;
             gap: 8px;
-        }
-        
-        .top-right button, .top-right input {
+            background: rgba(255, 255, 255, 0.8);
             padding: 8px;
-            font-size: 14px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
         }
 
+        .top-right button, .top-right input {
+            background: #fff;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 6px;
+            cursor: pointer;
+            text-align: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+        }
+
+        .top-right button i, .top-right input i {
+            margin-right: 4px;
+        }
+
+        /* Texto de autor */
         .bottom-text {
             position: absolute;
             bottom: 10px;
             right: 10px;
             z-index: 1000;
-            font-size: 14px;
+            font-size: 12px;
             color: #333;
             background-color: rgba(255, 255, 255, 0.7);
             padding: 5px 10px;
             border-radius: 5px;
-            font-family: Arial, sans-serif;
         }
     </style>
 </head>
@@ -53,8 +71,15 @@
 
     <!-- Botones en la parte superior derecha -->
     <div class="top-right">
-        <button id="exportGeoJSON">Exportar a GeoJSON</button>
-        <input type="file" id="importGeoJSON" accept=".geojson" title="Cargar GeoJSON">
+        <button id="exportGeoJSON" title="Exportar a GeoJSON">
+            <i class="fa fa-download"></i>
+        </button>
+        <label>
+            <input type="file" id="importGeoJSON" accept=".geojson" style="display: none;">
+            <button id="selectFile" title="Seleccionar archivo GeoJSON">
+                <i class="fa fa-file-upload"></i>
+            </button>
+        </label>
     </div>
 
     <!-- Texto en la parte inferior -->
@@ -114,49 +139,6 @@
         });
         map.addControl(drawControl);
 
-        // Evento al crear geometrías
-        map.on('draw:created', function (e) {
-            var type = e.layerType, layer = e.layer;
-            drawnItems.addLayer(layer);
-
-            var popupContent = crearFormularioAtributos(type, layer);
-            layer.bindPopup(popupContent).openPopup();
-        });
-
-        function crearFormularioAtributos(type, layer) {
-            var html = '<form>';
-            html += '<label>Código de Finca:</label><input type="text" id="codigoFinca" required>';
-
-            if (type === 'polygon') {
-                var area = L.GeometryUtil.geodesicArea(layer.getLatLngs()[0]) / 10000;
-                html += `<label>Área (ha):</label><input type="text" value="${area.toFixed(2)}" readonly>`;
-            }
-            if (type === 'polyline') {
-                var length = calcularLongitud(layer);
-                html += `<label>Longitud (m):</label><input type="text" value="${length.toFixed(2)}" readonly>`;
-            }
-            if (type === 'marker') {
-                html += '<label>Nombre del Propietario:</label><input type="text" id="nombrePropietario" required>';
-            }
-            html += '<button type="button" onclick="guardarAtributos()">Guardar</button></form>';
-
-            window.guardarAtributos = function () {
-                alert("Atributos guardados.");
-                layer.closePopup();
-            };
-
-            return html;
-        }
-
-        function calcularLongitud(layer) {
-            var latlngs = layer.getLatLngs();
-            var length = 0;
-            for (var i = 1; i < latlngs.length; i++) {
-                length += latlngs[i - 1].distanceTo(latlngs[i]);
-            }
-            return length;
-        }
-
         // Exportar a GeoJSON
         document.getElementById('exportGeoJSON').addEventListener('click', function () {
             var geojson = drawnItems.toGeoJSON();
@@ -168,6 +150,10 @@
         });
 
         // Importar GeoJSON
+        document.getElementById('selectFile').addEventListener('click', function () {
+            document.getElementById('importGeoJSON').click();
+        });
+
         document.getElementById('importGeoJSON').addEventListener('change', function (e) {
             var file = e.target.files[0];
             if (file) {
