@@ -3,20 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Geoportal Optimizado para Móviles</title>
+    <title>Geoportal Completo y Funcional</title>
 
     <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/leaflet.css" />
     <!-- Leaflet Draw CSS -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css" />
-    <!-- Font Awesome CSS para iconos -->
+    <!-- Font Awesome CSS -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <style>
         body { margin: 0; font-family: Arial, sans-serif; }
         #map { height: 100vh; }
 
-        /* Contenedor de botones */
+        /* Controles de botones */
         .top-right {
             position: absolute;
             top: 10px;
@@ -30,11 +30,10 @@
             border-radius: 8px;
             box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
         }
-
         .top-right button {
             border: none;
             background-color: #fff;
-            padding: 6px;
+            padding: 8px;
             border-radius: 5px;
             cursor: pointer;
             display: flex;
@@ -43,7 +42,6 @@
             font-size: 14px;
             box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
         }
-
         .top-right button i { margin-right: 5px; }
 
         /* Texto de autor */
@@ -61,11 +59,10 @@
     </style>
 </head>
 <body>
-
     <!-- Contenedor del mapa -->
     <div id="map"></div>
 
-    <!-- Botones en la parte superior derecha -->
+    <!-- Botones -->
     <div class="top-right">
         <button id="exportGeoJSON" title="Exportar a GeoJSON">
             <i class="fa fa-download"></i> Exportar
@@ -93,7 +90,7 @@
         // Inicialización del mapa
         var map = L.map('map').setView([4.60971, -74.08175], 12);
 
-        // Mapas base
+        // Capas base
         var openStreetMap = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '&copy; OpenStreetMap contributors'
         });
@@ -104,13 +101,14 @@
             attribution: '&copy; Google Maps'
         });
 
+        // Agregar OpenStreetMap por defecto
         openStreetMap.addTo(map);
 
+        // Selector de capas base
         var baseMaps = {
             "OpenStreetMap": openStreetMap,
             "Google Satélite": googleSatellite
         };
-
         L.control.layers(baseMaps).addTo(map);
 
         // Herramientas de dibujo
@@ -132,8 +130,29 @@
         map.on('draw:created', function (e) {
             var layer = e.layer;
             drawnItems.addLayer(layer);
-            layer.bindPopup("Nueva geometría agregada").openPopup();
+
+            // Capturar atributos
+            var popupContent = '<b>Código de Finca:</b><br><input type="text" placeholder="Ejemplo: 12345"/><br>';
+            if (e.layerType === 'polygon') {
+                var area = L.GeometryUtil.geodesicArea(layer.getLatLngs()[0]) / 10000;
+                popupContent += '<b>Área (ha):</b> ' + area.toFixed(2);
+            }
+            if (e.layerType === 'polyline') {
+                var length = calcularLongitud(layer);
+                popupContent += '<b>Longitud (m):</b> ' + length.toFixed(2);
+            }
+            layer.bindPopup(popupContent).openPopup();
         });
+
+        // Función para calcular longitud
+        function calcularLongitud(layer) {
+            var latlngs = layer.getLatLngs();
+            var length = 0;
+            for (var i = 1; i < latlngs.length; i++) {
+                length += latlngs[i - 1].distanceTo(latlngs[i]);
+            }
+            return length;
+        }
 
         // Botón GPS
         document.getElementById('gpsButton').addEventListener('click', function () {
