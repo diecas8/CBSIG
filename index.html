@@ -13,30 +13,36 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet-locatecontrol/0.76.0/L.Control.Locate.min.css" />
 
     <style>
+        body { margin: 0; }
         #map { height: 100vh; }
-        #exportGeoJSON, #importGeoJSON {
+        
+        /* Estilo para los botones y texto */
+        .top-right {
             position: absolute;
             top: 10px;
             right: 10px;
             z-index: 1000;
-        }
-        #importGeoJSON {
-            top: 50px;
-        }
-        /* Estilo para formularios emergentes */
-        .leaflet-popup-content form {
             display: flex;
             flex-direction: column;
-            gap: 10px;
-            width: 250px;
+            gap: 8px;
         }
-        .leaflet-popup-content input {
-            padding: 5px;
+        
+        .top-right button, .top-right input {
+            padding: 8px;
             font-size: 14px;
         }
-        .leaflet-popup-content button {
-            padding: 5px;
-            cursor: pointer;
+
+        .bottom-text {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            z-index: 1000;
+            font-size: 14px;
+            color: #333;
+            background-color: rgba(255, 255, 255, 0.7);
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-family: Arial, sans-serif;
         }
     </style>
 </head>
@@ -45,9 +51,14 @@
     <!-- Contenedor del mapa -->
     <div id="map"></div>
 
-    <!-- Botones de exportación e importación -->
-    <button id="exportGeoJSON">Exportar a GeoJSON</button>
-    <input type="file" id="importGeoJSON" accept=".geojson">
+    <!-- Botones en la parte superior derecha -->
+    <div class="top-right">
+        <button id="exportGeoJSON">Exportar a GeoJSON</button>
+        <input type="file" id="importGeoJSON" accept=".geojson" title="Cargar GeoJSON">
+    </div>
+
+    <!-- Texto en la parte inferior -->
+    <div class="bottom-text">Elaborado por: Diego Castaño P.</div>
 
     <!-- Leaflet JS -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/leaflet.js"></script>
@@ -74,8 +85,8 @@
             })
         };
 
-        baseMaps["OpenStreetMap"].addTo(map); // Mapa por defecto
-        L.control.layers(baseMaps).addTo(map); // Control de capas
+        baseMaps["OpenStreetMap"].addTo(map);
+        L.control.layers(baseMaps).addTo(map);
 
         // Botón de GPS
         L.control.locate({
@@ -112,13 +123,12 @@
             layer.bindPopup(popupContent).openPopup();
         });
 
-        // Función para crear formularios
         function crearFormularioAtributos(type, layer) {
             var html = '<form>';
             html += '<label>Código de Finca:</label><input type="text" id="codigoFinca" required>';
 
             if (type === 'polygon') {
-                var area = L.GeometryUtil.geodesicArea(layer.getLatLngs()[0]) / 10000; // Área en hectáreas
+                var area = L.GeometryUtil.geodesicArea(layer.getLatLngs()[0]) / 10000;
                 html += `<label>Área (ha):</label><input type="text" value="${area.toFixed(2)}" readonly>`;
             }
             if (type === 'polyline') {
@@ -138,7 +148,6 @@
             return html;
         }
 
-        // Calcular longitud
         function calcularLongitud(layer) {
             var latlngs = layer.getLatLngs();
             var length = 0;
