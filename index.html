@@ -81,6 +81,7 @@
     <!-- Leaflet Scripts -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/leaflet.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet-geometryutil/0.9.3/leaflet.geometryutil.min.js"></script>
     <script>
         var map = L.map('map').setView([4.60971, -74.08175], 12);
 
@@ -109,27 +110,28 @@
         });
         map.addControl(drawControl);
 
-        // Funciones de atributos
+        // Función para manejar atributos según el tipo de geometría
         map.on('draw:created', function (e) {
             var type = e.layerType, layer = e.layer;
-            var popupContent = "<b>Código de Finca:</b> <input type='text' placeholder='Ej: 12345'/><br>";
+            var popupContent = "<b>Código de finca:</b> <input type='text' placeholder='Ej: 12345'/><br>";
 
             if (type === 'polygon') {
-                var area = L.GeometryUtil.geodesicArea(layer.getLatLngs()[0]) / 10000;
-                popupContent += "<b>Nombre del Cultivo:</b> <input type='text' placeholder='Ej: Maíz'/><br>";
+                var area = L.GeometryUtil.geodesicArea(layer.getLatLngs()[0]) / 10000; // Área en hectáreas
+                popupContent += "<b>Nombre del cultivo:</b> <input type='text' placeholder='Ej: Maíz'/><br>";
                 popupContent += `<b>Área (ha):</b> ${area.toFixed(2)}<br>`;
             } else if (type === 'polyline') {
                 var length = layer.getLatLngs().reduce((acc, val, i, arr) => i > 0 ? acc + arr[i - 1].distanceTo(val) : 0, 0);
-                popupContent += "<b>Tipo de Línea:</b> <input type='text' placeholder='Ej: Cercado'/><br>";
+                popupContent += "<b>Tipo de línea:</b> <input type='text' placeholder='Ej: Cercado'/><br>";
                 popupContent += `<b>Longitud (m):</b> ${length.toFixed(2)}<br>`;
             } else if (type === 'marker') {
-                popupContent += "<b>Nombre del Propietario:</b> <input type='text'/><br>";
+                popupContent += "<b>Nombre del propietario:</b> <input type='text'/><br>";
                 popupContent += "<b>Cédula:</b> <input type='text'/><br>";
                 popupContent += "<b>Género:</b> <input type='text'/><br>";
                 popupContent += "<b>Teléfono:</b> <input type='text'/><br>";
                 popupContent += "<b>Vereda:</b> <input type='text'/><br>";
                 popupContent += "<b>Municipio:</b> <input type='text'/>";
             }
+
             layer.bindPopup(popupContent).openPopup();
             drawnItems.addLayer(layer);
         });
