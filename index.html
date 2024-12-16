@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mapa con Leaflet Draw</title>
+    <title>Mapa con Leaflet Draw y Exportación</title>
 
     <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/leaflet.css" />
@@ -12,11 +12,22 @@
 
     <style>
         #map { height: 100vh; }
+        button, input {
+            margin: 5px;
+            padding: 5px;
+        }
     </style>
 </head>
 <body>
+
     <!-- Contenedor del mapa -->
     <div id="map"></div>
+
+    <!-- Botones para exportar y cargar GeoJSON -->
+    <button id="exportGeoJSON" style="position: absolute; top: 10px; right: 10px; z-index: 1000;">
+        Exportar a GeoJSON
+    </button>
+    <input type="file" id="importGeoJSON" accept=".geojson" style="position: absolute; top: 50px; right: 10px; z-index: 1000;">
 
     <!-- Leaflet JS -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/leaflet.js"></script>
@@ -54,7 +65,72 @@
         map.on('draw:created', function (e) {
             var type = e.layerType, layer = e.layer;
             drawnItems.addLayer(layer);
-            alert("Se ha dibujado un: " + type);
+
+            // Crear formulario emergente para atributos
+            var popupContent = '<form id="attributeForm">' +
+                '<label>Código de Finca:</label><br>' +
+                '<input type="text" id="codigoFinca" /><br><br>' +
+                '<label>Nombre del Propietario:</label><br>' +
+                '<input type="text" id="nombrePropietario" /><br><br>' +
+                '<button type="button" onclick="guardarAtributos()">Guardar</button>' +
+                '</form>';
+
+            layer.bindPopup(popupContent).openPopup();
+
+            // Función para guardar atributos
+            window.guardarAtributos = function () {
+                var codigoFinca = document.getElementById('codigoFinca').value;
+                var nombrePropietario = document.getElementById('nombrePropietario').value;
+
+                // Guardar atributos en la capa
+                layer.feature = layer.feature || {};
+                layer.feature.properties = {
+                    codigo_finca: codigoFinca,
+                    nombre_propietario: nombrePropietario
+                };
+
+                layer.closePopup();
+                alert("Atributos guardados correctamente.");
+            };
+        });
+
+        // Botón para exportar las geometrías a GeoJSON
+        document.getElementById('exportGeoJSON').addEventListener('click', function () {
+            var geojsonData = drawnItems.toGeoJSON(); // Obtener los datos en GeoJSON
+            var geojsonStr = JSON.stringify(geojsonData);
+
+            // Crear un enlace de descarga
+            var blob = new Blob([geojsonStr], { type: "application/json" });
+            var url = URL.createObjectURL(blob);
+            var a = document.createElement('a');
+            a.href = url;
+            a.download = 'mapa-dibujado.geojson';
+            a.click();
+            URL.revokeObjectURL(url);
+        });
+
+        // Input para cargar un archivo GeoJSON
+        document.getElementById('importGeoJSON').addEventListener('change', function (e) {
+            var file = e.target.files[0];
+            if (file) {
+                var reader = new FileReader();
+                reader.onload = function (event) {
+                    var geojson = JSON.parse(event.target.result);
+                    L.geoJSON(geojson, {
+                        onEachFeature: function (feature, layer) {
+                            // Mostrar atributos al hacer clic en la geometría cargada
+                            if (feature.properties) {
+                                var popupContent = '';
+                                for (var key in feature.properties) {
+                                    popupContent += '<strong>' + key + ':</strong> ' + feature.properties[key] + '<br>';
+                                }
+                                layer.bindPopup(popupContent);
+                            }
+                        }
+                    }).addTo(drawnItems);
+                };
+                reader.readAsText(file);
+            }
         });
     </script>
 </body>
