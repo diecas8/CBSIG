@@ -9,8 +9,8 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/leaflet.css" />
     <!-- Leaflet Draw CSS -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css" />
-    <!-- Leaflet Locate CSS -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet.locatecontrol/dist/L.Control.Locate.min.css" />
+    <!-- Leaflet LocateControl CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.locatecontrol/0.76.0/L.Control.Locate.min.css" />
 
     <style>
         #map { height: 100vh; }
@@ -36,7 +36,7 @@
     <!-- Leaflet Draw JS -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
     <!-- Leaflet LocateControl JS -->
-    <script src="https://unpkg.com/leaflet.locatecontrol/dist/L.Control.Locate.min.js" charset="utf-8"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.locatecontrol/0.76.0/L.Control.Locate.min.js"></script>
 
     <script>
         // Inicialización del mapa
@@ -47,13 +47,17 @@
             attribution: '&copy; OpenStreetMap contributors'
         }).addTo(map);
 
-        // Agregar botón de ubicación GPS
-        L.control.locate({
-            position: 'topleft',
-            drawCircle: true,
-            setView: true,
+        // Botón de ubicación GPS
+        var locateControl = L.control.locate({
+            position: 'topleft',       // Posición del botón
+            drawCircle: true,          // Dibuja un círculo alrededor de la ubicación
+            setView: true,             // Centra el mapa en la ubicación
             keepCurrentZoomLevel: false,
-            showPopup: true
+            flyTo: true,               // Anima el centrado del mapa
+            showPopup: true,           // Muestra un popup con la ubicación
+            strings: {
+                title: "Mostrar mi ubicación"
+            }
         }).addTo(map);
 
         // Herramientas de dibujo
@@ -77,7 +81,6 @@
             var type = e.layerType, layer = e.layer;
             drawnItems.addLayer(layer);
 
-            // Formulario emergente
             var popupContent = '<form id="attributeForm">' +
                 '<label>Código de Finca:</label><br>' +
                 '<input type="text" id="codigoFinca" /><br><br>' +
