@@ -3,111 +3,87 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Geoportal con Dibujo</title>
+    <title>Mapa con Dibujo y Ubicación</title>
 
-    <!-- Estilos de Leaflet y Leaflet Draw -->
+    <!-- Estilos de Leaflet -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+    <!-- Estilos de Leaflet Draw -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet.draw@1.0.4/dist/leaflet.draw.css" />
 
     <style>
-        #map { height: 100vh; } /* El mapa ocupará toda la pantalla */
+        /* Estilo para el mapa */
+        #map {
+            height: 100vh;
+        }
     </style>
 </head>
 <body>
+
     <!-- Contenedor del mapa -->
     <div id="map"></div>
 
-    <!-- Scripts de Leaflet y Leaflet Draw -->
+    <!-- Scripts de Leaflet -->
     <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <!-- Scripts de Leaflet Draw -->
     <script src="https://unpkg.com/leaflet.draw@1.0.4/dist/leaflet.draw.js"></script>
 
+    <!-- Script para habilitar la herramienta de ubicación del usuario -->
     <script>
-        // Inicializar el mapa
-        var map = L.map('map').setView([4.60971, -74.08175], 13); // Bogotá como ejemplo
+        document.addEventListener("DOMContentLoaded", function () {
+            // Inicializar el mapa
+            var map = L.map('map').setView([4.60971, -74.08175], 12); // Coordenadas de Bogotá
 
-        // Agregar una capa base de OpenStreetMap
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '&copy; OpenStreetMap contributors'
-        }).addTo(map);
+            // Agregar capa base de OpenStreetMap
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; OpenStreetMap contributors'
+            }).addTo(map);
 
-        // Crear grupo de capas para los objetos dibujados
-        var drawnItems = new L.FeatureGroup();
-        map.addLayer(drawnItems);
+            // Herramienta de ubicación (botón GPS)
+            var locateControl = L.control.locate({
+                position: "topleft", // Ubicación del botón
+                drawCircle: true,    // Dibujar círculo alrededor de la ubicación
+                setView: true,       // Centrar la vista en la ubicación
+                keepCurrentZoomLevel: false,
+                showPopup: true
+            }).addTo(map);
 
-        // Habilitar herramientas de dibujo
-        var drawControl = new L.Control.Draw({
-            edit: { featureGroup: drawnItems }, // Permite editar objetos existentes
-            draw: {
-                polygon: true,
-                polyline: true,
-                marker: true,
-                circle: false,
-                rectangle: false
-            }
+            // Agregar herramientas de dibujo
+            var drawnItems = new L.FeatureGroup();
+            map.addLayer(drawnItems);
+
+            var drawControl = new L.Control.Draw({
+                edit: {
+                    featureGroup: drawnItems
+                },
+                draw: {
+                    polygon: true,
+                    polyline: true,
+                    marker: true,
+                    circle: false,
+                    rectangle: false
+                }
+            });
+            map.addControl(drawControl);
+
+            // Evento cuando se crea una nueva geometría
+            map.on('draw:created', function (e) {
+                var type = e.layerType, layer = e.layer;
+                drawnItems.addLayer(layer);
+
+                // Mostrar mensaje emergente con tipo de geometría
+                if (type === 'polygon') {
+                    alert("Has dibujado un polígono.");
+                } else if (type === 'polyline') {
+                    alert("Has dibujado una línea.");
+                } else if (type === 'marker') {
+                    alert("Has colocado un marcador.");
+                }
+            });
         });
-        map.addControl(drawControl);
-
-        // Capturar el evento cuando se crea una geometría
-        map.on('draw:created', function (e) {
-            var type = e.layerType, layer = e.layer;
-            drawnItems.addLayer(layer);
-
-            // Abrir un formulario emergente para ingresar atributos
-            var popupContent = crearFormularioAtributos(type, layer);
-            layer.bindPopup(popupContent).openPopup();
-        });
-
-        // Función para crear un formulario emergente
-        function crearFormularioAtributos(type, layer) {
-            var html = '<form id="formAttributes">' +
-                '<label>Código de Finca:</label><br>' +
-                '<input type="text" id="codigoFinca" /><br><br>';
-
-            if (type === 'polygon') {
-                html += '<label>Nombre del Cultivo:</label><br>' +
-                        '<input type="text" id="nombreCultivo" /><br><br>' +
-                        '<label>Área Calculada:</label><br>' +
-                        '<input type="text" id="area" readonly value="' +
-                        calcularArea(layer) + ' ha" /><br><br>';
-            }
-            if (type === 'polyline') {
-                html += '<label>Tipo de Línea:</label><br>' +
-                        '<input type="text" id="tipoLinea" /><br><br>' +
-                        '<label>Longitud Calculada:</label><br>' +
-                        '<input type="text" id="longitud" readonly value="' +
-                        calcularLongitud(layer) + ' m" /><br><br>';
-            }
-            if (type === 'marker') {
-                html += '<label>Nombre del Propietario:</label><br>' +
-                        '<input type="text" id="nombrePropietario" /><br><br>' +
-                        '<label>Teléfono:</label><br>' +
-                        '<input type="text" id="telefono" /><br><br>';
-            }
-            html += '<button type="button" onclick="guardarAtributos()">Guardar</button>' +
-                    '</form>';
-            return html;
-        }
-
-        // Funciones para calcular área y longitud
-        function calcularArea(layer) {
-            var latlngs = layer.getLatLngs()[0];
-            var area = L.GeometryUtil.geodesicArea(latlngs) / 10000; // Convertir a hectáreas
-            return area.toFixed(2);
-        }
-
-        function calcularLongitud(layer) {
-            var latlngs = layer.getLatLngs();
-            var length = 0;
-            for (var i = 1; i < latlngs.length; i++) {
-                length += latlngs[i - 1].distanceTo(latlngs[i]);
-            }
-            return length.toFixed(2);
-        }
-
-        // Función para guardar atributos (puede ser extendida)
-        function guardarAtributos() {
-            alert("Los atributos se han guardado correctamente.");
-        }
     </script>
+
+    <!-- Librería adicional para la ubicación (Leaflet LocateControl) -->
+    <script src="https://unpkg.com/leaflet.locatecontrol/dist/L.Control.Locate.min.js" charset="utf-8"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.locatecontrol/dist/L.Control.Locate.min.css" />
 </body>
 </html>
