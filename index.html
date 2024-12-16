@@ -3,12 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mapa con Leaflet Draw y Exportación</title>
+    <title>Mapa con Leaflet Draw y GPS</title>
 
     <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/leaflet.css" />
     <!-- Leaflet Draw CSS -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css" />
+    <!-- Leaflet Locate CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.locatecontrol/dist/L.Control.Locate.min.css" />
 
     <style>
         #map { height: 100vh; }
@@ -33,6 +35,8 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/leaflet.js"></script>
     <!-- Leaflet Draw JS -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
+    <!-- Leaflet LocateControl JS -->
+    <script src="https://unpkg.com/leaflet.locatecontrol/dist/L.Control.Locate.min.js" charset="utf-8"></script>
 
     <script>
         // Inicialización del mapa
@@ -43,14 +47,21 @@
             attribution: '&copy; OpenStreetMap contributors'
         }).addTo(map);
 
+        // Agregar botón de ubicación GPS
+        L.control.locate({
+            position: 'topleft',
+            drawCircle: true,
+            setView: true,
+            keepCurrentZoomLevel: false,
+            showPopup: true
+        }).addTo(map);
+
         // Herramientas de dibujo
         var drawnItems = new L.FeatureGroup();
         map.addLayer(drawnItems);
 
         var drawControl = new L.Control.Draw({
-            edit: {
-                featureGroup: drawnItems
-            },
+            edit: { featureGroup: drawnItems },
             draw: {
                 polygon: true,
                 polyline: true,
@@ -61,12 +72,12 @@
         });
         map.addControl(drawControl);
 
-        // Evento cuando se crea una nueva geometría
+        // Evento para crear una geometría con formulario de atributos
         map.on('draw:created', function (e) {
             var type = e.layerType, layer = e.layer;
             drawnItems.addLayer(layer);
 
-            // Crear formulario emergente para atributos
+            // Formulario emergente
             var popupContent = '<form id="attributeForm">' +
                 '<label>Código de Finca:</label><br>' +
                 '<input type="text" id="codigoFinca" /><br><br>' +
@@ -77,7 +88,6 @@
 
             layer.bindPopup(popupContent).openPopup();
 
-            // Función para guardar atributos
             window.guardarAtributos = function () {
                 var codigoFinca = document.getElementById('codigoFinca').value;
                 var nombrePropietario = document.getElementById('nombrePropietario').value;
@@ -85,6 +95,7 @@
                 // Guardar atributos en la capa
                 layer.feature = layer.feature || {};
                 layer.feature.properties = {
+                    tipo: type,
                     codigo_finca: codigoFinca,
                     nombre_propietario: nombrePropietario
                 };
@@ -94,12 +105,10 @@
             };
         });
 
-        // Botón para exportar las geometrías a GeoJSON
+        // Exportar a GeoJSON
         document.getElementById('exportGeoJSON').addEventListener('click', function () {
-            var geojsonData = drawnItems.toGeoJSON(); // Obtener los datos en GeoJSON
+            var geojsonData = drawnItems.toGeoJSON();
             var geojsonStr = JSON.stringify(geojsonData);
-
-            // Crear un enlace de descarga
             var blob = new Blob([geojsonStr], { type: "application/json" });
             var url = URL.createObjectURL(blob);
             var a = document.createElement('a');
@@ -109,7 +118,7 @@
             URL.revokeObjectURL(url);
         });
 
-        // Input para cargar un archivo GeoJSON
+        // Importar un archivo GeoJSON
         document.getElementById('importGeoJSON').addEventListener('change', function (e) {
             var file = e.target.files[0];
             if (file) {
@@ -118,14 +127,11 @@
                     var geojson = JSON.parse(event.target.result);
                     L.geoJSON(geojson, {
                         onEachFeature: function (feature, layer) {
-                            // Mostrar atributos al hacer clic en la geometría cargada
-                            if (feature.properties) {
-                                var popupContent = '';
-                                for (var key in feature.properties) {
-                                    popupContent += '<strong>' + key + ':</strong> ' + feature.properties[key] + '<br>';
-                                }
-                                layer.bindPopup(popupContent);
+                            var popupContent = '';
+                            for (var key in feature.properties) {
+                                popupContent += `<strong>${key}:</strong> ${feature.properties[key]}<br>`;
                             }
+                            layer.bindPopup(popupContent);
                         }
                     }).addTo(drawnItems);
                 };
