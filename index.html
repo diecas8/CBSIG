@@ -7,16 +7,13 @@
 
     <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/leaflet.css" />
-    <!-- Leaflet Draw CSS -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css" />
-    <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <style>
         body { margin: 0; font-family: Arial, sans-serif; }
         #map { height: 100vh; }
 
-        /* Controles */
         .controls {
             position: absolute;
             top: 10px;
@@ -39,12 +36,8 @@
         .controls ul {
             list-style: none;
             padding: 0;
-            margin: 0;
             font-size: 12px;
             cursor: pointer;
-        }
-        .controls li {
-            margin: 3px 0;
             color: blue;
             text-decoration: underline;
         }
@@ -53,10 +46,10 @@
             position: absolute;
             bottom: 10px;
             right: 10px;
-            z-index: 1000;
             background-color: rgba(255, 255, 255, 0.8);
             padding: 5px 10px;
             border-radius: 5px;
+            z-index: 1000;
         }
     </style>
 </head>
@@ -71,18 +64,18 @@
         <button id="importGeoJSON"><i class="fa fa-upload"></i> Subir GeoJSON</button>
         <input type="file" id="geojsonInput" style="display: none;">
         <button id="gpsButton"><i class="fa fa-location-arrow"></i> GPS</button>
-        <button id="layerSelector"><i class="fa fa-layer-group"></i> Mapas Base</button>
         <h4>Capas Subidas:</h4>
         <ul id="layerList"></ul>
     </div>
 
-    <!-- Texto autor -->
+    <!-- Texto inferior -->
     <div class="bottom-text">Elaborado por: Diego Castaño P.</div>
 
-    <!-- Leaflet Scripts -->
+    <!-- Scripts -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/leaflet.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet-geometryutil/0.9.3/leaflet.geometryutil.min.js"></script>
+
     <script>
         var map = L.map('map').setView([4.60971, -74.08175], 12);
 
@@ -96,19 +89,13 @@
         });
 
         openStreetMap.addTo(map);
-
-        // Selector de capas base
-        var baseMaps = {
+        L.control.layers({
             "OpenStreetMap": openStreetMap,
             "Google Satélite": googleSatellite
-        };
-        var layerControl = L.control.layers(baseMaps).addTo(map);
+        }).addTo(map);
 
-        // Grupo de capas dibujadas
         var drawnItems = new L.FeatureGroup();
         map.addLayer(drawnItems);
-
-        var geojsonLayers = {}; // Almacena las capas cargadas
 
         // Herramientas de dibujo
         var drawControl = new L.Control.Draw({
@@ -117,60 +104,36 @@
         });
         map.addControl(drawControl);
 
-        // Función para manejar atributos según el tipo de geometría
+        var geojsonLayers = {};
+
+        // Atributos dinámicos
         map.on('draw:created', function (e) {
             var type = e.layerType, layer = e.layer;
-            var popupContent = "<b>Código de finca:</b> <input type='text' id='codigoFinca'/><br>";
+            var formHTML = "<b>Código de finca:</b> <input type='text' id='codigoFinca'/><br>";
 
             if (type === 'polygon') {
-                var area = L.GeometryUtil.geodesicArea(layer.getLatLngs()[0]) / 10000; // Área en hectáreas
-                popupContent += "<b>Nombre del cultivo:</b> <input type='text' id='nombreCultivo'/><br>";
-                popupContent += `<b>Área (ha):</b> ${area.toFixed(2)}<br>`;
+                var area = L.GeometryUtil.geodesicArea(layer.getLatLngs()[0]) / 10000;
+                formHTML += "<b>Nombre del cultivo:</b> <input type='text' id='nombreCultivo'/><br>";
+                formHTML += `<b>Área (ha):</b> ${area.toFixed(2)}<br>`;
             } else if (type === 'polyline') {
                 var length = layer.getLatLngs().reduce((acc, val, i, arr) => i > 0 ? acc + arr[i - 1].distanceTo(val) : 0, 0);
-                popupContent += "<b>Tipo de línea:</b> <input type='text' id='tipoLinea'/><br>";
-                popupContent += `<b>Longitud (m):</b> ${length.toFixed(2)}<br>`;
+                formHTML += "<b>Tipo de línea:</b> <input type='text' id='tipoLinea'/><br>";
+                formHTML += `<b>Longitud (m):</b> ${length.toFixed(2)}<br>`;
             } else if (type === 'marker') {
-                popupContent += "<b>Nombre del propietario:</b> <input type='text' id='nombrePropietario'/><br>";
-                popupContent += "<b>Cédula:</b> <input type='text' id='cedula'/><br>";
-                popupContent += "<b>Género:</b> <input type='text' id='genero'/><br>";
-                popupContent += "<b>Teléfono:</b> <input type='text' id='telefono'/><br>";
-                popupContent += "<b>Vereda:</b> <input type='text' id='vereda'/><br>";
-                popupContent += "<b>Municipio:</b> <input type='text' id='municipio'/>";
+                formHTML += "<b>Nombre del propietario:</b> <input type='text' id='nombrePropietario'/><br>";
+                formHTML += "<b>Cédula:</b> <input type='text' id='cedula'/><br>";
+                formHTML += "<b>Género:</b> <input type='text' id='genero'/><br>";
+                formHTML += "<b>Teléfono:</b> <input type='text' id='telefono'/><br>";
+                formHTML += "<b>Vereda:</b> <input type='text' id='vereda'/><br>";
+                formHTML += "<b>Municipio:</b> <input type='text' id='municipio'/>";
             }
 
-            popupContent += `<br><button onclick="guardarAtributos('${type}', ${JSON.stringify(layer.toGeoJSON())})">Guardar</button>`;
-            layer.bindPopup(popupContent).openPopup();
+            formHTML += `<br><button onclick="guardarAtributos()">Guardar</button>`;
+            layer.bindPopup(formHTML).openPopup();
             drawnItems.addLayer(layer);
         });
 
-        // Guardar atributos en GeoJSON
-        function guardarAtributos(type, geojson) {
-            var properties = geojson.properties || {};
-            properties.codigoFinca = document.getElementById('codigoFinca')?.value || '';
-            if (type === 'polygon') {
-                properties.nombreCultivo = document.getElementById('nombreCultivo')?.value || '';
-            } else if (type === 'polyline') {
-                properties.tipoLinea = document.getElementById('tipoLinea')?.value || '';
-            } else if (type === 'marker') {
-                properties.nombrePropietario = document.getElementById('nombrePropietario')?.value || '';
-                properties.cedula = document.getElementById('cedula')?.value || '';
-                properties.genero = document.getElementById('genero')?.value || '';
-                properties.telefono = document.getElementById('telefono')?.value || '';
-                properties.vereda = document.getElementById('vereda')?.value || '';
-                properties.municipio = document.getElementById('municipio')?.value || '';
-            }
-            geojson.properties = properties;
-            console.log('Atributos guardados:', geojson);
-        }
-
-        // Botón para abrir selector de capas base
-        document.getElementById('layerSelector').onclick = function () {
-            layerControl._container.style.display =
-                layerControl._container.style.display === 'block' ? 'none' : 'block';
-        };
-
-        // Exportar a GeoJSON
+        // Exportar GeoJSON
         document.getElementById('exportGeoJSON').onclick = function () {
             var geojson = drawnItems.toGeoJSON();
             var blob = new Blob([JSON.stringify(geojson)], { type: 'application/json' });
@@ -180,13 +143,39 @@
             link.click();
         };
 
+        // Importar GeoJSON
+        document.getElementById('importGeoJSON').onclick = function () {
+            document.getElementById('geojsonInput').click();
+        };
+
+        document.getElementById('geojsonInput').onchange = function (e) {
+            var file = e.target.files[0];
+            var reader = new FileReader();
+            reader.onload = function (event) {
+                var geojson = JSON.parse(event.target.result);
+                var layer = L.geoJSON(geojson).addTo(map);
+                geojsonLayers[file.name] = layer;
+                addLayerToList(file.name);
+            };
+            reader.readAsText(file);
+        };
+
+        function addLayerToList(name) {
+            var li = document.createElement('li');
+            li.textContent = name;
+            li.onclick = function () {
+                map.fitBounds(geojsonLayers[name].getBounds());
+            };
+            document.getElementById('layerList').appendChild(li);
+        }
+
         // Botón GPS
         document.getElementById('gpsButton').onclick = function () {
             map.locate({ setView: true, maxZoom: 16 });
         };
         map.on('locationfound', function (e) {
             L.marker(e.latlng).addTo(map).bindPopup("Tu ubicación").openPopup();
-        };
+        });
     </script>
 </body>
 </html>
