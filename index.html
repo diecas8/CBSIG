@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Geoportal con Atributos y Múltiples Mapas Base</title>
+    <title>Geoportal con Atributos y Google Maps</title>
 
     <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/leaflet.css" />
@@ -25,7 +25,7 @@
     <!-- Contenedor del mapa -->
     <div id="map"></div>
 
-    <!-- Botón Exportar y Cargar GeoJSON -->
+    <!-- Botones para exportar y cargar GeoJSON -->
     <button id="exportGeoJSON" style="position: absolute; top: 10px; right: 10px; z-index: 1000;">
         Exportar a GeoJSON
     </button>
@@ -33,8 +33,11 @@
 
     <!-- Leaflet JS -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/leaflet.js"></script>
+    <!-- Leaflet Draw JS -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
+    <!-- Leaflet LocateControl JS -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.locatecontrol/0.76.0/L.Control.Locate.min.js"></script>
+    <!-- Librería de cálculos geométricos -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet-geometryutil/0.9.3/leaflet.geometryutil.min.js"></script>
 
     <script>
@@ -42,6 +45,18 @@
         var map = L.map('map').setView([4.60971, -74.08175], 12);
 
         // Definición de mapas base
+        var googleStreets = L.tileLayer('https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
+            maxZoom: 20,
+            subdomains:['mt0','mt1','mt2','mt3'],
+            attribution: 'Google Maps'
+        });
+
+        var googleSat = L.tileLayer('https://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', {
+            maxZoom: 20,
+            subdomains:['mt0','mt1','mt2','mt3'],
+            attribution: 'Google Satélite'
+        });
+
         var baseMaps = {
             "OpenStreetMap": L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                 attribution: '&copy; OpenStreetMap contributors'
@@ -51,20 +66,23 @@
             }),
             "Topográfico (OpenTopoMap)": L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
                 attribution: '© OpenTopoMap'
-            })
+            }),
+            "Google Maps": googleStreets,
+            "Google Satélite": googleSat
         };
 
-        baseMaps["OpenStreetMap"].addTo(map);
+        baseMaps["OpenStreetMap"].addTo(map); // Mapa por defecto
+
+        // Control de capas base
         L.control.layers(baseMaps).addTo(map);
 
-        // Agregar botón de ubicación GPS
+        // Botón de ubicación GPS
         L.control.locate({
             position: 'topleft',
             drawCircle: true,
             setView: true,
             flyTo: true,
-            showPopup: true,
-            strings: { title: "Mostrar mi ubicación" }
+            showPopup: true
         }).addTo(map);
 
         // Herramientas de dibujo
@@ -92,13 +110,12 @@
             layer.bindPopup(popupContent).openPopup();
         });
 
-        // Formulario de atributos para cada geometría
         function crearFormularioAtributos(type, layer) {
             var html = '<form id="attributeForm">';
             html += '<label>Código de Finca:</label><br><input type="text" id="codigoFinca" /><br><br>';
 
             if (type === 'polygon') {
-                var area = L.GeometryUtil.geodesicArea(layer.getLatLngs()[0]) / 10000;
+                var area = L.GeometryUtil.geodesicArea(layer.getLatLngs()[0]) / 10000; // Área en hectáreas
                 html += '<label>Nombre del Cultivo:</label><br><input type="text" id="nombreCultivo" /><br><br>';
                 html += `<label>Área:</label><br><input type="text" value="${area.toFixed(2)} ha" readonly /><br><br>`;
             }
@@ -137,7 +154,6 @@
             return html;
         }
 
-        // Función para calcular longitud
         function calcularLongitud(layer) {
             var latlngs = layer.getLatLngs();
             var length = 0;
