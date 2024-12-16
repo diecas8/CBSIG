@@ -3,14 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Geoportal Completo</title>
+    <title>Geoportal Optimizado para Móviles</title>
 
     <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/leaflet.css" />
     <!-- Leaflet Draw CSS -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css" />
-    <!-- FontAwesome CSS -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <!-- Font Awesome CSS para iconos -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <style>
         body { margin: 0; font-family: Arial, sans-serif; }
@@ -37,16 +37,16 @@
             padding: 6px;
             border-radius: 5px;
             cursor: pointer;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
-            font-size: 14px;
             display: flex;
             align-items: center;
             justify-content: center;
+            font-size: 14px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
         }
 
         .top-right button i { margin-right: 5px; }
 
-        /* Texto en la parte inferior */
+        /* Texto de autor */
         .bottom-text {
             position: absolute;
             bottom: 10px;
@@ -65,7 +65,7 @@
     <!-- Contenedor del mapa -->
     <div id="map"></div>
 
-    <!-- Botones -->
+    <!-- Botones en la parte superior derecha -->
     <div class="top-right">
         <button id="exportGeoJSON" title="Exportar a GeoJSON">
             <i class="fa fa-download"></i> Exportar
@@ -101,7 +101,7 @@
         var googleSatellite = L.tileLayer('https://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', {
             maxZoom: 20,
             subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
-            attribution: '&copy; Google Satellite'
+            attribution: '&copy; Google Maps'
         });
 
         openStreetMap.addTo(map);
@@ -135,7 +135,21 @@
             layer.bindPopup("Nueva geometría agregada").openPopup();
         });
 
-        // Botón Exportar a GeoJSON
+        // Botón GPS
+        document.getElementById('gpsButton').addEventListener('click', function () {
+            map.locate({ setView: true, maxZoom: 16 });
+        });
+
+        map.on('locationfound', function (e) {
+            L.circle(e.latlng, { radius: e.accuracy }).addTo(map);
+            L.marker(e.latlng).addTo(map).bindPopup("Tu ubicación actual").openPopup();
+        });
+
+        map.on('locationerror', function () {
+            alert("No se pudo obtener la ubicación.");
+        });
+
+        // Exportar a GeoJSON
         document.getElementById('exportGeoJSON').addEventListener('click', function () {
             var geojson = drawnItems.toGeoJSON();
             var blob = new Blob([JSON.stringify(geojson)], { type: "application/json" });
@@ -145,7 +159,7 @@
             a.click();
         });
 
-        // Botón Importar GeoJSON
+        // Importar GeoJSON
         document.getElementById('selectFile').addEventListener('click', function () {
             document.getElementById('importGeoJSON').click();
         });
@@ -160,20 +174,6 @@
                 };
                 reader.readAsText(file);
             }
-        });
-
-        // Botón GPS
-        document.getElementById('gpsButton').addEventListener('click', function () {
-            map.locate({ setView: true, maxZoom: 16 });
-        });
-
-        map.on('locationfound', function (e) {
-            L.circle(e.latlng, { radius: e.accuracy }).addTo(map);
-            L.marker(e.latlng).addTo(map).bindPopup("Tu ubicación actual").openPopup();
-        });
-
-        map.on('locationerror', function () {
-            alert("No se pudo obtener la ubicación.");
         });
     </script>
 </body>
