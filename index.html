@@ -3,21 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Geoportal Optimizado para Móviles</title>
+    <title>Geoportal Completo</title>
 
     <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/leaflet.css" />
     <!-- Leaflet Draw CSS -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css" />
-    <!-- Leaflet LocateControl CSS -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet-locatecontrol/0.76.0/L.Control.Locate.min.css" />
-    <!-- Font Awesome CSS para iconos -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- FontAwesome CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
 
     <style>
         body { margin: 0; font-family: Arial, sans-serif; }
         #map { height: 100vh; }
-        
+
         /* Contenedor de botones */
         .top-right {
             position: absolute;
@@ -27,30 +25,28 @@
             display: flex;
             flex-direction: column;
             gap: 8px;
-            background: rgba(255, 255, 255, 0.8);
-            padding: 8px;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 10px;
             border-radius: 8px;
             box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
         }
 
-        .top-right button, .top-right input {
-            background: #fff;
-            border: 1px solid #ddd;
-            border-radius: 5px;
+        .top-right button {
+            border: none;
+            background-color: #fff;
             padding: 6px;
+            border-radius: 5px;
             cursor: pointer;
-            text-align: center;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+            font-size: 14px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 16px;
         }
 
-        .top-right button i {
-            margin-right: 4px;
-        }
+        .top-right button i { margin-right: 5px; }
 
-        /* Texto de autor */
+        /* Texto en la parte inferior */
         .bottom-text {
             position: absolute;
             bottom: 10px;
@@ -58,7 +54,7 @@
             z-index: 1000;
             font-size: 12px;
             color: #333;
-            background-color: rgba(255, 255, 255, 0.7);
+            background-color: rgba(255, 255, 255, 0.8);
             padding: 5px 10px;
             border-radius: 5px;
         }
@@ -69,62 +65,53 @@
     <!-- Contenedor del mapa -->
     <div id="map"></div>
 
-    <!-- Botones en la parte superior derecha -->
+    <!-- Botones -->
     <div class="top-right">
         <button id="exportGeoJSON" title="Exportar a GeoJSON">
-            <i class="fa fa-download"></i>
+            <i class="fa fa-download"></i> Exportar
         </button>
         <label>
             <input type="file" id="importGeoJSON" accept=".geojson" style="display: none;">
-            <button id="selectFile" title="Seleccionar archivo GeoJSON">
-                <i class="fa fa-file-upload"></i>
+            <button id="selectFile" title="Importar GeoJSON">
+                <i class="fa fa-file-upload"></i> Importar
             </button>
         </label>
-        <button id="layerControl" title="Seleccionar capas del mapa">
-            <i class="fa fa-layer-group"></i>
+        <button id="gpsButton" title="Centrar en mi ubicación">
+            <i class="fa fa-location-arrow"></i> GPS
         </button>
     </div>
 
-    <!-- Texto en la parte inferior -->
+    <!-- Texto de autor -->
     <div class="bottom-text">Elaborado por: Diego Castaño P.</div>
 
     <!-- Leaflet JS -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/leaflet.js"></script>
     <!-- Leaflet Draw JS -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
-    <!-- Leaflet LocateControl JS -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet-locatecontrol/0.76.0/L.Control.Locate.min.js"></script>
-    <!-- Leaflet GeometryUtil -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet-geometryutil/0.9.3/leaflet.geometryutil.min.js"></script>
 
     <script>
         // Inicialización del mapa
         var map = L.map('map').setView([4.60971, -74.08175], 12);
 
         // Mapas base
+        var openStreetMap = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; OpenStreetMap contributors'
+        });
+
+        var googleSatellite = L.tileLayer('https://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', {
+            maxZoom: 20,
+            subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
+            attribution: '&copy; Google Satellite'
+        });
+
+        openStreetMap.addTo(map);
+
         var baseMaps = {
-            "OpenStreetMap": L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '&copy; OpenStreetMap contributors'
-            }),
-            "Google Satélite": L.tileLayer('https://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', {
-                maxZoom: 20,
-                subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
-                attribution: '&copy; Google Maps'
-            })
+            "OpenStreetMap": openStreetMap,
+            "Google Satélite": googleSatellite
         };
 
-        baseMaps["OpenStreetMap"].addTo(map);
-        var layerControl = L.control.layers(baseMaps).addTo(map);
-
-        // Botón de GPS
-        L.control.locate({
-            position: 'topleft',
-            drawCircle: true,
-            setView: 'untilPanOrZoom',
-            flyTo: true,
-            showPopup: true,
-            strings: { title: "Mostrar mi ubicación", popup: "Estás aquí." }
-        }).addTo(map);
+        L.control.layers(baseMaps).addTo(map);
 
         // Herramientas de dibujo
         var drawnItems = new L.FeatureGroup();
@@ -142,7 +129,13 @@
         });
         map.addControl(drawControl);
 
-        // Exportar a GeoJSON
+        map.on('draw:created', function (e) {
+            var layer = e.layer;
+            drawnItems.addLayer(layer);
+            layer.bindPopup("Nueva geometría agregada").openPopup();
+        });
+
+        // Botón Exportar a GeoJSON
         document.getElementById('exportGeoJSON').addEventListener('click', function () {
             var geojson = drawnItems.toGeoJSON();
             var blob = new Blob([JSON.stringify(geojson)], { type: "application/json" });
@@ -152,7 +145,7 @@
             a.click();
         });
 
-        // Importar GeoJSON
+        // Botón Importar GeoJSON
         document.getElementById('selectFile').addEventListener('click', function () {
             document.getElementById('importGeoJSON').click();
         });
@@ -169,9 +162,18 @@
             }
         });
 
-        // Mostrar control de capas al hacer clic en el botón
-        document.getElementById('layerControl').addEventListener('click', function () {
-            alert("Selecciona capas en el control de mapas a la derecha del mapa.");
+        // Botón GPS
+        document.getElementById('gpsButton').addEventListener('click', function () {
+            map.locate({ setView: true, maxZoom: 16 });
+        });
+
+        map.on('locationfound', function (e) {
+            L.circle(e.latlng, { radius: e.accuracy }).addTo(map);
+            L.marker(e.latlng).addTo(map).bindPopup("Tu ubicación actual").openPopup();
+        });
+
+        map.on('locationerror', function () {
+            alert("No se pudo obtener la ubicación.");
         });
     </script>
 </body>
