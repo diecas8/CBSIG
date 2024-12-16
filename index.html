@@ -3,113 +3,111 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Geoportal</title>
+    <title>Geoportal con Dibujo</title>
 
-    <!-- Incluir los estilos de Leaflet -->
+    <!-- Estilos de Leaflet y Leaflet Draw -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
-    
-    <!-- Incluir los estilos de Leaflet Draw -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet.draw@1.0.4/dist/leaflet.draw.css" />
-    
+
     <style>
-        /* Definir el tamaño del mapa */
-        #map {
-            height: 100vh; /* El mapa ocupará toda la altura de la ventana */
-        }
+        #map { height: 100vh; } /* El mapa ocupará toda la pantalla */
     </style>
 </head>
 <body>
-
     <!-- Contenedor del mapa -->
     <div id="map"></div>
 
-    <!-- Botón de exportación (GeoJSON) -->
-    <button id="exportGeoJSON">Exportar GeoJSON</button>
-
-    <!-- Formulario de carga de archivos GeoJSON -->
-    <input type="file" id="geojsonFile" />
-
-    <!-- Incluir las bibliotecas de Leaflet y Leaflet Draw -->
+    <!-- Scripts de Leaflet y Leaflet Draw -->
     <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
     <script src="https://unpkg.com/leaflet.draw@1.0.4/dist/leaflet.draw.js"></script>
 
     <script>
-        // Inicialización del mapa
-        var map = L.map('map').setView([4.60971, -74.08175], 13); // Coordenadas de Bogotá como ejemplo
-        
+        // Inicializar el mapa
+        var map = L.map('map').setView([4.60971, -74.08175], 13); // Bogotá como ejemplo
+
         // Agregar una capa base de OpenStreetMap
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            attribution: '&copy; OpenStreetMap contributors'
         }).addTo(map);
-        
-        // Definir el grupo de capas para herramientas de dibujo
+
+        // Crear grupo de capas para los objetos dibujados
         var drawnItems = new L.FeatureGroup();
         map.addLayer(drawnItems);
-        
-        // Configuración de herramientas de dibujo
+
+        // Habilitar herramientas de dibujo
         var drawControl = new L.Control.Draw({
-            edit: {
-                featureGroup: drawnItems
-            },
+            edit: { featureGroup: drawnItems }, // Permite editar objetos existentes
             draw: {
                 polygon: true,
                 polyline: true,
                 marker: true,
-                circle: false, // Si no quieres permitir la creación de círculos
-                rectangle: false // Si no quieres permitir la creación de rectángulos
+                circle: false,
+                rectangle: false
             }
         });
         map.addControl(drawControl);
 
-        // Evento para cuando se dibuja una nueva geometría
+        // Capturar el evento cuando se crea una geometría
         map.on('draw:created', function (e) {
-            var layer = e.layer;
+            var type = e.layerType, layer = e.layer;
             drawnItems.addLayer(layer);
 
-            // Obtener la geometría y los atributos
-            if (layer instanceof L.Polygon) {
-                // Calcular el área en hectáreas
-                var area = L.GeometryUtil.geodesicArea(layer.getLatLngs()[0]) / 10000; // Área en hectáreas
-                alert("Área del polígono: " + area.toFixed(2) + " hectáreas.");
-            }
-
-            if (layer instanceof L.Polyline) {
-                // Calcular la longitud en metros
-                var length = layer.getLength();
-                alert("Longitud de la línea: " + length.toFixed(2) + " metros.");
-            }
-
-            if (layer instanceof L.Marker) {
-                // Aquí puedes agregar un formulario o atributos para los puntos
-                alert("Punto colocado en: " + layer.getLatLng().lat + ", " + layer.getLatLng().lng);
-            }
+            // Abrir un formulario emergente para ingresar atributos
+            var popupContent = crearFormularioAtributos(type, layer);
+            layer.bindPopup(popupContent).openPopup();
         });
 
-        // Código para exportar las geometrías en formato GeoJSON
-        document.getElementById('exportGeoJSON').addEventListener('click', function() {
-            var geojsonData = drawnItems.toGeoJSON(); // Obtener los datos GeoJSON de las geometrías dibujadas
-            var geojsonStr = JSON.stringify(geojsonData);
-            
-            var blob = new Blob([geojsonStr], {type: 'application/json'});
-            var link = document.createElement('a');
-            link.href = URL.createObjectURL(blob);
-            link.download = 'data.geojson';
-            link.click(); // Iniciar la descarga
-        });
+        // Función para crear un formulario emergente
+        function crearFormularioAtributos(type, layer) {
+            var html = '<form id="formAttributes">' +
+                '<label>Código de Finca:</label><br>' +
+                '<input type="text" id="codigoFinca" /><br><br>';
 
-        // Código para cargar un archivo GeoJSON en el mapa
-        document.getElementById('geojsonFile').addEventListener('change', function(e) {
-            var file = e.target.files[0];
-            if (file) {
-                var reader = new FileReader();
-                reader.onload = function(event) {
-                    var geojson = JSON.parse(event.target.result);
-                    L.geoJSON(geojson).addTo(map); // Añadir el archivo GeoJSON al mapa
-                };
-                reader.readAsText(file);
+            if (type === 'polygon') {
+                html += '<label>Nombre del Cultivo:</label><br>' +
+                        '<input type="text" id="nombreCultivo" /><br><br>' +
+                        '<label>Área Calculada:</label><br>' +
+                        '<input type="text" id="area" readonly value="' +
+                        calcularArea(layer) + ' ha" /><br><br>';
             }
-        });
+            if (type === 'polyline') {
+                html += '<label>Tipo de Línea:</label><br>' +
+                        '<input type="text" id="tipoLinea" /><br><br>' +
+                        '<label>Longitud Calculada:</label><br>' +
+                        '<input type="text" id="longitud" readonly value="' +
+                        calcularLongitud(layer) + ' m" /><br><br>';
+            }
+            if (type === 'marker') {
+                html += '<label>Nombre del Propietario:</label><br>' +
+                        '<input type="text" id="nombrePropietario" /><br><br>' +
+                        '<label>Teléfono:</label><br>' +
+                        '<input type="text" id="telefono" /><br><br>';
+            }
+            html += '<button type="button" onclick="guardarAtributos()">Guardar</button>' +
+                    '</form>';
+            return html;
+        }
+
+        // Funciones para calcular área y longitud
+        function calcularArea(layer) {
+            var latlngs = layer.getLatLngs()[0];
+            var area = L.GeometryUtil.geodesicArea(latlngs) / 10000; // Convertir a hectáreas
+            return area.toFixed(2);
+        }
+
+        function calcularLongitud(layer) {
+            var latlngs = layer.getLatLngs();
+            var length = 0;
+            for (var i = 1; i < latlngs.length; i++) {
+                length += latlngs[i - 1].distanceTo(latlngs[i]);
+            }
+            return length.toFixed(2);
+        }
+
+        // Función para guardar atributos (puede ser extendida)
+        function guardarAtributos() {
+            alert("Los atributos se han guardado correctamente.");
+        }
     </script>
-
 </body>
 </html>
