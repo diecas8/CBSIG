@@ -3,10 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Geoportal con Dibujo</title>
+    <title>Solución: Leaflet Draw</title>
 
-    <!-- Estilos de Leaflet y Leaflet Draw -->
+    <!-- Estilos de Leaflet -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+    <!-- Estilos de Leaflet Draw -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet.draw@1.0.4/dist/leaflet.draw.css" />
 
     <style>
@@ -17,16 +18,16 @@
     <!-- Contenedor del mapa -->
     <div id="map"></div>
 
-    <!-- Scripts de Leaflet y Leaflet Draw -->
+    <!-- Scripts de Leaflet -->
     <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <!-- Scripts de Leaflet Draw -->
     <script src="https://unpkg.com/leaflet.draw@1.0.4/dist/leaflet.draw.js"></script>
-    <script src="https://unpkg.com/leaflet-geometryutil@0.9.4/src/leaflet.geometryutil.js"></script>
 
     <script>
-        // Inicializar el mapa
-        var map = L.map('map').setView([4.60971, -74.08175], 12); 
+        // Inicialización del mapa
+        var map = L.map('map').setView([4.60971, -74.08175], 12);
 
-        // Agregar capa base de OpenStreetMap
+        // Capa base de OpenStreetMap
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '&copy; OpenStreetMap contributors'
         }).addTo(map);
@@ -41,52 +42,12 @@
         });
         map.addControl(drawControl);
 
-        // Evento al crear una geometría
+        // Evento cuando se crea una nueva geometría
         map.on('draw:created', function (e) {
             var type = e.layerType, layer = e.layer;
             drawnItems.addLayer(layer);
-
-            var popupContent = crearFormularioAtributos(type, layer);
-            layer.bindPopup(popupContent).openPopup();
+            alert("Se ha dibujado un: " + type);
         });
-
-        function crearFormularioAtributos(type, layer) {
-            var html = '<form id="formAttributes">' +
-                '<label for="codigoFinca">Código de Finca:</label>' +
-                '<input type="text" id="codigoFinca" /><br><br>';
-
-            if (type === 'polygon') {
-                html += '<label>Área:</label>' +
-                        '<input type="text" id="area" readonly value="' + calcularArea(layer) + ' ha" /><br><br>';
-            }
-            if (type === 'polyline') {
-                html += '<label>Longitud:</label>' +
-                        '<input type="text" id="longitud" readonly value="' + calcularLongitud(layer) + ' km" /><br><br>';
-            }
-            html += '<button type="button" onclick="guardarAtributos()">Guardar</button>' +
-                    '</form>';
-            return html;
-        }
-
-        function calcularArea(layer) {
-            var latlngs = layer.getLatLngs()[0];
-            var area = L.GeometryUtil.geodesicArea(latlngs) / 10000; // En hectáreas
-            return area.toFixed(2);
-        }
-
-        function calcularLongitud(layer) {
-            var latlngs = layer.getLatLngs();
-            var length = 0;
-            for (var i = 1; i < latlngs.length; i++) {
-                length += latlngs[i - 1].distanceTo(latlngs[i]);
-            }
-            return (length / 1000).toFixed(2); // En kilómetros
-        }
-
-        function guardarAtributos() {
-            alert("¡Atributos guardados correctamente!");
-        }
     </script>
 </body>
 </html>
-
