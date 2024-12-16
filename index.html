@@ -10,7 +10,7 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet.draw@1.0.4/dist/leaflet.draw.css" />
 
     <style>
-        #map { height: 100vh; } /* El mapa ocupará toda la pantalla */
+        #map { height: 100vh; }
     </style>
 </head>
 <body>
@@ -20,78 +20,57 @@
     <!-- Scripts de Leaflet y Leaflet Draw -->
     <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
     <script src="https://unpkg.com/leaflet.draw@1.0.4/dist/leaflet.draw.js"></script>
+    <script src="https://unpkg.com/leaflet-geometryutil@0.9.4/src/leaflet.geometryutil.js"></script>
 
     <script>
         // Inicializar el mapa
-        var map = L.map('map').setView([4.60971, -74.08175], 13); // Bogotá como ejemplo
+        var map = L.map('map').setView([4.60971, -74.08175], 12); 
 
-        // Agregar una capa base de OpenStreetMap
+        // Agregar capa base de OpenStreetMap
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '&copy; OpenStreetMap contributors'
         }).addTo(map);
 
-        // Crear grupo de capas para los objetos dibujados
+        // Herramientas de dibujo
         var drawnItems = new L.FeatureGroup();
         map.addLayer(drawnItems);
 
-        // Habilitar herramientas de dibujo
         var drawControl = new L.Control.Draw({
-            edit: { featureGroup: drawnItems }, // Permite editar objetos existentes
-            draw: {
-                polygon: true,
-                polyline: true,
-                marker: true,
-                circle: false,
-                rectangle: false
-            }
+            edit: { featureGroup: drawnItems },
+            draw: { polygon: true, polyline: true, marker: true, circle: false, rectangle: false }
         });
         map.addControl(drawControl);
 
-        // Capturar el evento cuando se crea una geometría
+        // Evento al crear una geometría
         map.on('draw:created', function (e) {
             var type = e.layerType, layer = e.layer;
             drawnItems.addLayer(layer);
 
-            // Abrir un formulario emergente para ingresar atributos
             var popupContent = crearFormularioAtributos(type, layer);
             layer.bindPopup(popupContent).openPopup();
         });
 
-        // Función para crear un formulario emergente
         function crearFormularioAtributos(type, layer) {
             var html = '<form id="formAttributes">' +
-                '<label>Código de Finca:</label><br>' +
+                '<label for="codigoFinca">Código de Finca:</label>' +
                 '<input type="text" id="codigoFinca" /><br><br>';
 
             if (type === 'polygon') {
-                html += '<label>Nombre del Cultivo:</label><br>' +
-                        '<input type="text" id="nombreCultivo" /><br><br>' +
-                        '<label>Área Calculada:</label><br>' +
-                        '<input type="text" id="area" readonly value="' +
-                        calcularArea(layer) + ' ha" /><br><br>';
+                html += '<label>Área:</label>' +
+                        '<input type="text" id="area" readonly value="' + calcularArea(layer) + ' ha" /><br><br>';
             }
             if (type === 'polyline') {
-                html += '<label>Tipo de Línea:</label><br>' +
-                        '<input type="text" id="tipoLinea" /><br><br>' +
-                        '<label>Longitud Calculada:</label><br>' +
-                        '<input type="text" id="longitud" readonly value="' +
-                        calcularLongitud(layer) + ' m" /><br><br>';
-            }
-            if (type === 'marker') {
-                html += '<label>Nombre del Propietario:</label><br>' +
-                        '<input type="text" id="nombrePropietario" /><br><br>' +
-                        '<label>Teléfono:</label><br>' +
-                        '<input type="text" id="telefono" /><br><br>';
+                html += '<label>Longitud:</label>' +
+                        '<input type="text" id="longitud" readonly value="' + calcularLongitud(layer) + ' km" /><br><br>';
             }
             html += '<button type="button" onclick="guardarAtributos()">Guardar</button>' +
                     '</form>';
             return html;
         }
 
-        // Funciones para calcular área y longitud
         function calcularArea(layer) {
             var latlngs = layer.getLatLngs()[0];
-            var area = L.GeometryUtil.geodesicArea(latlngs) / 10000; // Convertir a hectáreas
+            var area = L.GeometryUtil.geodesicArea(latlngs) / 10000; // En hectáreas
             return area.toFixed(2);
         }
 
@@ -101,13 +80,13 @@
             for (var i = 1; i < latlngs.length; i++) {
                 length += latlngs[i - 1].distanceTo(latlngs[i]);
             }
-            return length.toFixed(2);
+            return (length / 1000).toFixed(2); // En kilómetros
         }
 
-        // Función para guardar atributos (puede ser extendida)
         function guardarAtributos() {
-            alert("Los atributos se han guardado correctamente.");
+            alert("¡Atributos guardados correctamente!");
         }
     </script>
 </body>
 </html>
+
