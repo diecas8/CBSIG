@@ -41,6 +41,12 @@
             padding: 0;
             margin: 0;
             font-size: 12px;
+            cursor: pointer;
+        }
+        .controls li {
+            margin: 3px 0;
+            color: blue;
+            text-decoration: underline;
         }
 
         .bottom-text {
@@ -86,24 +92,15 @@
             subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
             attribution: '&copy; Google Maps'
         });
-        var cartoDB = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-            attribution: '&copy; CartoDB'
-        });
-        var stamenTerrain = L.tileLayer('https://stamen-tiles.a.ssl.fastly.net/terrain/{z}/{x}/{y}.jpg', {
-            attribution: '&copy; Stamen Design'
-        });
 
         openStreetMap.addTo(map);
-
         L.control.layers({
             "OpenStreetMap": openStreetMap,
-            "Google Satélite": googleSatellite,
-            "CartoDB Light": cartoDB,
-            "Stamen Terrain": stamenTerrain
+            "Google Satélite": googleSatellite
         }).addTo(map);
 
-        // Grupo de capas
         var drawnItems = new L.FeatureGroup();
+        var geojsonLayers = {}; // Almacena las capas cargadas
         map.addLayer(drawnItems);
 
         var drawControl = new L.Control.Draw({
@@ -159,12 +156,22 @@
                 reader.onload = function (event) {
                     var geojson = JSON.parse(event.target.result);
                     var layer = L.geoJSON(geojson).addTo(map);
-                    map.fitBounds(layer.getBounds()); // Zoom a la capa
+                    geojsonLayers[file.name] = layer; // Guardar la capa
                     addLayerToList(file.name);
                 };
                 reader.readAsText(file);
             }
         };
+
+        // Añadir capa a la lista
+        function addLayerToList(name) {
+            var li = document.createElement('li');
+            li.textContent = name;
+            li.onclick = function () {
+                map.fitBounds(geojsonLayers[name].getBounds());
+            };
+            document.getElementById('layerList').appendChild(li);
+        }
 
         // Botón GPS
         document.getElementById('gpsButton').onclick = function () {
@@ -174,13 +181,6 @@
         map.on('locationfound', function (e) {
             L.marker(e.latlng).addTo(map).bindPopup("Tu ubicación").openPopup();
         });
-
-        // Función para agregar capa a la lista
-        function addLayerToList(name) {
-            var li = document.createElement('li');
-            li.textContent = name;
-            document.getElementById('layerList').appendChild(li);
-        }
     </script>
 </body>
 </html>
