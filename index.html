@@ -6,29 +6,28 @@
     <title>Mapa con Leaflet Draw</title>
 
     <!-- Leaflet CSS -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/leaflet.css" />
     <!-- Leaflet Draw CSS -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet.draw@1.0.4/dist/leaflet.draw.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css" />
 
     <style>
         #map { height: 100vh; }
     </style>
 </head>
 <body>
-
     <!-- Contenedor del mapa -->
     <div id="map"></div>
 
     <!-- Leaflet JS -->
-    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/leaflet.js"></script>
     <!-- Leaflet Draw JS -->
-    <script src="https://unpkg.com/leaflet.draw@1.0.4/dist/leaflet.draw.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
 
     <script>
-        // Inicializar el mapa
+        // Inicialización del mapa
         var map = L.map('map').setView([4.60971, -74.08175], 12);
 
-        // Capa base de OpenStreetMap
+        // Agregar capa base de OpenStreetMap
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '&copy; OpenStreetMap contributors'
         }).addTo(map);
@@ -58,6 +57,5 @@
             alert("Se ha dibujado un: " + type);
         });
     </script>
-
 </body>
 </html>
