@@ -14,15 +14,14 @@
         body { margin: 0; font-family: Arial, sans-serif; }
         #map { height: 100vh; }
 
-        /* Controles en la parte superior */
-        .top-right {
+        /* Controles en la parte inferior izquierda */
+        .bottom-left {
             position: absolute;
-            top: 10px;
-            right: 10px;
+            bottom: 10px;
+            left: 10px;
             z-index: 1000;
             display: flex;
             flex-direction: column;
-            align-items: center;
             gap: 8px;
             background: rgba(255, 255, 255, 0.9);
             padding: 10px;
@@ -30,23 +29,24 @@
             box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
         }
 
-        .top-right button {
-            width: 150px;
+        .bottom-left button {
+            width: 180px;
             display: flex;
             align-items: center;
-            justify-content: center;
-            gap: 5px;
+            justify-content: flex-start;
+            gap: 8px;
             background-color: #f7f7f7;
             border: 1px solid #ddd;
             border-radius: 5px;
-            padding: 6px 10px;
+            padding: 8px;
             cursor: pointer;
             box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
             font-size: 14px;
         }
 
-        .top-right button i {
+        .bottom-left button i {
             margin-right: 5px;
+            font-size: 16px;
         }
 
         /* Texto de autor */
@@ -68,7 +68,7 @@
     <div id="map"></div>
 
     <!-- Botones -->
-    <div class="top-right">
+    <div class="bottom-left">
         <button id="exportGeoJSON" title="Exportar a GeoJSON">
             <i class="fa fa-download"></i> Exportar GeoJSON
         </button>
@@ -105,7 +105,6 @@
             "OpenStreetMap": openStreetMap,
             "Google Satélite": googleSatellite
         };
-
         L.control.layers(baseMaps).addTo(map);
 
         // Capa para los dibujos
