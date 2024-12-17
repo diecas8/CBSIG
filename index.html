@@ -44,12 +44,6 @@
             font-size: 14px;
         }
 
-        .bottom-left button i {
-            margin-right: 5px;
-            font-size: 16px;
-        }
-
-        /* Texto de autor */
         .bottom-text {
             position: absolute;
             bottom: 10px;
@@ -92,13 +86,12 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet-geometryutil/0.9.3/leaflet.geometryutil.min.js"></script>
 
     <script>
-        // Inicialización del mapa centrado en Colombia
+        // Inicialización del mapa
         var map = L.map('map').setView([4.60971, -74.08175], 6);
 
         // Capas base
         var openStreetMap = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenStreetMap' });
         var googleSatellite = L.tileLayer('https://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', { subdomains: ['mt0', 'mt1', 'mt2', 'mt3'] });
-
         openStreetMap.addTo(map);
 
         var baseMaps = {
@@ -114,34 +107,38 @@
         // Herramientas de dibujo
         var drawControl = new L.Control.Draw({
             edit: { featureGroup: drawnItems },
-            draw: {
-                polygon: true,
-                polyline: true,
-                marker: true,
-                circle: false,
-                rectangle: false
-            }
+            draw: { polygon: true, polyline: true, marker: true }
         });
         map.addControl(drawControl);
 
+        // Atributos organizados según el tipo de geometría
         map.on('draw:created', function (e) {
             var layer = e.layer;
             drawnItems.addLayer(layer);
 
-            // Atributos según el tipo de geometría
-            var popupContent = '<b>Código de Finca:</b><br><input type="text" placeholder="Ejemplo: 12345"/><br>';
+            var popupContent = '<b>Código de Finca:</b> <input type="text" id="codigoFinca"><br>';
+
             if (e.layerType === 'polygon') {
                 var area = L.GeometryUtil.geodesicArea(layer.getLatLngs()[0]) / 10000;
-                popupContent += '<b>Área (ha):</b> ' + area.toFixed(2);
-            }
-            if (e.layerType === 'polyline') {
+                popupContent += `<b>Nombre del Cultivo:</b> <input type="text" id="nombreCultivo"><br>`;
+                popupContent += `<b>Área (ha):</b> ${area.toFixed(2)}<br>`;
+            } else if (e.layerType === 'polyline') {
                 var length = calcularLongitud(layer);
-                popupContent += '<b>Longitud (m):</b> ' + length.toFixed(2);
+                popupContent += `<b>Tipo de Línea:</b> <input type="text" id="tipoLinea"><br>`;
+                popupContent += `<b>Longitud (m):</b> ${length.toFixed(2)}<br>`;
+            } else if (e.layerType === 'marker') {
+                popupContent += `<b>Nombre del Propietario:</b> <input type="text" id="nombrePropietario"><br>`;
+                popupContent += `<b>Cédula:</b> <input type="text" id="cedula"><br>`;
+                popupContent += `<b>Género:</b> <input type="text" id="genero"><br>`;
+                popupContent += `<b>Teléfono:</b> <input type="text" id="telefono"><br>`;
+                popupContent += `<b>Vereda:</b> <input type="text" id="vereda"><br>`;
+                popupContent += `<b>Municipio:</b> <input type="text" id="municipio">`;
             }
+
             layer.bindPopup(popupContent).openPopup();
         });
 
-        // Calcular longitud
+        // Función para calcular longitud
         function calcularLongitud(layer) {
             var latlngs = layer.getLatLngs();
             var length = 0;
@@ -150,46 +147,6 @@
             }
             return length;
         }
-
-        // Exportar a GeoJSON
-        document.getElementById('exportGeoJSON').addEventListener('click', function () {
-            var geojson = drawnItems.toGeoJSON();
-            var blob = new Blob([JSON.stringify(geojson)], { type: "application/json" });
-            var a = document.createElement('a');
-            a.href = URL.createObjectURL(blob);
-            a.download = 'mapa.geojson';
-            a.click();
-        });
-
-        // Importar GeoJSON
-        document.getElementById('selectFile').addEventListener('click', function () {
-            document.getElementById('importGeoJSON').click();
-        });
-
-        document.getElementById('importGeoJSON').addEventListener('change', function (e) {
-            var file = e.target.files[0];
-            if (file) {
-                var reader = new FileReader();
-                reader.onload = function (event) {
-                    var geojson = JSON.parse(event.target.result);
-                    L.geoJSON(geojson).addTo(drawnItems);
-                };
-                reader.readAsText(file);
-            }
-        });
-
-        // Botón GPS
-        document.getElementById('gpsButton').addEventListener('click', function () {
-            map.locate({ setView: true, maxZoom: 10 });
-        });
-
-        map.on('locationfound', function (e) {
-            L.marker(e.latlng).addTo(map).bindPopup("Tu ubicación actual").openPopup();
-        });
-
-        map.on('locationerror', function () {
-            alert("No se pudo obtener la ubicación.");
-        });
     </script>
 </body>
 </html>
