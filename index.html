@@ -93,17 +93,13 @@
         var googleSatellite = L.tileLayer('https://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', { subdomains: ['mt0', 'mt1', 'mt2', 'mt3'] });
         openStreetMap.addTo(map);
 
-        var baseMaps = {
-            "OpenStreetMap": openStreetMap,
-            "Google Satélite": googleSatellite
-        };
+        var baseMaps = { "OpenStreetMap": openStreetMap, "Google Satélite": googleSatellite };
         L.control.layers(baseMaps).addTo(map);
 
-        // Capa de dibujos
         var drawnItems = new L.FeatureGroup();
         map.addLayer(drawnItems);
 
-        // Cargar datos guardados
+        // Cargar desde localStorage
         function loadFromLocalStorage() {
             var savedData = localStorage.getItem('geojsonData');
             if (savedData) {
@@ -119,51 +115,79 @@
         }
         loadFromLocalStorage();
 
-        // Herramientas de dibujo
+        // Herramientas de dibujo y edición
         var drawControl = new L.Control.Draw({
             edit: { featureGroup: drawnItems, remove: true },
             draw: { polygon: true, polyline: true, marker: true }
         });
         map.addControl(drawControl);
 
+        // Evento para crear formas
         map.on('draw:created', function (e) {
             var layer = e.layer;
             drawnItems.addLayer(layer);
+            addAttributesPopup(layer, e.layerType);
+            saveToLocalStorage();
+        });
 
+        // Evento para editar formas
+        map.on('draw:edited', function () {
+            saveToLocalStorage();
+        });
+
+        // Agregar popup con atributos
+        function addAttributesPopup(layer, type) {
             var popupContent = '<b>Código de Finca:</b> <input type="text" class="attribute-input" data-attr="codigoFinca"><br>';
-            if (e.layerType === 'polygon') {
-                var area = L.GeometryUtil.geodesicArea(layer.getLatLngs()[0]) / 10000;
+            if (type === 'polygon') {
                 popupContent += `<b>Nombre del Cultivo:</b> <input type="text" class="attribute-input" data-attr="nombreCultivo"><br>`;
-                popupContent += `<b>Área (ha):</b> ${area.toFixed(2)}<br>`;
-            } else if (e.layerType === 'polyline') {
+            } else if (type === 'polyline') {
                 popupContent += `<b>Tipo de Línea:</b> <input type="text" class="attribute-input" data-attr="tipoLinea"><br>`;
-            } else if (e.layerType === 'marker') {
-                popupContent += `<b>Nombre del Propietario:</b> <input type="text" class="attribute-input" data-attr="nombrePropietario"><br>
-                                 <b>Cédula:</b> <input type="text" class="attribute-input" data-attr="cedula"><br>
-                                 <b>Género:</b> <input type="text" class="attribute-input" data-attr="genero"><br>
-                                 <b>Teléfono:</b> <input type="text" class="attribute-input" data-attr="telefono"><br>
-                                 <b>Vereda:</b> <input type="text" class="attribute-input" data-attr="vereda"><br>
-                                 <b>Municipio:</b> <input type="text" class="attribute-input" data-attr="municipio">`;
+            } else if (type === 'marker') {
+                popupContent += `<b>Nombre del Propietario:</b> <input type="text" class="attribute-input" data-attr="nombrePropietario"><br>`;
             }
-
             layer.bindPopup(popupContent).openPopup();
 
-            // Evento para guardar atributos al escribir
             layer.on('popupopen', function () {
                 var inputs = document.querySelectorAll('.attribute-input');
                 inputs.forEach(input => {
                     input.addEventListener('input', saveToLocalStorage);
                 });
             });
-
-            saveToLocalStorage();
-        });
+        }
 
         // Guardar en localStorage
         function saveToLocalStorage() {
             var geojson = drawnItems.toGeoJSON();
             localStorage.setItem('geojsonData', JSON.stringify(geojson));
         }
+
+        // Exportar GeoJSON
+        document.getElementById('exportGeoJSON').addEventListener('click', function () {
+            var geojson = drawnItems.toGeoJSON();
+            var blob = new Blob([JSON.stringify(geojson)], { type: "application/json" });
+            var a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = 'mapa.geojson';
+            a.click();
+        });
+
+        // Importar GeoJSON
+        document.getElementById('selectFile').addEventListener('click', function () {
+            document.getElementById('importGeoJSON').click();
+        });
+
+        document.getElementById('importGeoJSON').addEventListener('change', function (e) {
+            var file = e.target.files[0];
+            if (file) {
+                var reader = new FileReader();
+                reader.onload = function (event) {
+                    var geojson = JSON.parse(event.target.result);
+                    L.geoJSON(geojson).addTo(drawnItems);
+                    saveToLocalStorage();
+                };
+                reader.readAsText(file);
+            }
+        });
 
         // GPS
         document.getElementById('gpsButton').addEventListener('click', function () {
@@ -173,16 +197,6 @@
         map.on('locationfound', function (e) {
             L.marker(e.latlng).addTo(map).bindPopup("Tu ubicación actual").openPopup();
             map.setView(e.latlng, 16);
-        });
-
-        // Exportar
-        document.getElementById('exportGeoJSON').addEventListener('click', function () {
-            var geojson = drawnItems.toGeoJSON();
-            var blob = new Blob([JSON.stringify(geojson)], { type: "application/json" });
-            var a = document.createElement('a');
-            a.href = URL.createObjectURL(blob);
-            a.download = 'mapa.geojson';
-            a.click();
         });
     </script>
 </body>
