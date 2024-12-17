@@ -118,30 +118,27 @@
                 }).addTo(drawnItems);
             }
         }
-
         loadFromLocalStorage();
 
         // Herramientas de dibujo
         var drawControl = new L.Control.Draw({
-            edit: { featureGroup: drawnItems, remove: true }, // Habilitar eliminación
+            edit: { featureGroup: drawnItems, remove: true }, // Permite eliminar formas
             draw: { polygon: true, polyline: true, marker: true }
         });
         map.addControl(drawControl);
 
+        // Evento para crear formas con atributos
         map.on('draw:created', function (e) {
             var layer = e.layer;
             drawnItems.addLayer(layer);
 
             var popupContent = '<b>Código de Finca:</b> <input type="text" id="codigoFinca"><br>';
-
             if (e.layerType === 'polygon') {
                 var area = L.GeometryUtil.geodesicArea(layer.getLatLngs()[0]) / 10000;
                 popupContent += `<b>Nombre del Cultivo:</b> <input type="text" id="nombreCultivo"><br>`;
                 popupContent += `<b>Área (ha):</b> ${area.toFixed(2)}<br>`;
             } else if (e.layerType === 'polyline') {
-                var length = calcularLongitud(layer);
                 popupContent += `<b>Tipo de Línea:</b> <input type="text" id="tipoLinea"><br>`;
-                popupContent += `<b>Longitud (m):</b> ${length.toFixed(2)}<br>`;
             } else if (e.layerType === 'marker') {
                 popupContent += `<b>Nombre del Propietario:</b> <input type="text" id="nombrePropietario"><br>
                                  <b>Cédula:</b> <input type="text" id="cedula"><br>
@@ -155,20 +152,14 @@
             saveToLocalStorage();
         });
 
-        // Eliminar dibujo
+        // Evento para eliminar y editar formas
         map.on('draw:deleted', function () {
             saveToLocalStorage();
         });
 
-        // Calcular longitud
-        function calcularLongitud(layer) {
-            var latlngs = layer.getLatLngs();
-            var length = 0;
-            for (var i = 1; i < latlngs.length; i++) {
-                length += latlngs[i - 1].distanceTo(latlngs[i]);
-            }
-            return length;
-        }
+        map.on('draw:edited', function () {
+            saveToLocalStorage();
+        });
 
         // Guardar GeoJSON en localStorage
         function saveToLocalStorage() {
@@ -186,7 +177,7 @@
             a.click();
         });
 
-        // GPS con zoom al punto
+        // Botón GPS con zoom
         document.getElementById('gpsButton').addEventListener('click', function () {
             map.locate({ setView: true, maxZoom: 16 });
         });
