@@ -107,7 +107,7 @@
                 L.geoJSON(geojson, {
                     onEachFeature: function (feature, layer) {
                         if (feature.properties && feature.properties.popupContent) {
-                            layer.bindPopup(feature.properties.popupContent).openPopup();
+                            layer.bindPopup(feature.properties.popupContent);
                         }
                     }
                 }).addTo(drawnItems);
@@ -122,7 +122,6 @@
         });
         map.addControl(drawControl);
 
-        // Evento para crear formas
         map.on('draw:created', function (e) {
             var layer = e.layer;
             drawnItems.addLayer(layer);
@@ -130,10 +129,8 @@
             saveToLocalStorage();
         });
 
-        // Evento para editar formas
-        map.on('draw:edited', function () {
-            saveToLocalStorage();
-        });
+        map.on('draw:edited', saveToLocalStorage);
+        map.on('draw:deleted', saveToLocalStorage);
 
         // Agregar popup con atributos
         function addAttributesPopup(layer, type) {
@@ -158,6 +155,12 @@
         // Guardar en localStorage
         function saveToLocalStorage() {
             var geojson = drawnItems.toGeoJSON();
+            geojson.features.forEach(function (feature, i) {
+                var layer = drawnItems.getLayers()[i];
+                if (layer && layer.getPopup()) {
+                    feature.properties = { popupContent: layer.getPopup().getContent() };
+                }
+            });
             localStorage.setItem('geojsonData', JSON.stringify(geojson));
         }
 
