@@ -86,7 +86,6 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet-geometryutil/0.9.3/leaflet.geometryutil.min.js"></script>
 
     <script>
-        // Inicialización del mapa
         var map = L.map('map').setView([4.60971, -74.08175], 6);
 
         // Capas base
@@ -100,11 +99,11 @@
         };
         L.control.layers(baseMaps).addTo(map);
 
-        // Capa para los dibujos
+        // Capa de dibujos
         var drawnItems = new L.FeatureGroup();
         map.addLayer(drawnItems);
 
-        // Cargar dibujos guardados en localStorage
+        // Cargar datos guardados
         function loadFromLocalStorage() {
             var savedData = localStorage.getItem('geojsonData');
             if (savedData) {
@@ -112,7 +111,7 @@
                 L.geoJSON(geojson, {
                     onEachFeature: function (feature, layer) {
                         if (feature.properties && feature.properties.popupContent) {
-                            layer.bindPopup(feature.properties.popupContent);
+                            layer.bindPopup(feature.properties.popupContent).openPopup();
                         }
                     }
                 }).addTo(drawnItems);
@@ -122,62 +121,51 @@
 
         // Herramientas de dibujo
         var drawControl = new L.Control.Draw({
-            edit: { featureGroup: drawnItems, remove: true }, // Permite eliminar formas
+            edit: { featureGroup: drawnItems, remove: true },
             draw: { polygon: true, polyline: true, marker: true }
         });
         map.addControl(drawControl);
 
-        // Evento para crear formas con atributos
         map.on('draw:created', function (e) {
             var layer = e.layer;
             drawnItems.addLayer(layer);
 
-            var popupContent = '<b>Código de Finca:</b> <input type="text" id="codigoFinca"><br>';
+            var popupContent = '<b>Código de Finca:</b> <input type="text" class="attribute-input" data-attr="codigoFinca"><br>';
             if (e.layerType === 'polygon') {
                 var area = L.GeometryUtil.geodesicArea(layer.getLatLngs()[0]) / 10000;
-                popupContent += `<b>Nombre del Cultivo:</b> <input type="text" id="nombreCultivo"><br>`;
+                popupContent += `<b>Nombre del Cultivo:</b> <input type="text" class="attribute-input" data-attr="nombreCultivo"><br>`;
                 popupContent += `<b>Área (ha):</b> ${area.toFixed(2)}<br>`;
             } else if (e.layerType === 'polyline') {
-                popupContent += `<b>Tipo de Línea:</b> <input type="text" id="tipoLinea"><br>`;
+                popupContent += `<b>Tipo de Línea:</b> <input type="text" class="attribute-input" data-attr="tipoLinea"><br>`;
             } else if (e.layerType === 'marker') {
-                popupContent += `<b>Nombre del Propietario:</b> <input type="text" id="nombrePropietario"><br>
-                                 <b>Cédula:</b> <input type="text" id="cedula"><br>
-                                 <b>Género:</b> <input type="text" id="genero"><br>
-                                 <b>Teléfono:</b> <input type="text" id="telefono"><br>
-                                 <b>Vereda:</b> <input type="text" id="vereda"><br>
-                                 <b>Municipio:</b> <input type="text" id="municipio">`;
+                popupContent += `<b>Nombre del Propietario:</b> <input type="text" class="attribute-input" data-attr="nombrePropietario"><br>
+                                 <b>Cédula:</b> <input type="text" class="attribute-input" data-attr="cedula"><br>
+                                 <b>Género:</b> <input type="text" class="attribute-input" data-attr="genero"><br>
+                                 <b>Teléfono:</b> <input type="text" class="attribute-input" data-attr="telefono"><br>
+                                 <b>Vereda:</b> <input type="text" class="attribute-input" data-attr="vereda"><br>
+                                 <b>Municipio:</b> <input type="text" class="attribute-input" data-attr="municipio">`;
             }
 
             layer.bindPopup(popupContent).openPopup();
+
+            // Evento para guardar atributos al escribir
+            layer.on('popupopen', function () {
+                var inputs = document.querySelectorAll('.attribute-input');
+                inputs.forEach(input => {
+                    input.addEventListener('input', saveToLocalStorage);
+                });
+            });
+
             saveToLocalStorage();
         });
 
-        // Evento para eliminar y editar formas
-        map.on('draw:deleted', function () {
-            saveToLocalStorage();
-        });
-
-        map.on('draw:edited', function () {
-            saveToLocalStorage();
-        });
-
-        // Guardar GeoJSON en localStorage
+        // Guardar en localStorage
         function saveToLocalStorage() {
             var geojson = drawnItems.toGeoJSON();
             localStorage.setItem('geojsonData', JSON.stringify(geojson));
         }
 
-        // Exportar a GeoJSON
-        document.getElementById('exportGeoJSON').addEventListener('click', function () {
-            var geojson = drawnItems.toGeoJSON();
-            var blob = new Blob([JSON.stringify(geojson)], { type: "application/json" });
-            var a = document.createElement('a');
-            a.href = URL.createObjectURL(blob);
-            a.download = 'mapa.geojson';
-            a.click();
-        });
-
-        // Botón GPS con zoom
+        // GPS
         document.getElementById('gpsButton').addEventListener('click', function () {
             map.locate({ setView: true, maxZoom: 16 });
         });
@@ -185,6 +173,16 @@
         map.on('locationfound', function (e) {
             L.marker(e.latlng).addTo(map).bindPopup("Tu ubicación actual").openPopup();
             map.setView(e.latlng, 16);
+        });
+
+        // Exportar
+        document.getElementById('exportGeoJSON').addEventListener('click', function () {
+            var geojson = drawnItems.toGeoJSON();
+            var blob = new Blob([JSON.stringify(geojson)], { type: "application/json" });
+            var a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = 'mapa.geojson';
+            a.click();
         });
     </script>
 </body>
