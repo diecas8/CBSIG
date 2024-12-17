@@ -3,20 +3,26 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Geoportal Completo y Funcional</title>
+    <title>Geoportal Completo</title>
 
     <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/leaflet.css" />
-    <!-- Leaflet Draw CSS -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css" />
-    <!-- Font Awesome CSS -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <style>
         body { margin: 0; font-family: Arial, sans-serif; }
         #map { height: 100vh; }
-
-        /* Controles de botones */
+        .bottom-text {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            z-index: 1000;
+            background-color: rgba(255, 255, 255, 0.9);
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-size: 12px;
+        }
         .top-right {
             position: absolute;
             top: 10px;
@@ -25,10 +31,6 @@
             display: flex;
             flex-direction: column;
             gap: 8px;
-            background: rgba(255, 255, 255, 0.9);
-            padding: 10px;
-            border-radius: 8px;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
         }
         .top-right button {
             border: none;
@@ -39,43 +41,21 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 14px;
             box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
-        }
-        .top-right button i { margin-right: 5px; }
-
-        /* Texto de autor */
-        .bottom-text {
-            position: absolute;
-            bottom: 10px;
-            right: 10px;
-            z-index: 1000;
-            font-size: 12px;
-            color: #333;
-            background-color: rgba(255, 255, 255, 0.8);
-            padding: 5px 10px;
-            border-radius: 5px;
         }
     </style>
 </head>
 <body>
-    <!-- Contenedor del mapa -->
     <div id="map"></div>
 
-    <!-- Botones -->
+    <!-- Controles -->
     <div class="top-right">
-        <button id="exportGeoJSON" title="Exportar a GeoJSON">
-            <i class="fa fa-download"></i> Exportar
-        </button>
+        <button id="exportGeoJSON"><i class="fa fa-download"></i> Exportar GeoJSON</button>
         <label>
             <input type="file" id="importGeoJSON" accept=".geojson" style="display: none;">
-            <button id="selectFile" title="Importar GeoJSON">
-                <i class="fa fa-file-upload"></i> Importar
-            </button>
+            <button id="selectFile"><i class="fa fa-file-upload"></i> Importar GeoJSON</button>
         </label>
-        <button id="gpsButton" title="Centrar en mi ubicación">
-            <i class="fa fa-location-arrow"></i> GPS
-        </button>
+        <button id="gpsButton"><i class="fa fa-location-arrow"></i> GPS</button>
     </div>
 
     <!-- Texto de autor -->
@@ -83,68 +63,65 @@
 
     <!-- Leaflet JS -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/leaflet.js"></script>
-    <!-- Leaflet Draw JS -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet-geometryutil/0.9.3/leaflet.geometryutil.min.js"></script>
 
     <script>
-        // Inicialización del mapa
         var map = L.map('map').setView([4.60971, -74.08175], 12);
 
-        // Capas base
-        var openStreetMap = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '&copy; OpenStreetMap contributors'
-        });
+        // Mapas base
+        var openStreetMap = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenStreetMap' });
+        var googleSatellite = L.tileLayer('https://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', { subdomains: ['mt0', 'mt1', 'mt2', 'mt3'] });
+        var openTopoMap = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', { attribution: 'OpenTopoMap' });
+        var cartoDBLight = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', { attribution: 'CartoDB' });
 
-        var googleSatellite = L.tileLayer('https://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', {
-            maxZoom: 20,
-            subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
-            attribution: '&copy; Google Maps'
-        });
-
-        // Agregar OpenStreetMap por defecto
         openStreetMap.addTo(map);
 
-        // Selector de capas base
         var baseMaps = {
             "OpenStreetMap": openStreetMap,
-            "Google Satélite": googleSatellite
+            "Google Satélite": googleSatellite,
+            "OpenTopoMap": openTopoMap,
+            "CartoDB Light": cartoDBLight
         };
         L.control.layers(baseMaps).addTo(map);
 
-        // Herramientas de dibujo
+        // Capa de dibujos
         var drawnItems = new L.FeatureGroup();
         map.addLayer(drawnItems);
 
+        // Herramientas de dibujo
         var drawControl = new L.Control.Draw({
             edit: { featureGroup: drawnItems },
-            draw: {
-                polygon: true,
-                polyline: true,
-                marker: true,
-                circle: false,
-                rectangle: false
-            }
+            draw: { polygon: true, polyline: true, marker: true }
         });
         map.addControl(drawControl);
 
+        // Función de atributos
         map.on('draw:created', function (e) {
             var layer = e.layer;
-            drawnItems.addLayer(layer);
+            var popupContent = `<b>Código de Finca:</b> <input type="text" id="codigoFinca"><br>`;
 
-            // Capturar atributos
-            var popupContent = '<b>Código de Finca:</b><br><input type="text" placeholder="Ejemplo: 12345"/><br>';
             if (e.layerType === 'polygon') {
                 var area = L.GeometryUtil.geodesicArea(layer.getLatLngs()[0]) / 10000;
-                popupContent += '<b>Área (ha):</b> ' + area.toFixed(2);
-            }
-            if (e.layerType === 'polyline') {
+                popupContent += `<b>Área (ha):</b> ${area.toFixed(2)}<br>`;
+                popupContent += `<b>Nombre del Cultivo:</b> <input type="text" id="nombreCultivo">`;
+            } else if (e.layerType === 'polyline') {
                 var length = calcularLongitud(layer);
-                popupContent += '<b>Longitud (m):</b> ' + length.toFixed(2);
+                popupContent += `<b>Longitud (m):</b> ${length.toFixed(2)}<br>`;
+                popupContent += `<b>Tipo de Línea:</b> <input type="text" id="tipoLinea">`;
+            } else if (e.layerType === 'marker') {
+                popupContent += `<b>Nombre del Propietario:</b> <input type="text" id="nombreProp"><br>
+                                 <b>Cédula:</b> <input type="text" id="cedula"><br>
+                                 <b>Género:</b> <input type="text" id="genero"><br>
+                                 <b>Teléfono:</b> <input type="text" id="telefono"><br>
+                                 <b>Vereda:</b> <input type="text" id="vereda"><br>
+                                 <b>Municipio:</b> <input type="text" id="municipio">`;
             }
+
             layer.bindPopup(popupContent).openPopup();
+            drawnItems.addLayer(layer);
         });
 
-        // Función para calcular longitud
         function calcularLongitud(layer) {
             var latlngs = layer.getLatLngs();
             var length = 0;
@@ -153,20 +130,6 @@
             }
             return length;
         }
-
-        // Botón GPS
-        document.getElementById('gpsButton').addEventListener('click', function () {
-            map.locate({ setView: true, maxZoom: 16 });
-        });
-
-        map.on('locationfound', function (e) {
-            L.circle(e.latlng, { radius: e.accuracy }).addTo(map);
-            L.marker(e.latlng).addTo(map).bindPopup("Tu ubicación actual").openPopup();
-        });
-
-        map.on('locationerror', function () {
-            alert("No se pudo obtener la ubicación.");
-        });
 
         // Exportar a GeoJSON
         document.getElementById('exportGeoJSON').addEventListener('click', function () {
@@ -193,6 +156,14 @@
                 };
                 reader.readAsText(file);
             }
+        });
+
+        // GPS
+        document.getElementById('gpsButton').addEventListener('click', function () {
+            map.locate({ setView: true, maxZoom: 16 });
+        });
+        map.on('locationfound', function (e) {
+            L.marker(e.latlng).addTo(map).bindPopup("Tu ubicación actual").openPopup();
         });
     </script>
 </body>
