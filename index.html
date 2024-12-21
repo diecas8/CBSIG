@@ -107,7 +107,7 @@
                 L.geoJSON(geojson, {
                     onEachFeature: function (feature, layer) {
                         if (feature.properties && feature.properties.popupContent) {
-                            layer.bindPopup(feature.properties.popupContent);
+                            layer.bindPopup(feature.properties.popupContent).openPopup();
                         }
                     }
                 }).addTo(drawnItems);
