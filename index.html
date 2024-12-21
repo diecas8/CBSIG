@@ -95,7 +95,6 @@
         const drawnItems = new L.FeatureGroup();
         map.addLayer(drawnItems);
 
-        // Cargar geometrías desde localStorage
         function loadFromLocalStorage() {
             const savedData = localStorage.getItem('geojsonData');
             if (savedData) {
@@ -122,19 +121,48 @@
         });
         map.addControl(drawControl);
 
-        // Crear geometrías
         map.on('draw:created', function (e) {
             const layer = e.layer;
             const layerType = e.layerType;
 
             drawnItems.addLayer(layer);
 
-            const popupContent = createPopupContent({}, layerType);
+            let properties = {};
+            if (layerType === 'polygon') {
+                const area = L.GeometryUtil.geodesicArea(layer.getLatLngs()[0]) / 10000; // Área en hectáreas
+                properties.area = area.toFixed(2);
+            } else if (layerType === 'polyline') {
+                const length = calculateLength(layer.getLatLngs()); // Longitud en metros
+                properties.longitud = length.toFixed(2);
+            }
+
+            const popupContent = createPopupContent(properties, layerType);
+            layer.feature = { type: 'Feature', properties };
             layer.bindPopup(popupContent).openPopup();
         });
 
-        map.on('draw:edited', saveToLocalStorage);
+        map.on('draw:edited', function () {
+            drawnItems.eachLayer(function (layer) {
+                if (layer.feature && layer.feature.geometry.type === 'Polygon') {
+                    const area = L.GeometryUtil.geodesicArea(layer.getLatLngs()[0]) / 10000; // Recalcular área
+                    layer.feature.properties.area = area.toFixed(2);
+                } else if (layer.feature && layer.feature.geometry.type === 'LineString') {
+                    const length = calculateLength(layer.getLatLngs()); // Recalcular longitud
+                    layer.feature.properties.longitud = length.toFixed(2);
+                }
+            });
+            saveToLocalStorage();
+        });
+
         map.on('draw:deleted', saveToLocalStorage);
+
+        function calculateLength(latlngs) {
+            let length = 0;
+            for (let i = 1; i < latlngs.length; i++) {
+                length += latlngs[i - 1].distanceTo(latlngs[i]);
+            }
+            return length;
+        }
 
         function createPopupContent(properties = {}, type = '') {
             const inputs = `
