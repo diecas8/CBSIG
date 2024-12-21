@@ -174,8 +174,8 @@
                     var value = input.value;
                     layer.feature.properties[attr] = value; // Guardar en las propiedades
                 });
-                layer.closePopup();
-                saveToLocalStorage();
+                layer.closePopup(); // Cerrar el popup al guardar
+                saveToLocalStorage(); // Guardar en localStorage
             }
         }
 
