@@ -95,6 +95,7 @@
         const drawnItems = new L.FeatureGroup();
         map.addLayer(drawnItems);
 
+        // Cargar geometrías desde localStorage
         function loadFromLocalStorage() {
             const savedData = localStorage.getItem('geojsonData');
             if (savedData) {
@@ -103,7 +104,7 @@
                     L.geoJSON(geojson, {
                         onEachFeature: function (feature, layer) {
                             if (feature.properties) {
-                                const popupContent = createPopupContent(feature.properties);
+                                const popupContent = createPopupContent(feature.properties, layer.feature.geometry.type.toLowerCase());
                                 layer.bindPopup(popupContent);
                             }
                         }
@@ -121,6 +122,7 @@
         });
         map.addControl(drawControl);
 
+        // Crear geometrías
         map.on('draw:created', function (e) {
             const layer = e.layer;
             const layerType = e.layerType;
@@ -137,17 +139,17 @@
         function createPopupContent(properties = {}, type = '') {
             const inputs = `
                 <b>Código de Finca:</b> <input type="text" value="${properties.codigoFinca || ''}" data-attr="codigoFinca"><br>
-                ${type === 'polygon' ? `<b>Nombre del Cultivo:</b> <input type="text" value="${properties.nombreCultivo || ''}" data-attr="nombreCultivo"><br>` : ''}
-                ${type === 'polyline' ? `<b>Tipo de Línea:</b> <input type="text" value="${properties.tipoLinea || ''}" data-attr="tipoLinea"><br>` : ''}
-                ${type === 'polyline' ? `<b>Longitud:</b> <input type="text" value="${properties.longitud || ''}" readonly><br>` : ''}
+                ${type === 'polygon' ? `<b>Nombre del Cultivo:</b> <input type="text" value="${properties.nombreCultivo || ''}" data-attr="nombreCultivo"><br>
+                <b>Área (ha):</b> ${properties.area || ''}` : ''}
+                ${type === 'polyline' ? `<b>Tipo de Línea:</b> <input type="text" value="${properties.tipoLinea || ''}" data-attr="tipoLinea"><br>
+                <b>Longitud (m):</b> ${properties.longitud || ''}` : ''}
                 ${type === 'marker' ? `
                     <b>Nombre del Propietario:</b> <input type="text" value="${properties.nombrePropietario || ''}" data-attr="nombrePropietario"><br>
                     <b>Cédula:</b> <input type="text" value="${properties.cedula || ''}" data-attr="cedula"><br>
                     <b>Género:</b> <input type="text" value="${properties.genero || ''}" data-attr="genero"><br>
                     <b>Teléfono:</b> <input type="text" value="${properties.telefono || ''}" data-attr="telefono"><br>
                     <b>Vereda:</b> <input type="text" value="${properties.vereda || ''}" data-attr="vereda"><br>
-                    <b>Municipio:</b> <input type="text" value="${properties.municipio || ''}" data-attr="municipio"><br>
-                ` : ''}
+                    <b>Municipio:</b> <input type="text" value="${properties.municipio || ''}" data-attr="municipio"><br>` : ''}
                 <button onclick="saveAttributes(this)">Guardar</button>
             `;
             return inputs;
@@ -167,7 +169,7 @@
                     const value = input.value;
                     layer.feature.properties[attr] = value;
                 });
-                const popupContent = createPopupContent(layer.feature.properties);
+                const popupContent = createPopupContent(layer.feature.properties, layer.feature.geometry.type.toLowerCase());
                 layer.bindPopup(popupContent);
                 layer.closePopup();
                 saveToLocalStorage();
