@@ -106,7 +106,7 @@
         var drawnItems = new L.FeatureGroup();
         map.addLayer(drawnItems);
 
-        // Función para cargar desde localStorage
+        // Cargar geometrías desde localStorage
         function loadFromLocalStorage() {
             var savedData = localStorage.getItem('geojsonData');
             if (savedData) {
@@ -135,6 +135,7 @@
         });
         map.addControl(drawControl);
 
+        // Al crear una nueva geometría
         map.on('draw:created', function (e) {
             var layer = e.layer;
             drawnItems.addLayer(layer);
@@ -144,7 +145,7 @@
         map.on('draw:edited', saveToLocalStorage);
         map.on('draw:deleted', saveToLocalStorage);
 
-        // Agregar popup con atributos
+        // Agregar popup con formulario de atributos
         function addAttributesPopup(layer, type) {
             var popupContent = '<b>Código de Finca:</b> <input type="text" class="attribute-input" data-attr="codigoFinca"><br>';
             if (type === 'polygon') {
