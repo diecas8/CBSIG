@@ -90,10 +90,17 @@
 
         // Capas base
         var openStreetMap = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenStreetMap' });
-        var googleSatellite = L.tileLayer('https://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', { subdomains: ['mt0', 'mt1', 'mt2', 'mt3'] });
+        var googleSatellite = L.tileLayer('https://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', { subdomains: ['mt0', 'mt1', 'mt2', 'mt3'], attribution: '&copy; Google' });
+        var esriWorldImagery = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { attribution: '&copy; ESRI' });
+
         openStreetMap.addTo(map);
 
-        var baseMaps = { "OpenStreetMap": openStreetMap, "Google Satélite": googleSatellite };
+        var baseMaps = {
+            "OpenStreetMap": openStreetMap,
+            "Google Satélite": googleSatellite,
+            "ESRI World Imagery": esriWorldImagery
+        };
+
         L.control.layers(baseMaps).addTo(map);
 
         var drawnItems = new L.FeatureGroup();
@@ -107,7 +114,7 @@
                 L.geoJSON(geojson, {
                     onEachFeature: function (feature, layer) {
                         if (feature.properties && feature.properties.popupContent) {
-                            layer.bindPopup(feature.properties.popupContent).openPopup();
+                            layer.bindPopup(feature.properties.popupContent);
                         }
                     }
                 }).addTo(drawnItems);
@@ -200,6 +207,10 @@
         map.on('locationfound', function (e) {
             L.marker(e.latlng).addTo(map).bindPopup("Tu ubicación actual").openPopup();
             map.setView(e.latlng, 16);
+        });
+
+        map.on('locationerror', function () {
+            alert("No se pudo obtener la ubicación.");
         });
     </script>
 </body>
