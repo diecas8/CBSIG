@@ -79,18 +79,7 @@
 
         // Capas base
         const openStreetMap = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenStreetMap' });
-        const googleSatellite = L.tileLayer('https://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', { subdomains: ['mt0', 'mt1', 'mt2', 'mt3'], attribution: '&copy; Google' });
-        const esriWorldImagery = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { attribution: '&copy; ESRI' });
-
         openStreetMap.addTo(map);
-
-        const baseMaps = {
-            "OpenStreetMap": openStreetMap,
-            "Google Satélite": googleSatellite,
-            "ESRI World Imagery": esriWorldImagery
-        };
-
-        L.control.layers(baseMaps).addTo(map);
 
         const drawnItems = new L.FeatureGroup();
         map.addLayer(drawnItems);
@@ -122,7 +111,6 @@
         });
         map.addControl(drawControl);
 
-        // Crear geometrías
         map.on('draw:created', function (e) {
             const layer = e.layer;
             const layerType = e.layerType;
@@ -152,7 +140,6 @@
         map.on('draw:edited', saveToLocalStorage);
         map.on('draw:deleted', saveToLocalStorage);
 
-        // Crear contenido del popup
         function createPopupContent(properties = {}, type = '') {
             let content = `<b>Código de Finca:</b> <input type="text" value="${properties.codigoFinca || ''}" data-attr="codigoFinca"><br>`;
             if (type === 'polygon') {
@@ -173,7 +160,6 @@
             return content;
         }
 
-        // Guardar atributos y persistir en localStorage
         function saveAttributes(button) {
             const popup = button.closest('.leaflet-popup-content');
             const inputs = popup.querySelectorAll('[data-attr]');
