@@ -115,10 +115,7 @@
                     L.geoJSON(geojson, {
                         onEachFeature: function (feature, layer) {
                             if (feature.properties) {
-                                let popupContent = '';
-                                Object.keys(feature.properties).forEach(attr => {
-                                    popupContent += `<b>${attr}:</b> ${feature.properties[attr]}<br>`;
-                                });
+                                const popupContent = formatPopupContent(feature.properties);
                                 layer.bindPopup(popupContent);
                             }
                         }
@@ -130,43 +127,47 @@
         }
         loadFromLocalStorage();
 
-        // Control de dibujo y edición
+        // Herramientas de dibujo y edición
         const drawControl = new L.Control.Draw({
             edit: { featureGroup: drawnItems, remove: true },
             draw: { polygon: true, polyline: true, marker: true }
         });
         map.addControl(drawControl);
 
-        // Capturar atributos y guardar
+        // Crear geometrías
         map.on('draw:created', function (e) {
             const layer = e.layer;
+            const layerType = e.layerType;
+
+            // Agregar al grupo de geometrías
             drawnItems.addLayer(layer);
-            const popupContent = getPopupContent(layer, e.layerType);
+
+            // Mostrar popup para ingresar atributos
+            const popupContent = getPopupContent(layerType, layer);
             layer.bindPopup(popupContent).openPopup();
         });
 
         map.on('draw:edited', saveToLocalStorage);
         map.on('draw:deleted', saveToLocalStorage);
 
-        function getPopupContent(layer, type) {
-            const layerId = L.Util.stamp(layer);
-            let content = `<b>Código de Finca:</b> <input type="text" class="attribute-input" data-attr="codigoFinca" data-id="${layerId}"><br>`;
+        function getPopupContent(type, layer) {
+            let content = '<b>Código de Finca:</b> <input type="text" class="attribute-input" data-attr="codigoFinca"><br>';
             if (type === 'polygon') {
-                content += '<b>Nombre del Cultivo:</b> <input type="text" class="attribute-input" data-attr="nombreCultivo" data-id="' + layerId + '"><br>';
+                content += '<b>Nombre del Cultivo:</b> <input type="text" class="attribute-input" data-attr="nombreCultivo"><br>';
             } else if (type === 'polyline') {
-                content += '<b>Tipo de Línea:</b> <input type="text" class="attribute-input" data-attr="tipoLinea" data-id="' + layerId + '"><br>';
-                content += '<b>Longitud:</b> <input type="text" class="attribute-input" data-attr="longitud" readonly data-id="' + layerId + '"><br>';
+                content += '<b>Tipo de Línea:</b> <input type="text" class="attribute-input" data-attr="tipoLinea"><br>';
+                content += '<b>Longitud:</b> <input type="text" class="attribute-input" data-attr="longitud" readonly><br>';
             } else if (type === 'marker') {
-                content += '<b>Nombre del Propietario:</b> <input type="text" class="attribute-input" data-attr="nombrePropietario" data-id="' + layerId + '"><br>';
+                content += '<b>Nombre del Propietario:</b> <input type="text" class="attribute-input" data-attr="nombrePropietario"><br>';
             }
-            content += '<button onclick="saveAttributes(' + layerId + ')">Guardar</button>';
+            content += '<button onclick="saveAttributes(this)">Guardar</button>';
             return content;
         }
 
-        function saveAttributes(layerId) {
-            const layer = drawnItems.getLayer(layerId);
-            const popup = document.querySelector(`[data-id="${layerId}"]`).closest('.leaflet-popup-content');
+        function saveAttributes(button) {
+            const popup = button.closest('.leaflet-popup-content');
             const inputs = popup.querySelectorAll('.attribute-input');
+            const layer = drawnItems.getLayers().find(l => l.getPopup().getContent().includes(button.outerHTML));
 
             if (layer) {
                 if (!layer.feature) {
@@ -177,9 +178,24 @@
                     const value = input.value;
                     layer.feature.properties[attr] = value;
                 });
+
+                // Actualizar popup con nuevos atributos
+                const popupContent = formatPopupContent(layer.feature.properties);
+                layer.bindPopup(popupContent);
                 layer.closePopup();
-                saveToLocalStorage();
+
+                saveToLocalStorage(); // Guardar en localStorage
             }
+        }
+
+        function formatPopupContent(properties) {
+            let content = '';
+            for (const key in properties) {
+                if (properties.hasOwnProperty(key)) {
+                    content += `<b>${key}:</b> ${properties[key]}<br>`;
+                }
+            }
+            return content;
         }
 
         function saveToLocalStorage() {
@@ -227,4 +243,3 @@
     </script>
 </body>
 </html>
-
