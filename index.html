@@ -106,18 +106,28 @@
         var drawnItems = new L.FeatureGroup();
         map.addLayer(drawnItems);
 
-        // Cargar desde localStorage
+        // Función para validar y cargar desde localStorage
         function loadFromLocalStorage() {
             var savedData = localStorage.getItem('geojsonData');
             if (savedData) {
-                var geojson = JSON.parse(savedData);
-                L.geoJSON(geojson, {
-                    onEachFeature: function (feature, layer) {
-                        if (feature.properties && feature.properties.popupContent) {
-                            layer.bindPopup(feature.properties.popupContent);
-                        }
+                try {
+                    var geojson = JSON.parse(savedData);
+                    if (geojson && geojson.type === "FeatureCollection") {
+                        L.geoJSON(geojson, {
+                            onEachFeature: function (feature, layer) {
+                                if (feature.properties && feature.properties.popupContent) {
+                                    layer.bindPopup(feature.properties.popupContent);
+                                }
+                            }
+                        }).addTo(drawnItems);
+                    } else {
+                        console.warn("Los datos en localStorage no son válidos. Se limpiará localStorage.");
+                        localStorage.removeItem('geojsonData');
                     }
-                }).addTo(drawnItems);
+                } catch (error) {
+                    console.error("Error al cargar GeoJSON desde localStorage:", error);
+                    localStorage.removeItem('geojsonData');
+                }
             }
         }
         loadFromLocalStorage();
