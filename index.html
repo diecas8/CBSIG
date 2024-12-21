@@ -157,23 +157,38 @@
             }
             popupContent += '<button onclick="saveAttributes(this)">Guardar</button>';
             layer.bindPopup(popupContent).openPopup();
+
+            layer.on('popupclose', function () {
+                var inputs = document.querySelectorAll('.attribute-input');
+                if (!layer.feature) {
+                    layer.feature = { type: 'Feature', properties: {} }; // Crear la estructura básica si no existe
+                }
+                inputs.forEach(input => {
+                    var attr = input.dataset.attr;
+                    var value = input.value;
+                    layer.feature.properties[attr] = value; // Guardar los atributos
+                });
+                saveToLocalStorage(); // Actualizar localStorage
+            });
         }
 
-        // Guardar atributos en las propiedades de la geometría
+        // Guardar atributos al hacer clic en "Guardar"
         function saveAttributes(button) {
             var popup = button.closest('.leaflet-popup-content');
             var inputs = popup.querySelectorAll('.attribute-input');
             var layer = drawnItems.getLayers().find(l => l.getPopup().getContent().includes(button.outerHTML));
 
             if (layer) {
-                layer.feature = layer.feature || { properties: {} };
+                if (!layer.feature) {
+                    layer.feature = { type: 'Feature', properties: {} }; // Crear la estructura básica si no existe
+                }
                 inputs.forEach(input => {
                     var attr = input.dataset.attr;
                     var value = input.value;
-                    layer.feature.properties[attr] = value;
+                    layer.feature.properties[attr] = value; // Guardar los atributos
                 });
                 layer.closePopup();
-                saveToLocalStorage();
+                saveToLocalStorage(); // Actualizar localStorage
             }
         }
 
