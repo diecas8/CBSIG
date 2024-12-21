@@ -106,7 +106,7 @@
         var drawnItems = new L.FeatureGroup();
         map.addLayer(drawnItems);
 
-        // Función para validar y cargar desde localStorage
+        // Función para cargar desde localStorage
         function loadFromLocalStorage() {
             var savedData = localStorage.getItem('geojsonData');
             if (savedData) {
@@ -120,13 +120,9 @@
                                 }
                             }
                         }).addTo(drawnItems);
-                    } else {
-                        console.warn("Los datos en localStorage no son válidos. Se limpiará localStorage.");
-                        localStorage.removeItem('geojsonData');
                     }
                 } catch (error) {
                     console.error("Error al cargar GeoJSON desde localStorage:", error);
-                    localStorage.removeItem('geojsonData');
                 }
             }
         }
@@ -159,69 +155,33 @@
             } else if (type === 'marker') {
                 popupContent += `<b>Nombre del Propietario:</b> <input type="text" class="attribute-input" data-attr="nombrePropietario"><br>`;
             }
+            popupContent += '<button onclick="saveAttributes(this)">Guardar</button>';
             layer.bindPopup(popupContent).openPopup();
+        }
 
-            layer.on('popupopen', function () {
-                var inputs = document.querySelectorAll('.attribute-input');
+        // Guardar atributos en las propiedades de la geometría
+        function saveAttributes(button) {
+            var popup = button.closest('.leaflet-popup-content');
+            var inputs = popup.querySelectorAll('.attribute-input');
+            var layer = drawnItems.getLayers().find(l => l.getPopup().getContent().includes(button.outerHTML));
+
+            if (layer) {
+                layer.feature = layer.feature || { properties: {} };
                 inputs.forEach(input => {
-                    input.addEventListener('input', saveToLocalStorage);
+                    var attr = input.dataset.attr;
+                    var value = input.value;
+                    layer.feature.properties[attr] = value;
                 });
-            });
+                layer.closePopup();
+                saveToLocalStorage();
+            }
         }
 
         // Guardar en localStorage
         function saveToLocalStorage() {
             var geojson = drawnItems.toGeoJSON();
-            geojson.features.forEach(function (feature, i) {
-                var layer = drawnItems.getLayers()[i];
-                if (layer && layer.getPopup()) {
-                    feature.properties = { popupContent: layer.getPopup().getContent() };
-                }
-            });
             localStorage.setItem('geojsonData', JSON.stringify(geojson));
         }
-
-        // Exportar GeoJSON
-        document.getElementById('exportGeoJSON').addEventListener('click', function () {
-            var geojson = drawnItems.toGeoJSON();
-            var blob = new Blob([JSON.stringify(geojson)], { type: "application/json" });
-            var a = document.createElement('a');
-            a.href = URL.createObjectURL(blob);
-            a.download = 'mapa.geojson';
-            a.click();
-        });
-
-        // Importar GeoJSON
-        document.getElementById('selectFile').addEventListener('click', function () {
-            document.getElementById('importGeoJSON').click();
-        });
-
-        document.getElementById('importGeoJSON').addEventListener('change', function (e) {
-            var file = e.target.files[0];
-            if (file) {
-                var reader = new FileReader();
-                reader.onload = function (event) {
-                    var geojson = JSON.parse(event.target.result);
-                    L.geoJSON(geojson).addTo(drawnItems);
-                    saveToLocalStorage();
-                };
-                reader.readAsText(file);
-            }
-        });
-
-        // GPS
-        document.getElementById('gpsButton').addEventListener('click', function () {
-            map.locate({ setView: true, maxZoom: 16 });
-        });
-
-        map.on('locationfound', function (e) {
-            L.marker(e.latlng).addTo(map).bindPopup("Tu ubicación actual").openPopup();
-            map.setView(e.latlng, 16);
-        });
-
-        map.on('locationerror', function () {
-            alert("No se pudo obtener la ubicación.");
-        });
     </script>
 </body>
 </html>
