@@ -145,34 +145,33 @@
         map.on('draw:edited', saveToLocalStorage);
         map.on('draw:deleted', saveToLocalStorage);
 
-        // Agregar popup con atributos
+        // Agregar popup con atributos específicos
         function addAttributesPopup(layer, type) {
             var popupContent = '<b>Código de Finca:</b> <input type="text" class="attribute-input" data-attr="codigoFinca"><br>';
             if (type === 'polygon') {
                 popupContent += `<b>Nombre del Cultivo:</b> <input type="text" class="attribute-input" data-attr="nombreCultivo"><br>`;
+                popupContent += `<b>Área:</b> <input type="text" class="attribute-input" data-attr="area" readonly><br>`;
             } else if (type === 'polyline') {
                 popupContent += `<b>Tipo de Línea:</b> <input type="text" class="attribute-input" data-attr="tipoLinea"><br>`;
+                popupContent += `<b>Longitud:</b> <input type="text" class="attribute-input" data-attr="longitud" readonly><br>`;
             } else if (type === 'marker') {
                 popupContent += `<b>Nombre del Propietario:</b> <input type="text" class="attribute-input" data-attr="nombrePropietario"><br>`;
+                popupContent += `<b>Cédula:</b> <input type="text" class="attribute-input" data-attr="cedula"><br>`;
+                popupContent += `<b>Género:</b> <input type="text" class="attribute-input" data-attr="genero"><br>`;
+                popupContent += `<b>Teléfono:</b> <input type="text" class="attribute-input" data-attr="telefono"><br>`;
+                popupContent += `<b>Vereda:</b> <input type="text" class="attribute-input" data-attr="vereda"><br>`;
+                popupContent += `<b>Municipio:</b> <input type="text" class="attribute-input" data-attr="municipio"><br>`;
             }
             popupContent += '<button onclick="saveAttributes(this)">Guardar</button>';
             layer.bindPopup(popupContent).openPopup();
 
-            layer.on('popupclose', function () {
-                var inputs = document.querySelectorAll('.attribute-input');
-                if (!layer.feature) {
-                    layer.feature = { type: 'Feature', properties: {} }; // Crear la estructura básica si no existe
-                }
-                inputs.forEach(input => {
-                    var attr = input.dataset.attr;
-                    var value = input.value;
-                    layer.feature.properties[attr] = value; // Guardar los atributos
-                });
-                saveToLocalStorage(); // Actualizar localStorage
-            });
+            if (type === 'polygon') {
+                var area = L.GeometryUtil.geodesicArea(layer.getLatLngs()[0]) / 10000;
+                popupContent = popupContent.replace('data-attr="area" readonly>', `value="${area.toFixed(2)}" readonly>`);
+            }
         }
 
-        // Guardar atributos al hacer clic en "Guardar"
+        // Guardar atributos
         function saveAttributes(button) {
             var popup = button.closest('.leaflet-popup-content');
             var inputs = popup.querySelectorAll('.attribute-input');
@@ -180,15 +179,15 @@
 
             if (layer) {
                 if (!layer.feature) {
-                    layer.feature = { type: 'Feature', properties: {} }; // Crear la estructura básica si no existe
+                    layer.feature = { type: 'Feature', properties: {} }; // Crear estructura básica
                 }
                 inputs.forEach(input => {
                     var attr = input.dataset.attr;
                     var value = input.value;
-                    layer.feature.properties[attr] = value; // Guardar los atributos
+                    layer.feature.properties[attr] = value; // Guardar en propiedades
                 });
                 layer.closePopup();
-                saveToLocalStorage(); // Actualizar localStorage
+                saveToLocalStorage();
             }
         }
 
