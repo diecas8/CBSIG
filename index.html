@@ -182,6 +182,48 @@
             var geojson = drawnItems.toGeoJSON();
             localStorage.setItem('geojsonData', JSON.stringify(geojson));
         }
+
+        // Exportar GeoJSON
+        document.getElementById('exportGeoJSON').addEventListener('click', function () {
+            var geojson = drawnItems.toGeoJSON();
+            var blob = new Blob([JSON.stringify(geojson)], { type: "application/json" });
+            var a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = 'mapa.geojson';
+            a.click();
+        });
+
+        // Importar GeoJSON
+        document.getElementById('selectFile').addEventListener('click', function () {
+            document.getElementById('importGeoJSON').click();
+        });
+
+        document.getElementById('importGeoJSON').addEventListener('change', function (e) {
+            var file = e.target.files[0];
+            if (file) {
+                var reader = new FileReader();
+                reader.onload = function (event) {
+                    var geojson = JSON.parse(event.target.result);
+                    L.geoJSON(geojson).addTo(drawnItems);
+                    saveToLocalStorage();
+                };
+                reader.readAsText(file);
+            }
+        });
+
+        // GPS
+        document.getElementById('gpsButton').addEventListener('click', function () {
+            map.locate({ setView: true, maxZoom: 16 });
+        });
+
+        map.on('locationfound', function (e) {
+            L.marker(e.latlng).addTo(map).bindPopup("Tu ubicación actual").openPopup();
+            map.setView(e.latlng, 16);
+        });
+
+        map.on('locationerror', function () {
+            alert("No se pudo obtener la ubicación.");
+        });
     </script>
 </body>
 </html>
