@@ -14,7 +14,6 @@
         body { margin: 0; font-family: Arial, sans-serif; }
         #map { height: 100vh; }
 
-        /* Controles en la parte inferior izquierda */
         .bottom-left {
             position: absolute;
             bottom: 10px;
@@ -77,7 +76,6 @@
     <script>
         const map = L.map('map').setView([4.60971, -74.08175], 6);
 
-        // Capas base
         const openStreetMap = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenStreetMap' });
         openStreetMap.addTo(map);
 
@@ -115,21 +113,16 @@
             const layer = e.layer;
             const layerType = e.layerType;
 
-            // Cálculo de área o longitud según el tipo de geometría
+            if (!layer.feature) {
+                layer.feature = { type: 'Feature', properties: {}, geometry: null };
+            }
+
             if (layerType === 'polygon') {
                 const area = L.GeometryUtil.geodesicArea(layer.getLatLngs()[0]);
-                layer.feature = {
-                    type: 'Feature',
-                    properties: { area: (area / 10000).toFixed(2) }, // Convertir a hectáreas
-                    geometry: null
-                };
+                layer.feature.properties.area = (area / 10000).toFixed(2); // Convertir a hectáreas
             } else if (layerType === 'polyline') {
                 const length = calculateLength(layer.getLatLngs());
-                layer.feature = {
-                    type: 'Feature',
-                    properties: { longitud: length.toFixed(2) }, // Longitud en metros
-                    geometry: null
-                };
+                layer.feature.properties.longitud = length.toFixed(2); // Longitud en metros
             }
 
             drawnItems.addLayer(layer);
@@ -148,13 +141,6 @@
             } else if (type === 'polyline') {
                 content += `<b>Tipo de Línea:</b> <input type="text" value="${properties.tipoLinea || ''}" data-attr="tipoLinea"><br>
                             <b>Longitud (m):</b> ${properties.longitud || '0.00'}<br>`;
-            } else if (type === 'marker') {
-                content += `<b>Nombre del Propietario:</b> <input type="text" value="${properties.nombrePropietario || ''}" data-attr="nombrePropietario"><br>
-                            <b>Cédula:</b> <input type="text" value="${properties.cedula || ''}" data-attr="cedula"><br>
-                            <b>Género:</b> <input type="text" value="${properties.genero || ''}" data-attr="genero"><br>
-                            <b>Teléfono:</b> <input type="text" value="${properties.telefono || ''}" data-attr="telefono"><br>
-                            <b>Vereda:</b> <input type="text" value="${properties.vereda || ''}" data-attr="vereda"><br>
-                            <b>Municipio:</b> <input type="text" value="${properties.municipio || ''}" data-attr="municipio"><br>`;
             }
             content += '<button onclick="saveAttributes(this)">Guardar</button>';
             return content;
@@ -167,17 +153,15 @@
 
             if (layer) {
                 if (!layer.feature) {
-                    layer.feature = { type: 'Feature', properties: {} };
+                    layer.feature = { type: 'Feature', properties: {}, geometry: null };
                 }
                 inputs.forEach(input => {
                     const attr = input.dataset.attr;
                     const value = input.value;
                     layer.feature.properties[attr] = value;
                 });
-                const popupContent = createPopupContent(layer.feature.properties, layer.feature.geometry.type.toLowerCase());
-                layer.bindPopup(popupContent);
-                layer.closePopup();
                 saveToLocalStorage();
+                layer.closePopup();
             }
         }
 
@@ -186,7 +170,6 @@
             localStorage.setItem('geojsonData', JSON.stringify(geojson));
         }
 
-        // Cálculo de longitud para líneas
         function calculateLength(latlngs) {
             let length = 0;
             for (let i = 1; i < latlngs.length; i++) {
