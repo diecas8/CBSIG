@@ -141,6 +141,13 @@
             } else if (type === 'polyline') {
                 content += `<b>Tipo de Línea:</b> <input type="text" value="${properties.tipoLinea || ''}" data-attr="tipoLinea"><br>
                             <b>Longitud (m):</b> ${properties.longitud || '0.00'}<br>`;
+            } else if (type === 'marker') {
+                content += `<b>Nombre del Propietario:</b> <input type="text" value="${properties.nombrePropietario || ''}" data-attr="nombrePropietario"><br>
+                            <b>Cédula:</b> <input type="text" value="${properties.cedula || ''}" data-attr="cedula"><br>
+                            <b>Género:</b> <input type="text" value="${properties.genero || ''}" data-attr="genero"><br>
+                            <b>Teléfono:</b> <input type="text" value="${properties.telefono || ''}" data-attr="telefono"><br>
+                            <b>Vereda:</b> <input type="text" value="${properties.vereda || ''}" data-attr="vereda"><br>
+                            <b>Municipio:</b> <input type="text" value="${properties.municipio || ''}" data-attr="municipio"><br>`;
             }
             content += '<button onclick="saveAttributes(this)">Guardar</button>';
             return content;
@@ -160,8 +167,10 @@
                     const value = input.value;
                     layer.feature.properties[attr] = value;
                 });
-                saveToLocalStorage();
+                const popupContent = createPopupContent(layer.feature.properties, layer.feature.geometry.type.toLowerCase());
+                layer.bindPopup(popupContent);
                 layer.closePopup();
+                saveToLocalStorage();
             }
         }
 
