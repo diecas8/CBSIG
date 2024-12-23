@@ -202,6 +202,18 @@
             }
         }
 
+        document.getElementById('gpsButton').addEventListener('click', () => {
+            map.locate({ setView: true, maxZoom: 16 });
+        });
+
+        map.on('locationfound', function (e) {
+            L.marker(e.latlng).addTo(map).bindPopup('Tu ubicación actual').openPopup();
+        });
+
+        map.on('locationerror', function () {
+            alert('No se pudo obtener la ubicación.');
+        });
+
         document.getElementById('osmBaseMap').addEventListener('click', () => {
             map.eachLayer(layer => map.removeLayer(layer));
             baseLayers.openStreetMap.addTo(map);
@@ -224,6 +236,40 @@
             map.eachLayer(layer => map.removeLayer(layer));
             baseLayers.googleHybrid.addTo(map);
             drawnItems.addTo(map);
+        });
+
+        document.getElementById('selectFile').addEventListener('click', () => {
+            document.getElementById('importGeoJSON').click();
+        });
+
+        document.getElementById('importGeoJSON').addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    const geojson = JSON.parse(event.target.result);
+                    L.geoJSON(geojson, {
+                        onEachFeature: (feature, layer) => {
+                            if (feature.properties) {
+                                const popupContent = Object.entries(feature.properties)
+                                    .map(([key, value]) => `<b>${key}:</b> ${value}<br>`)
+                                    .join('');
+                                layer.bindPopup(popupContent);
+                            }
+                        }
+                    }).addTo(drawnItems);
+                };
+                reader.readAsText(file);
+            }
+        });
+
+        document.getElementById('exportGeoJSON').addEventListener('click', () => {
+            const geojson = drawnItems.toGeoJSON();
+            const blob = new Blob([JSON.stringify(geojson)], { type: 'application/json' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = 'mapa.geojson';
+            a.click();
         });
     </script>
 </body>
