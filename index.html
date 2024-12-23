@@ -149,6 +149,20 @@
         });
         map.addControl(drawControl);
 
+        const layerList = document.getElementById('layerList');
+
+        function addLayerToList(layer, name) {
+            const listItem = document.createElement('li');
+            listItem.textContent = name;
+            const zoomButton = document.createElement('button');
+            zoomButton.textContent = 'Zoom';
+            zoomButton.addEventListener('click', () => {
+                map.fitBounds(layer.getBounds());
+            });
+            listItem.appendChild(zoomButton);
+            layerList.appendChild(listItem);
+        }
+
         map.on(L.Draw.Event.CREATED, function (e) {
             const layer = e.layer;
             let popupContent = '';
@@ -186,6 +200,7 @@
 
             layer.bindPopup(popupContent).openPopup();
             drawnItems.addLayer(layer);
+            addLayerToList(layer, e.layerType);
         });
 
         function saveAttributes(button) {
@@ -258,6 +273,7 @@
                             }
                         }
                     }).addTo(drawnItems);
+                    addLayerToList(drawnItems, file.name);
                 };
                 reader.readAsText(file);
             }
