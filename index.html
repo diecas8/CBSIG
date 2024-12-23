@@ -102,56 +102,56 @@
     <!-- Leaflet JS -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/leaflet.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet-geometryutil/0.9.3/leaflet.geometryutil.min.js"></script>
-
     <script>
         const map = L.map('map').setView([4.60971, -74.08175], 6);
 
         // Mapas base
         const openStreetMap = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenStreetMap contributors' });
-        const googleSatellite = L.tileLayer('https://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', {
-            subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
-            attribution: '&copy; Google'
-        });
-        const esriWorldImagery = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-            attribution: 'Tiles &copy; Esri, USGS, NOAA'
-        });
-
-        const baseMaps = {
-            "OpenStreetMap": openStreetMap,
-            "Google Satélite": googleSatellite,
-            "Esri World Imagery": esriWorldImagery
-        };
         openStreetMap.addTo(map);
-        L.control.layers(baseMaps).addTo(map);
 
         const drawnItems = new L.FeatureGroup();
         map.addLayer(drawnItems);
 
-        // Listado de capas importadas
-        const layerList = document.getElementById('layerList');
+        // Control de dibujo
+        const drawControl = new L.Control.Draw({
+            edit: {
+                featureGroup: drawnItems,
+                remove: true
+            },
+            draw: {
+                polyline: true,
+                polygon: true,
+                circle: false,
+                rectangle: true,
+                marker: true,
+                circlemarker: false
+            }
+        });
+        map.addControl(drawControl);
 
-        function addLayerToList(layer, name) {
-            const listItem = document.createElement('li');
-            listItem.textContent = name;
-            const zoomButton = document.createElement('button');
-            zoomButton.textContent = "Zoom";
-            zoomButton.addEventListener('click', function () {
-                map.fitBounds(layer.getBounds());
-            });
-            listItem.appendChild(zoomButton);
-            layerList.appendChild(listItem);
-        }
+        // Manejo de eventos de dibujo
+        map.on(L.Draw.Event.CREATED, function (e) {
+            const layer = e.layer;
+            drawnItems.addLayer(layer);
+        });
 
-        function getColorByCultivo(cultivo) {
-            const colorMap = {
-                "Café": "#FF5733",
-                "Maíz": "#FFC300",
-                "Frijol": "#DAF7A6",
-                "Otro": "#C70039"
-            };
-            return colorMap[cultivo] || "#808080"; // Default color
-        }
+        map.on(L.Draw.Event.EDITED, function (e) {
+            alert('Se han editado las geometrías.');
+        });
+
+        map.on(L.Draw.Event.DELETED, function (e) {
+            alert('Se han eliminado las geometrías.');
+        });
+
+        // Exportar a GeoJSON
+        document.getElementById('exportGeoJSON').addEventListener('click', function () {
+            const geojson = drawnItems.toGeoJSON();
+            const blob = new Blob([JSON.stringify(geojson)], { type: 'application/json' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = 'mapa.geojson';
+            a.click();
+        });
 
         // Importar GeoJSON
         document.getElementById('selectFile').addEventListener('click', function () {
@@ -164,71 +164,25 @@
                 const reader = new FileReader();
                 reader.onload = function (event) {
                     const geojson = JSON.parse(event.target.result);
-
-                    // Añadir las capas importadas al mapa
-                    const importedLayer = L.geoJSON(geojson, {
-                        style: function (feature) {
-                            return {
-                                color: getColorByCultivo(feature.properties.cultivo),
-                                weight: 2
-                            };
-                        },
-                        onEachFeature: function (feature, layer) {
-                            if (feature.properties) {
-                                let popupContent = "<b>Atributos:</b><br>";
-                                for (const [key, value] of Object.entries(feature.properties)) {
-                                    popupContent += `<b>${key}:</b> <input type="text" value="${value}" data-attr="${key}"><br>`;
-                                }
-                                popupContent += '<button onclick="saveAttributes(this)">Guardar</button>';
-                                layer.bindPopup(popupContent);
-                            }
-                        }
-                    }).addTo(drawnItems);
-
-                    // Añadir capa al listado
-                    addLayerToList(importedLayer, file.name);
+                    L.geoJSON(geojson).eachLayer(function (layer) {
+                        drawnItems.addLayer(layer);
+                    });
                 };
                 reader.readAsText(file);
             }
         });
 
-        // Función para guardar atributos
-        function saveAttributes(button) {
-            const popup = button.closest('.leaflet-popup-content');
-            const inputs = popup.querySelectorAll('[data-attr]');
-            const layer = drawnItems.getLayers().find(l => l.getPopup() && l.getPopup().getContent().includes(button.outerHTML));
-
-            if (layer && layer.feature) {
-                inputs.forEach(input => {
-                    const attr = input.dataset.attr;
-                    const value = input.value;
-                    layer.feature.properties[attr] = value;
-                });
-                layer.closePopup();
-            }
-        }
-
-        // Exportar a GeoJSON
-        document.getElementById('exportGeoJSON').addEventListener('click', function () {
-            const geojson = drawnItems.toGeoJSON();
-            const blob = new Blob([JSON.stringify(geojson)], { type: "application/json" });
-            const a = document.createElement('a');
-            a.href = URL.createObjectURL(blob);
-            a.download = 'mapa.geojson';
-            a.click();
-        });
-
-        // Activar GPS
+        // GPS
         document.getElementById('gpsButton').addEventListener('click', function () {
             map.locate({ setView: true, maxZoom: 16 });
         });
 
         map.on('locationfound', function (e) {
-            L.marker(e.latlng).addTo(map).bindPopup("Tu ubicación actual").openPopup();
+            L.marker(e.latlng).addTo(map).bindPopup('Tu ubicación actual').openPopup();
         });
 
         map.on('locationerror', function () {
-            alert("No se pudo obtener la ubicación.");
+            alert('No se pudo obtener la ubicación.');
         });
     </script>
 </body>
