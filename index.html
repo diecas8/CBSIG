@@ -81,6 +81,9 @@
             font-size: 12px;
             padding: 2px 5px;
         }
+        .leaflet-control-layers {
+            margin-top: 60px; /* Mueve el selector de mapas base hacia abajo */
+        }
     </style>
 </head>
 <body>
@@ -128,6 +131,57 @@
         const drawnItems = new L.FeatureGroup();
         map.addLayer(drawnItems);
 
+        // Herramientas de dibujo
+        const drawControl = new L.Control.Draw({
+            edit: {
+                featureGroup: drawnItems
+            },
+            draw: {
+                polygon: true,
+                polyline: true,
+                marker: true,
+                circle: false,
+                rectangle: false
+            }
+        });
+        map.addControl(drawControl);
+
+        map.on('draw:created', function (e) {
+            const layer = e.layer;
+            let popupContent = "<b>Atributos:</b><br>";
+            if (e.layerType === 'polygon') {
+                const area = L.GeometryUtil.geodesicArea(layer.getLatLngs()[0]) / 10000; // Convertir a hectáreas
+                popupContent += `Área (ha): ${area.toFixed(2)}<br>`;
+            } else if (e.layerType === 'polyline') {
+                let length = 0;
+                const latlngs = layer.getLatLngs();
+                for (let i = 1; i < latlngs.length; i++) {
+                    length += latlngs[i - 1].distanceTo(latlngs[i]);
+                }
+                popupContent += `Longitud (m): ${length.toFixed(2)}<br>`;
+            }
+            popupContent += '<button onclick="saveAttributes(this)">Guardar</button>';
+            layer.bindPopup(popupContent).openPopup();
+            drawnItems.addLayer(layer);
+        });
+
+        // Guardar atributos de las geometrías dibujadas
+        function saveAttributes(button) {
+            const popup = button.closest('.leaflet-popup-content');
+            const inputs = popup.querySelectorAll('input');
+            const layer = drawnItems.getLayers().find(l => l.getPopup() && l.getPopup().getContent().includes(button.outerHTML));
+
+            if (layer && layer.feature) {
+                layer.feature.properties = {};
+                inputs.forEach(input => {
+                    const attr = input.dataset.attr;
+                    const value = input.value;
+                    layer.feature.properties[attr] = value;
+                });
+                layer.closePopup();
+            }
+        }
+
         // Listado de capas importadas
         const layerList = document.getElementById('layerList');
 
@@ -143,16 +197,6 @@
             layerList.appendChild(listItem);
         }
 
-        function getColorByCultivo(cultivo) {
-            const colorMap = {
-                "Café": "#FF5733",
-                "Maíz": "#FFC300",
-                "Frijol": "#DAF7A6",
-                "Otro": "#C70039"
-            };
-            return colorMap[cultivo] || "#808080"; // Default color
-        }
-
         // Importar GeoJSON
         document.getElementById('selectFile').addEventListener('click', function () {
             document.getElementById('importGeoJSON').click();
@@ -165,11 +209,10 @@
                 reader.onload = function (event) {
                     const geojson = JSON.parse(event.target.result);
 
-                    // Añadir las capas importadas al mapa
                     const importedLayer = L.geoJSON(geojson, {
                         style: function (feature) {
                             return {
-                                color: getColorByCultivo(feature.properties.cultivo),
+                                color: "#3388ff",
                                 weight: 2
                             };
                         },
@@ -185,28 +228,11 @@
                         }
                     }).addTo(drawnItems);
 
-                    // Añadir capa al listado
                     addLayerToList(importedLayer, file.name);
                 };
                 reader.readAsText(file);
             }
         });
-
-        // Función para guardar atributos
-        function saveAttributes(button) {
-            const popup = button.closest('.leaflet-popup-content');
-            const inputs = popup.querySelectorAll('[data-attr]');
-            const layer = drawnItems.getLayers().find(l => l.getPopup() && l.getPopup().getContent().includes(button.outerHTML));
-
-            if (layer && layer.feature) {
-                inputs.forEach(input => {
-                    const attr = input.dataset.attr;
-                    const value = input.value;
-                    layer.feature.properties[attr] = value;
-                });
-                layer.closePopup();
-            }
-        }
 
         // Exportar a GeoJSON
         document.getElementById('exportGeoJSON').addEventListener('click', function () {
