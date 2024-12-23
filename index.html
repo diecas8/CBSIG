@@ -3,59 +3,51 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Geoportal Completo</title>
+    <title>Geoportal Interactivo</title>
 
-    <!-- Estilos -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/leaflet.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css">
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/leaflet.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
     <style>
-        body {
-            margin: 0;
-            font-family: Arial, sans-serif;
-        }
-        #map {
-            height: 100vh;
-        }
-        .bottom-left, .sidebar, .bottom-text {
-            background: rgba(255, 255, 255, 0.9);
-            padding: 10px;
-            border-radius: 8px;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
-            z-index: 1000;
-        }
+        body { margin: 0; font-family: Arial, sans-serif; }
+        #map { height: 100vh; }
         .bottom-left {
             position: absolute;
             bottom: 10px;
             left: 10px;
+            z-index: 1000;
             display: flex;
             flex-direction: column;
             gap: 8px;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 10px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
         }
-        .sidebar {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            width: 250px;
-        }
-        .bottom-text {
-            position: absolute;
-            bottom: 10px;
-            right: 10px;
-            font-size: 12px;
-            color: #333;
-        }
-        button {
+        .bottom-left button {
             display: flex;
             align-items: center;
-            justify-content: flex-start;
+            gap: 8px;
             background-color: #f7f7f7;
             border: 1px solid #ddd;
             border-radius: 5px;
             padding: 8px;
             cursor: pointer;
             font-size: 14px;
-            gap: 8px;
+        }
+        .sidebar {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            z-index: 1000;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 10px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+            max-height: 90vh;
+            overflow-y: auto;
         }
     </style>
 </head>
@@ -64,124 +56,132 @@
     <div class="bottom-left">
         <button id="exportGeoJSON"><i class="fa fa-download"></i> Exportar GeoJSON</button>
         <label>
-            <input type="file" id="importGeoJSON" accept=".geojson" hidden>
+            <input type="file" id="importGeoJSON" accept=".geojson" style="display: none;">
             <button id="selectFile"><i class="fa fa-upload"></i> Importar GeoJSON</button>
         </label>
         <button id="gpsButton"><i class="fa fa-location-arrow"></i> GPS</button>
-        <button id="clearMap"><i class="fa fa-trash"></i> Limpiar Mapa</button>
     </div>
     <div class="sidebar">
         <h3>Capas Importadas</h3>
         <ul id="layerList"></ul>
     </div>
-    <div class="bottom-text">Elaborado por: Diego Castaño P.</div>
 
-    <!-- Librerías -->
+    <!-- Leaflet JS -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/leaflet.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet-geometryutil/0.9.3/leaflet.geometryutil.min.js"></script>
     <script>
-        // Inicializar el mapa
         const map = L.map('map').setView([4.60971, -74.08175], 6);
 
-        // Capas base
-        const openStreetMap = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenStreetMap contributors' });
-        const esriWorldImagery = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { attribution: 'Tiles &copy; Esri' });
-        openStreetMap.addTo(map);
-        L.control.layers({ "OpenStreetMap": openStreetMap, "Esri Satélite": esriWorldImagery }).addTo(map);
+        // Mapas base
+        const baseMaps = {
+            "OpenStreetMap": L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; OpenStreetMap contributors'
+            }).addTo(map),
+            "Esri World Imagery": L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+                attribution: 'Tiles &copy; Esri, USGS, NOAA'
+            })
+        };
+        L.control.layers(baseMaps).addTo(map);
 
-        // Grupo de capas dibujadas
         const drawnItems = new L.FeatureGroup();
         map.addLayer(drawnItems);
 
-        // Control de dibujo
+        // Herramientas de dibujo
         const drawControl = new L.Control.Draw({
             edit: { featureGroup: drawnItems },
-            draw: { polygon: true, polyline: true, marker: true }
+            draw: { circle: false, rectangle: false }
         });
         map.addControl(drawControl);
 
-        // Escuchar eventos de dibujo
+        // Gestión de atributos al crear geometrías
         map.on('draw:created', function (e) {
             const layer = e.layer;
-            const popupContent = "<b>Atributos:</b><br>" +
-                '<label>Código de Finca: <input type="text"></label><br>' +
-                '<label>Nombre del Cultivo: <input type="text"></label><br>' +
-                '<button onclick="saveAttributes(this)">Guardar</button>';
+            const popupContent = `
+                <b>Atributos:</b><br>
+                <label>Código de Finca: <input type="text" id="codigoFinca"></label><br>
+                <label>Descripción: <input type="text" id="descripcion"></label><br>
+                <button onclick="saveAttributes(this, ${e.layer._leaflet_id})">Guardar</button>
+            `;
             layer.bindPopup(popupContent).openPopup();
             drawnItems.addLayer(layer);
         });
 
-        // Guardar atributos de capas dibujadas
-        function saveAttributes(button) {
-            const inputs = button.parentNode.querySelectorAll('input');
-            const properties = {};
-            inputs.forEach(input => {
-                properties[input.previousSibling.textContent] = input.value;
-            });
-            alert('Atributos guardados: ' + JSON.stringify(properties));
+        // Guardar atributos en las capas
+        function saveAttributes(button, layerId) {
+            const layer = drawnItems.getLayer(layerId);
+            const codigoFinca = document.getElementById('codigoFinca').value.trim();
+            const descripcion = document.getElementById('descripcion').value.trim();
+
+            if (!codigoFinca || !descripcion) {
+                alert("Por favor, complete todos los campos.");
+                return;
+            }
+
+            layer.feature = layer.feature || { properties: {} };
+            layer.feature.properties = { codigoFinca, descripcion };
+
+            layer.bindPopup(`<b>Código de Finca:</b> ${codigoFinca}<br><b>Descripción:</b> ${descripcion}`).openPopup();
+            alert("Atributos guardados correctamente.");
         }
 
-        // Limpiar mapa
-        document.getElementById('clearMap').addEventListener('click', function () {
-            drawnItems.clearLayers();
+        // Importar GeoJSON
+        document.getElementById('selectFile').addEventListener('click', () => {
+            document.getElementById('importGeoJSON').click();
         });
 
-        // Exportar a GeoJSON
-        document.getElementById('exportGeoJSON').addEventListener('click', function () {
+        document.getElementById('importGeoJSON').addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    const geojson = JSON.parse(event.target.result);
+                    const importedLayer = L.geoJSON(geojson, {
+                        onEachFeature: (feature, layer) => {
+                            if (feature.properties) {
+                                layer.bindPopup(Object.entries(feature.properties).map(([key, value]) => `<b>${key}:</b> ${value}`).join('<br>'));
+                            }
+                        }
+                    }).addTo(drawnItems);
+
+                    addLayerToList(importedLayer, file.name);
+                };
+                reader.readAsText(file);
+            }
+        });
+
+        // Exportar GeoJSON
+        document.getElementById('exportGeoJSON').addEventListener('click', () => {
             const geojson = drawnItems.toGeoJSON();
-            const blob = new Blob([JSON.stringify(geojson)], { type: 'application/json' });
+            const blob = new Blob([JSON.stringify(geojson)], { type: "application/json" });
             const a = document.createElement('a');
             a.href = URL.createObjectURL(blob);
             a.download = 'mapa.geojson';
             a.click();
         });
 
-        // Importar GeoJSON
-        document.getElementById('selectFile').addEventListener('click', function () {
-            document.getElementById('importGeoJSON').click();
+        // Activar GPS
+        document.getElementById('gpsButton').addEventListener('click', () => {
+            map.locate({ setView: true, maxZoom: 16 });
         });
 
-        document.getElementById('importGeoJSON').addEventListener('change', function (e) {
-            const file = e.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = function (event) {
-                    const geojson = JSON.parse(event.target.result);
-                    const layer = L.geoJSON(geojson).addTo(drawnItems);
-                    const layerName = file.name.split('.')[0];
-                    addLayerToList(layer, layerName);
-                };
-                reader.readAsText(file);
-            }
+        map.on('locationfound', (e) => {
+            L.marker(e.latlng).addTo(map).bindPopup("Tu ubicación actual").openPopup();
         });
 
-        // Añadir capa a la lista
-        const layerList = document.getElementById('layerList');
+        map.on('locationerror', () => {
+            alert("No se pudo obtener la ubicación.");
+        });
+
+        // Listado de capas
         function addLayerToList(layer, name) {
             const listItem = document.createElement('li');
             listItem.textContent = name;
             const zoomButton = document.createElement('button');
-            zoomButton.textContent = 'Zoom';
-            zoomButton.addEventListener('click', function () {
-                map.fitBounds(layer.getBounds());
-            });
+            zoomButton.textContent = "Zoom";
+            zoomButton.addEventListener('click', () => map.fitBounds(layer.getBounds()));
             listItem.appendChild(zoomButton);
-            layerList.appendChild(listItem);
+            document.getElementById('layerList').appendChild(listItem);
         }
-
-        // Activar GPS
-        document.getElementById('gpsButton').addEventListener('click', function () {
-            map.locate({ setView: true, maxZoom: 16 });
-        });
-
-        map.on('locationfound', function (e) {
-            L.marker(e.latlng).addTo(map).bindPopup("Tu ubicación actual").openPopup();
-        });
-
-        map.on('locationerror', function () {
-            alert("No se pudo obtener la ubicación.");
-        });
     </script>
 </body>
 </html>
