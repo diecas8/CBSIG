@@ -32,7 +32,7 @@
             right: 10px;
             z-index: 1000;
             display: flex;
-            flex-direction: column;
+            flex-direction: row;
             gap: 8px;
             background: rgba(255, 255, 255, 0.9);
             padding: 10px;
@@ -40,10 +40,9 @@
             box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
         }
         .bottom-left button, .bottom-right button {
-            width: 180px;
             display: flex;
             align-items: center;
-            justify-content: flex-start;
+            justify-content: center;
             gap: 8px;
             background-color: #f7f7f7;
             border: 1px solid #ddd;
@@ -107,10 +106,12 @@
         <button id="gpsButton"><i class="fa fa-location-arrow"></i> GPS</button>
     </div>
     <div class="bottom-right">
-        <button id="osmBaseMap">OpenStreetMap</button>
-        <button id="esriBaseMap">Esri World Imagery</button>
-        <button id="googleSatelliteBaseMap">Google Satélite</button>
-        <button id="googleHybridBaseMap">Google Híbrido</button>
+        <select id="baseMapSelector" style="padding: 5px; border-radius: 5px;">
+            <option value="osm">OpenStreetMap</option>
+            <option value="esri">Esri World Imagery</option>
+            <option value="googleSatellite">Google Satélite</option>
+            <option value="googleHybrid">Google Híbrido</option>
+        </select>
     </div>
     <div class="sidebar">
         <h3>Capas Importadas</h3>
@@ -125,13 +126,13 @@
         const map = L.map('map').setView([4.60971, -74.08175], 6);
 
         const baseLayers = {
-            openStreetMap: L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenStreetMap contributors' }),
-            esriWorldImagery: L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { attribution: '&copy; Esri, DigitalGlobe' }),
+            osm: L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenStreetMap contributors' }),
+            esri: L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { attribution: '&copy; Esri, DigitalGlobe' }),
             googleSatellite: L.tileLayer('https://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', { subdomains: ['mt0', 'mt1', 'mt2', 'mt3'], attribution: '&copy; Google' }),
             googleHybrid: L.tileLayer('https://{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', { subdomains: ['mt0', 'mt1', 'mt2', 'mt3'], attribution: '&copy; Google' })
         };
 
-        baseLayers.openStreetMap.addTo(map);
+        baseLayers.osm.addTo(map);
 
         const drawnItems = new L.FeatureGroup();
         map.addLayer(drawnItems);
@@ -149,6 +150,16 @@
         });
         map.addControl(drawControl);
 
+        document.getElementById('baseMapSelector').addEventListener('change', (event) => {
+            const selectedBaseMap = event.target.value;
+            map.eachLayer(layer => {
+                if (layer !== drawnItems) {
+                    map.removeLayer(layer);
+                }
+            });
+            baseLayers[selectedBaseMap].addTo(map);
+        });
+
         const layerList = document.getElementById('layerList');
 
         function addLayerToList(layer, name) {
@@ -165,57 +176,9 @@
 
         map.on(L.Draw.Event.CREATED, function (e) {
             const layer = e.layer;
-            let popupContent = '';
-
-            if (e.layerType === 'marker') {
-                popupContent = '<form>' +
-                    '<label>Código del Predio: <input type="text" name="codigo_predio" /></label><br>' +
-                    '<label>Nombre: <input type="text" name="nombre" /></label><br>' +
-                    '<label>Propietario: <input type="text" name="propietario" /></label><br>' +
-                    '<label>Cédula: <input type="text" name="cedula" /></label><br>' +
-                    '<label>Género: <input type="text" name="genero" /></label><br>' +
-                    '<label>Teléfono: <input type="text" name="telefono" /></label><br>' +
-                    '<label>Vereda: <input type="text" name="vereda" /></label><br>' +
-                    '<label>Municipio: <input type="text" name="municipio" /></label><br>' +
-                    '<button type="button" onclick="saveAttributes(this)">Guardar</button>' +
-                    '</form>';
-            } else if (e.layerType === 'polygon') {
-                const area = L.GeometryUtil.geodesicArea(layer.getLatLngs()[0]);
-                const areaHectares = (area / 10000).toFixed(2);
-                popupContent = '<form>' +
-                    '<label>Código del Predio: <input type="text" name="codigo_predio" /></label><br>' +
-                    '<label>Cultivo: <input type="text" name="cultivo" /></label><br>' +
-                    `<label>Área (ha): <input type="text" name="area" value="${areaHectares}" readonly /></label><br>` +
-                    '<button type="button" onclick="saveAttributes(this)">Guardar</button>' +
-                    '</form>';
-            } else if (e.layerType === 'polyline') {
-                const length = (L.GeometryUtil.length(layer.getLatLngs()) / 1000).toFixed(2);
-                popupContent = '<form>' +
-                    '<label>Código del Predio: <input type="text" name="codigo_predio" /></label><br>' +
-                    '<label>Tipo de Línea: <input type="text" name="tipo_linea" /></label><br>' +
-                    `<label>Longitud (km): <input type="text" name="longitud" value="${length}" readonly /></label><br>` +
-                    '<button type="button" onclick="saveAttributes(this)">Guardar</button>' +
-                    '</form>';
-            }
-
-            layer.bindPopup(popupContent).openPopup();
             drawnItems.addLayer(layer);
             addLayerToList(layer, e.layerType);
         });
-
-        function saveAttributes(button) {
-            const popup = button.closest('.leaflet-popup-content');
-            const inputs = popup.querySelectorAll('input');
-            const layer = drawnItems.getLayers().find(l => l.getPopup() && l.getPopup().getContent().includes(button.outerHTML));
-
-            if (layer) {
-                layer.feature = layer.feature || { properties: {} };
-                inputs.forEach(input => {
-                    layer.feature.properties[input.name] = input.value;
-                });
-                layer.closePopup();
-            }
-        }
 
         document.getElementById('gpsButton').addEventListener('click', () => {
             map.locate({ setView: true, maxZoom: 16 });
@@ -227,65 +190,6 @@
 
         map.on('locationerror', function () {
             alert('No se pudo obtener la ubicación.');
-        });
-
-        document.getElementById('osmBaseMap').addEventListener('click', () => {
-            map.eachLayer(layer => map.removeLayer(layer));
-            baseLayers.openStreetMap.addTo(map);
-            drawnItems.addTo(map);
-        });
-
-        document.getElementById('esriBaseMap').addEventListener('click', () => {
-            map.eachLayer(layer => map.removeLayer(layer));
-            baseLayers.esriWorldImagery.addTo(map);
-            drawnItems.addTo(map);
-        });
-
-        document.getElementById('googleSatelliteBaseMap').addEventListener('click', () => {
-            map.eachLayer(layer => map.removeLayer(layer));
-            baseLayers.googleSatellite.addTo(map);
-            drawnItems.addTo(map);
-        });
-
-        document.getElementById('googleHybridBaseMap').addEventListener('click', () => {
-            map.eachLayer(layer => map.removeLayer(layer));
-            baseLayers.googleHybrid.addTo(map);
-            drawnItems.addTo(map);
-        });
-
-        document.getElementById('selectFile').addEventListener('click', () => {
-            document.getElementById('importGeoJSON').click();
-        });
-
-        document.getElementById('importGeoJSON').addEventListener('change', (e) => {
-            const file = e.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = (event) => {
-                    const geojson = JSON.parse(event.target.result);
-                    L.geoJSON(geojson, {
-                        onEachFeature: (feature, layer) => {
-                            if (feature.properties) {
-                                const popupContent = Object.entries(feature.properties)
-                                    .map(([key, value]) => `<b>${key}:</b> ${value}<br>`)
-                                    .join('');
-                                layer.bindPopup(popupContent);
-                            }
-                        }
-                    }).addTo(drawnItems);
-                    addLayerToList(drawnItems, file.name);
-                };
-                reader.readAsText(file);
-            }
-        });
-
-        document.getElementById('exportGeoJSON').addEventListener('click', () => {
-            const geojson = drawnItems.toGeoJSON();
-            const blob = new Blob([JSON.stringify(geojson)], { type: 'application/json' });
-            const a = document.createElement('a');
-            a.href = URL.createObjectURL(blob);
-            a.download = 'mapa.geojson';
-            a.click();
         });
     </script>
 </body>
