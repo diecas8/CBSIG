@@ -107,7 +107,22 @@
 
         // Mapas base
         const openStreetMap = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenStreetMap contributors' });
+        const esriWorldImagery = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+            attribution: '&copy; Esri, DigitalGlobe'
+        });
+        const cartoDB = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; CartoDB'
+        });
+
+        const baseMaps = {
+            "OpenStreetMap": openStreetMap,
+            "Esri World Imagery": esriWorldImagery,
+            "CartoDB Light": cartoDB
+        };
+
         openStreetMap.addTo(map);
+
+        L.control.layers(baseMaps).addTo(map);
 
         const drawnItems = new L.FeatureGroup();
         map.addLayer(drawnItems);
@@ -132,8 +147,29 @@
         // Manejo de eventos de dibujo
         map.on(L.Draw.Event.CREATED, function (e) {
             const layer = e.layer;
+            const popupContent = '<form>' +
+                '<label>Nombre: <input type="text" name="nombre" /></label><br>' +
+                '<label>Descripción: <input type="text" name="descripcion" /></label><br>' +
+                '<button type="button" onclick="saveAttributes(this)">Guardar</button>' +
+                '</form>';
+            layer.bindPopup(popupContent).openPopup();
             drawnItems.addLayer(layer);
         });
+
+        // Guardar atributos
+        function saveAttributes(button) {
+            const popup = button.closest('.leaflet-popup-content');
+            const inputs = popup.querySelectorAll('input');
+            const layer = drawnItems.getLayers().find(l => l.getPopup() && l.getPopup().getContent().includes(button.outerHTML));
+
+            if (layer && layer.feature) {
+                layer.feature.properties = layer.feature.properties || {};
+                inputs.forEach(input => {
+                    layer.feature.properties[input.name] = input.value;
+                });
+                layer.closePopup();
+            }
+        }
 
         map.on(L.Draw.Event.EDITED, function (e) {
             alert('Se han editado las geometrías.');
@@ -164,7 +200,14 @@
                 const reader = new FileReader();
                 reader.onload = function (event) {
                     const geojson = JSON.parse(event.target.result);
-                    L.geoJSON(geojson).eachLayer(function (layer) {
+                    L.geoJSON(geojson, {
+                        onEachFeature: function (feature, layer) {
+                            if (feature.properties) {
+                                const popupContent = Object.entries(feature.properties).map(([key, value]) => `<b>${key}:</b> ${value}<br>`).join('');
+                                layer.bindPopup(popupContent);
+                            }
+                        }
+                    }).eachLayer(function (layer) {
                         drawnItems.addLayer(layer);
                     });
                 };
@@ -187,3 +230,4 @@
     </script>
 </body>
 </html>
+
