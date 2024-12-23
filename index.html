@@ -176,9 +176,54 @@
 
         map.on(L.Draw.Event.CREATED, function (e) {
             const layer = e.layer;
+            const layerType = e.layerType;
+
+            // Crear un formulario dinámico basado en el tipo de geometría
+            let popupContent = '';
+            if (layerType === 'marker') {
+                popupContent = '<form>' +
+                    '<label>Código del Predio: <input type="text" name="codigo_predio" /></label><br>' +
+                    '<label>Nombre: <input type="text" name="nombre" /></label><br>' +
+                    '<label>Propietario: <input type="text" name="propietario" /></label><br>' +
+                    '<button type="button" onclick="saveAttributes(this)">Guardar</button>' +
+                    '</form>';
+            } else if (layerType === 'polygon') {
+                const area = L.GeometryUtil.geodesicArea(layer.getLatLngs()[0]);
+                const areaHectares = (area / 10000).toFixed(2);
+                popupContent = '<form>' +
+                    '<label>Código del Predio: <input type="text" name="codigo_predio" /></label><br>' +
+                    '<label>Cultivo: <input type="text" name="cultivo" /></label><br>' +
+                    `<label>Área (ha): <input type="text" name="area" value="${areaHectares}" readonly /></label><br>` +
+                    '<button type="button" onclick="saveAttributes(this)">Guardar</button>' +
+                    '</form>';
+            } else if (layerType === 'polyline') {
+                const length = (L.GeometryUtil.length(layer.getLatLngs()) / 1000).toFixed(2);
+                popupContent = '<form>' +
+                    '<label>Código del Predio: <input type="text" name="codigo_predio" /></label><br>' +
+                    '<label>Tipo de Línea: <input type="text" name="tipo_linea" /></label><br>' +
+                    `<label>Longitud (km): <input type="text" name="longitud" value="${length}" readonly /></label><br>` +
+                    '<button type="button" onclick="saveAttributes(this)">Guardar</button>' +
+                    '</form>';
+            }
+
+            layer.bindPopup(popupContent).openPopup();
             drawnItems.addLayer(layer);
-            addLayerToList(layer, e.layerType);
+            addLayerToList(layer, layerType);
         });
+
+        function saveAttributes(button) {
+            const popup = button.closest('.leaflet-popup-content');
+            const inputs = popup.querySelectorAll('input');
+            const layer = drawnItems.getLayers().find(l => l.getPopup() && l.getPopup().getContent().includes(button.outerHTML));
+
+            if (layer) {
+                layer.feature = layer.feature || { properties: {} };
+                inputs.forEach(input => {
+                    layer.feature.properties[input.name] = input.value;
+                });
+                layer.closePopup();
+            }
+        }
 
         document.getElementById('gpsButton').addEventListener('click', () => {
             map.locate({ setView: true, maxZoom: 16 });
