@@ -13,7 +13,6 @@
     <style>
         body { margin: 0; font-family: Arial, sans-serif; }
         #map { height: 100vh; }
-
         .bottom-left {
             position: absolute;
             bottom: 10px;
@@ -27,7 +26,6 @@
             border-radius: 8px;
             box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
         }
-
         .bottom-left button {
             width: 180px;
             display: flex;
@@ -42,7 +40,6 @@
             box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
             font-size: 14px;
         }
-
         .bottom-text {
             position: absolute;
             bottom: 10px;
@@ -91,7 +88,7 @@
                     L.geoJSON(geojson, {
                         onEachFeature: function (feature, layer) {
                             if (feature.properties) {
-                                const popupContent = createPopupContent(feature.properties, layer.feature.geometry.type.toLowerCase());
+                                const popupContent = createPopupContent(feature.properties, feature.geometry.type.toLowerCase());
                                 layer.bindPopup(popupContent);
                             }
                         }
@@ -133,7 +130,7 @@
         map.on('draw:edited', saveToLocalStorage);
         map.on('draw:deleted', saveToLocalStorage);
 
-        function createPopupContent(properties = {}, type = '') {
+        function createPopupContent(properties, type) {
             let content = `<b>Código de Finca:</b> <input type="text" value="${properties.codigoFinca || ''}" data-attr="codigoFinca"><br>`;
             if (type === 'polygon') {
                 content += `<b>Nombre del Cultivo:</b> <input type="text" value="${properties.nombreCultivo || ''}" data-attr="nombreCultivo"><br>
@@ -143,11 +140,7 @@
                             <b>Longitud (m):</b> ${properties.longitud || '0.00'}<br>`;
             } else if (type === 'marker') {
                 content += `<b>Nombre del Propietario:</b> <input type="text" value="${properties.nombrePropietario || ''}" data-attr="nombrePropietario"><br>
-                            <b>Cédula:</b> <input type="text" value="${properties.cedula || ''}" data-attr="cedula"><br>
-                            <b>Género:</b> <input type="text" value="${properties.genero || ''}" data-attr="genero"><br>
-                            <b>Teléfono:</b> <input type="text" value="${properties.telefono || ''}" data-attr="telefono"><br>
-                            <b>Vereda:</b> <input type="text" value="${properties.vereda || ''}" data-attr="vereda"><br>
-                            <b>Municipio:</b> <input type="text" value="${properties.municipio || ''}" data-attr="municipio"><br>`;
+                            <b>Cédula:</b> <input type="text" value="${properties.cedula || ''}" data-attr="cedula"><br>`;
             }
             content += '<button onclick="saveAttributes(this)">Guardar</button>';
             return content;
@@ -158,7 +151,7 @@
             const inputs = popup.querySelectorAll('[data-attr]');
             const layer = drawnItems.getLayers().find(l => l.getPopup() && l.getPopup().getContent().includes(button.outerHTML));
 
-            if (layer && layer.feature && layer.feature.properties) {
+            if (layer && layer.feature) {
                 inputs.forEach(input => {
                     const attr = input.dataset.attr;
                     const value = input.value;
