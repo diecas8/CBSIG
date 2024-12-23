@@ -98,11 +98,7 @@
 <body>
     <div id="map"></div>
     <div class="bottom-left">
-        <button id="exportGeoJSON"><i class="fa fa-download"></i> Exportar GeoJSON</button>
-        <label>
-            <input type="file" id="importGeoJSON" accept=".geojson" style="display: none;">
-            <button id="selectFile"><i class="fa fa-upload"></i> Importar GeoJSON</button>
-        </label>
+        <button id="exportGeoJSON"><i class="fa fa-download"></i> Guardar Datos</button>
         <button id="gpsButton"><i class="fa fa-location-arrow"></i> GPS</button>
     </div>
     <div class="bottom-right">
@@ -178,7 +174,6 @@
             const layer = e.layer;
             const layerType = e.layerType;
 
-            // Crear un formulario dinámico basado en el tipo de geometría
             let popupContent = '';
             if (layerType === 'marker') {
                 popupContent = '<form>' +
@@ -209,6 +204,7 @@
             layer.bindPopup(popupContent).openPopup();
             drawnItems.addLayer(layer);
             addLayerToList(layer, layerType);
+            saveToLocalStorage();
         });
 
         function saveAttributes(button) {
@@ -222,6 +218,31 @@
                     layer.feature.properties[input.name] = input.value;
                 });
                 layer.closePopup();
+                saveToLocalStorage();
+            }
+        }
+
+        function saveToLocalStorage() {
+            const geojson = drawnItems.toGeoJSON();
+            localStorage.setItem('mapData', JSON.stringify(geojson));
+        }
+
+        function loadFromLocalStorage() {
+            const data = localStorage.getItem('mapData');
+            if (data) {
+                const geojson = JSON.parse(data);
+                L.geoJSON(geojson, {
+                    onEachFeature: (feature, layer) => {
+                        let popupContent = '';
+                        if (feature.properties) {
+                            Object.entries(feature.properties).forEach(([key, value]) => {
+                                popupContent += `<b>${key}:</b> ${value}<br>`;
+                            });
+                        }
+                        layer.bindPopup(popupContent);
+                        drawnItems.addLayer(layer);
+                    }
+                });
             }
         }
 
@@ -236,6 +257,8 @@
         map.on('locationerror', function () {
             alert('No se pudo obtener la ubicación.');
         });
+
+        loadFromLocalStorage();
     </script>
 </body>
 </html>
