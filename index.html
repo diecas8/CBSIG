@@ -6,13 +6,18 @@
     <title>Geoportal Interactivo</title>
 
     <!-- Leaflet CSS -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/leaflet.css" />
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/leaflet.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <style>
-        body { margin: 0; font-family: Arial, sans-serif; }
-        #map { height: 100vh; }
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+        }
+        #map {
+            height: 100vh;
+        }
         .bottom-left {
             position: absolute;
             bottom: 10px;
@@ -25,29 +30,77 @@
             padding: 10px;
             border-radius: 8px;
             box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+            max-width: 90%;
         }
         .bottom-left button {
             display: flex;
             align-items: center;
+            justify-content: center;
             gap: 8px;
             background-color: #f7f7f7;
             border: 1px solid #ddd;
             border-radius: 5px;
             padding: 8px;
             cursor: pointer;
-            font-size: 14px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+            font-size: 1rem;
         }
         .sidebar {
             position: absolute;
             top: 10px;
             right: 10px;
+            width: 90%;
+            max-width: 300px;
             z-index: 1000;
             background: rgba(255, 255, 255, 0.9);
             padding: 10px;
             border-radius: 8px;
             box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
-            max-height: 90vh;
             overflow-y: auto;
+            max-height: 80%;
+        }
+        .sidebar h3 {
+            margin: 0 0 10px 0;
+            font-size: 1.2rem;
+        }
+        .sidebar ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        .sidebar ul li {
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .sidebar ul li button {
+            font-size: 0.9rem;
+            padding: 5px;
+        }
+        .leaflet-control-layers {
+            margin-top: 50px;
+        }
+        .leaflet-popup-content input {
+            width: 100%;
+            margin-top: 5px;
+            padding: 5px;
+            font-size: 0.9rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .leaflet-popup-content button {
+            margin-top: 10px;
+            padding: 5px 10px;
+            font-size: 0.9rem;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .leaflet-popup-content button:hover {
+            background-color: #0056b3;
         }
     </style>
 </head>
@@ -69,62 +122,74 @@
     <!-- Leaflet JS -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/leaflet.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet-geometryutil/0.9.3/leaflet.geometryutil.min.js"></script>
+
     <script>
         const map = L.map('map').setView([4.60971, -74.08175], 6);
 
         // Mapas base
-        const baseMaps = {
-            "OpenStreetMap": L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '&copy; OpenStreetMap contributors'
-            }).addTo(map),
-            "Esri World Imagery": L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-                attribution: 'Tiles &copy; Esri, USGS, NOAA'
-            })
-        };
-        L.control.layers(baseMaps).addTo(map);
+        const openStreetMap = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenStreetMap contributors' });
+        openStreetMap.addTo(map);
 
         const drawnItems = new L.FeatureGroup();
         map.addLayer(drawnItems);
 
         // Herramientas de dibujo
         const drawControl = new L.Control.Draw({
-            edit: { featureGroup: drawnItems },
-            draw: { circle: false, rectangle: false }
+            edit: {
+                featureGroup: drawnItems
+            },
+            draw: {
+                polygon: true,
+                polyline: true,
+                marker: true,
+                circle: false,
+                rectangle: false
+            }
         });
         map.addControl(drawControl);
 
-        // Gestión de atributos al crear geometrías
+        // Manejar eventos de dibujo y edición
         map.on('draw:created', function (e) {
             const layer = e.layer;
-            const popupContent = `
-                <b>Atributos:</b><br>
-                <label>Código de Finca: <input type="text" id="codigoFinca"></label><br>
-                <label>Descripción: <input type="text" id="descripcion"></label><br>
-                <button onclick="saveAttributes(this, ${e.layer._leaflet_id})">Guardar</button>
-            `;
+            const layerType = e.layerType;
+            layer.feature = layer.feature || { type: 'Feature', properties: {} };
+
+            let popupContent = "<b>Atributos:</b><br>";
+            popupContent += `<label>Código de Finca: <input type="text" id="codigoFinca" value=""></label><br>`;
+
+            if (layerType === 'polygon') {
+                const area = L.GeometryUtil.geodesicArea(layer.getLatLngs()[0]) / 10000; // Hectáreas
+                popupContent += `<label>Área (ha): <input type="text" id="area" value="${area.toFixed(2)}" readonly></label><br>`;
+                popupContent += `<label>Nombre del Cultivo: <input type="text" id="nombreCultivo" value=""></label><br>`;
+            } else if (layerType === 'polyline') {
+                popupContent += `<label>Tipo de Línea: <input type="text" id="tipoLinea" value=""></label><br>`;
+            } else if (layerType === 'marker') {
+                popupContent += `<label>Nombre del Propietario: <input type="text" id="nombrePropietario" value=""></label><br>`;
+                popupContent += `<label>Teléfono: <input type="text" id="telefono" value=""></label><br>`;
+            }
+
+            popupContent += `<button onclick="saveAttributes(this)">Guardar</button>`;
             layer.bindPopup(popupContent).openPopup();
             drawnItems.addLayer(layer);
         });
 
-        // Guardar atributos en las capas
-        function saveAttributes(button, layerId) {
-            const layer = drawnItems.getLayer(layerId);
-            const codigoFinca = document.getElementById('codigoFinca').value.trim();
-            const descripcion = document.getElementById('descripcion').value.trim();
+        function saveAttributes(button) {
+            const popup = button.closest('.leaflet-popup-content');
+            const inputs = popup.querySelectorAll('input');
+            const layer = drawnItems.getLayers().find(l => l.getPopup() && l.getPopup().getContent().includes(button.outerHTML));
 
-            if (!codigoFinca || !descripcion) {
-                alert("Por favor, complete todos los campos.");
-                return;
+            if (layer) {
+                inputs.forEach(input => {
+                    const attr = input.id;
+                    const value = input.value;
+                    layer.feature.properties[attr] = value;
+                });
+                layer.closePopup();
             }
-
-            layer.feature = layer.feature || { properties: {} };
-            layer.feature.properties = { codigoFinca, descripcion };
-
-            layer.bindPopup(`<b>Código de Finca:</b> ${codigoFinca}<br><b>Descripción:</b> ${descripcion}`).openPopup();
-            alert("Atributos guardados correctamente.");
         }
 
-        // Importar GeoJSON
+        // Importar y exportar GeoJSON
         document.getElementById('selectFile').addEventListener('click', () => {
             document.getElementById('importGeoJSON').click();
         });
@@ -138,18 +203,20 @@
                     const importedLayer = L.geoJSON(geojson, {
                         onEachFeature: (feature, layer) => {
                             if (feature.properties) {
-                                layer.bindPopup(Object.entries(feature.properties).map(([key, value]) => `<b>${key}:</b> ${value}`).join('<br>'));
+                                let popupContent = "<b>Atributos:</b><br>";
+                                for (const [key, value] of Object.entries(feature.properties)) {
+                                    popupContent += `<label>${key}: <input type="text" value="${value}" data-attr="${key}"></label><br>`;
+                                }
+                                popupContent += `<button onclick="saveAttributes(this)">Guardar</button>`;
+                                layer.bindPopup(popupContent);
                             }
                         }
                     }).addTo(drawnItems);
-
-                    addLayerToList(importedLayer, file.name);
                 };
                 reader.readAsText(file);
             }
         });
 
-        // Exportar GeoJSON
         document.getElementById('exportGeoJSON').addEventListener('click', () => {
             const geojson = drawnItems.toGeoJSON();
             const blob = new Blob([JSON.stringify(geojson)], { type: "application/json" });
@@ -171,17 +238,6 @@
         map.on('locationerror', () => {
             alert("No se pudo obtener la ubicación.");
         });
-
-        // Listado de capas
-        function addLayerToList(layer, name) {
-            const listItem = document.createElement('li');
-            listItem.textContent = name;
-            const zoomButton = document.createElement('button');
-            zoomButton.textContent = "Zoom";
-            zoomButton.addEventListener('click', () => map.fitBounds(layer.getBounds()));
-            listItem.appendChild(zoomButton);
-            document.getElementById('layerList').appendChild(listItem);
-        }
     </script>
 </body>
 </html>
