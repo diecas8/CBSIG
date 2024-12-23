@@ -3,21 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Geoportal Interactivo</title>
+    <title>Geoportal Completo</title>
 
     <!-- Leaflet CSS -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/leaflet.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/leaflet.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <style>
-        body {
-            margin: 0;
-            font-family: Arial, sans-serif;
-        }
-        #map {
-            height: 100vh;
-        }
+        body { margin: 0; font-family: Arial, sans-serif; }
+        #map { height: 100vh; }
         .bottom-left {
             position: absolute;
             bottom: 10px;
@@ -30,12 +25,12 @@
             padding: 10px;
             border-radius: 8px;
             box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
-            max-width: 90%;
         }
         .bottom-left button {
+            width: 180px;
             display: flex;
             align-items: center;
-            justify-content: center;
+            justify-content: flex-start;
             gap: 8px;
             background-color: #f7f7f7;
             border: 1px solid #ddd;
@@ -43,25 +38,33 @@
             padding: 8px;
             cursor: pointer;
             box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
-            font-size: 1rem;
+            font-size: 14px;
+        }
+        .bottom-text {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            z-index: 1000;
+            font-size: 12px;
+            color: #333;
+            background-color: rgba(255, 255, 255, 0.9);
+            padding: 5px 10px;
+            border-radius: 5px;
         }
         .sidebar {
             position: absolute;
             top: 10px;
             right: 10px;
-            width: 90%;
-            max-width: 300px;
+            width: 250px;
             z-index: 1000;
             background: rgba(255, 255, 255, 0.9);
             padding: 10px;
             border-radius: 8px;
             box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
-            overflow-y: auto;
-            max-height: 80%;
         }
         .sidebar h3 {
             margin: 0 0 10px 0;
-            font-size: 1.2rem;
+            font-size: 16px;
         }
         .sidebar ul {
             list-style: none;
@@ -69,38 +72,17 @@
             margin: 0;
         }
         .sidebar ul li {
-            margin-bottom: 10px;
+            margin-bottom: 5px;
             display: flex;
             justify-content: space-between;
             align-items: center;
         }
         .sidebar ul li button {
-            font-size: 0.9rem;
-            padding: 5px;
+            font-size: 12px;
+            padding: 2px 5px;
         }
         .leaflet-control-layers {
-            margin-top: 50px;
-        }
-        .leaflet-popup-content input {
-            width: 100%;
-            margin-top: 5px;
-            padding: 5px;
-            font-size: 0.9rem;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-        }
-        .leaflet-popup-content button {
-            margin-top: 10px;
-            padding: 5px 10px;
-            font-size: 0.9rem;
-            background-color: #007bff;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-        }
-        .leaflet-popup-content button:hover {
-            background-color: #0056b3;
+            margin-top: 60px; /* Mueve el selector de mapas base hacia abajo */
         }
     </style>
 </head>
@@ -118,6 +100,7 @@
         <h3>Capas Importadas</h3>
         <ul id="layerList"></ul>
     </div>
+    <div class="bottom-text">Elaborado por: Diego Castaño P.</div>
 
     <!-- Leaflet JS -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/leaflet.js"></script>
@@ -129,7 +112,21 @@
 
         // Mapas base
         const openStreetMap = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenStreetMap contributors' });
+        const googleSatellite = L.tileLayer('https://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', {
+            subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
+            attribution: '&copy; Google'
+        });
+        const esriWorldImagery = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+            attribution: 'Tiles &copy; Esri, USGS, NOAA'
+        });
+
+        const baseMaps = {
+            "OpenStreetMap": openStreetMap,
+            "Google Satélite": googleSatellite,
+            "Esri World Imagery": esriWorldImagery
+        };
         openStreetMap.addTo(map);
+        L.control.layers(baseMaps).addTo(map);
 
         const drawnItems = new L.FeatureGroup();
         map.addLayer(drawnItems);
@@ -149,27 +146,30 @@
         });
         map.addControl(drawControl);
 
-        // Manejar eventos de dibujo y edición
+        // Atributos para geometrías
         map.on('draw:created', function (e) {
             const layer = e.layer;
-            const layerType = e.layerType;
-            layer.feature = layer.feature || { type: 'Feature', properties: {} };
-
             let popupContent = "<b>Atributos:</b><br>";
-            popupContent += `<label>Código de Finca: <input type="text" id="codigoFinca" value=""></label><br>`;
-
-            if (layerType === 'polygon') {
+            if (e.layerType === 'polygon') {
                 const area = L.GeometryUtil.geodesicArea(layer.getLatLngs()[0]) / 10000; // Hectáreas
-                popupContent += `<label>Área (ha): <input type="text" id="area" value="${area.toFixed(2)}" readonly></label><br>`;
-                popupContent += `<label>Nombre del Cultivo: <input type="text" id="nombreCultivo" value=""></label><br>`;
-            } else if (layerType === 'polyline') {
-                popupContent += `<label>Tipo de Línea: <input type="text" id="tipoLinea" value=""></label><br>`;
-            } else if (layerType === 'marker') {
-                popupContent += `<label>Nombre del Propietario: <input type="text" id="nombrePropietario" value=""></label><br>`;
-                popupContent += `<label>Teléfono: <input type="text" id="telefono" value=""></label><br>`;
+                popupContent += `Área (ha): ${area.toFixed(2)}<br>`;
+                popupContent += '<b>Código de Finca:</b><input type="text" id="codigoFinca"><br>';
+                popupContent += '<b>Nombre del Cultivo:</b><input type="text" id="nombreCultivo"><br>';
+            } else if (e.layerType === 'polyline') {
+                let length = 0;
+                const latlngs = layer.getLatLngs();
+                for (let i = 1; i < latlngs.length; i++) {
+                    length += latlngs[i - 1].distanceTo(latlngs[i]);
+                }
+                popupContent += `Longitud (m): ${length.toFixed(2)}<br>`;
+                popupContent += '<b>Código de Finca:</b><input type="text" id="codigoFinca"><br>';
+                popupContent += '<b>Tipo de Línea:</b><input type="text" id="tipoLinea"><br>';
+            } else if (e.layerType === 'marker') {
+                popupContent += '<b>Código de Finca:</b><input type="text" id="codigoFinca"><br>';
+                popupContent += '<b>Nombre del Propietario:</b><input type="text" id="nombrePropietario"><br>';
+                popupContent += '<b>Teléfono:</b><input type="text" id="telefono"><br>';
             }
-
-            popupContent += `<button onclick="saveAttributes(this)">Guardar</button>`;
+            popupContent += '<button onclick="saveAttributes(this)">Guardar</button>';
             layer.bindPopup(popupContent).openPopup();
             drawnItems.addLayer(layer);
         });
@@ -180,6 +180,7 @@
             const layer = drawnItems.getLayers().find(l => l.getPopup() && l.getPopup().getContent().includes(button.outerHTML));
 
             if (layer) {
+                layer.feature = layer.feature || { properties: {} };
                 inputs.forEach(input => {
                     const attr = input.id;
                     const value = input.value;
@@ -188,56 +189,6 @@
                 layer.closePopup();
             }
         }
-
-        // Importar y exportar GeoJSON
-        document.getElementById('selectFile').addEventListener('click', () => {
-            document.getElementById('importGeoJSON').click();
-        });
-
-        document.getElementById('importGeoJSON').addEventListener('change', (e) => {
-            const file = e.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = (event) => {
-                    const geojson = JSON.parse(event.target.result);
-                    const importedLayer = L.geoJSON(geojson, {
-                        onEachFeature: (feature, layer) => {
-                            if (feature.properties) {
-                                let popupContent = "<b>Atributos:</b><br>";
-                                for (const [key, value] of Object.entries(feature.properties)) {
-                                    popupContent += `<label>${key}: <input type="text" value="${value}" data-attr="${key}"></label><br>`;
-                                }
-                                popupContent += `<button onclick="saveAttributes(this)">Guardar</button>`;
-                                layer.bindPopup(popupContent);
-                            }
-                        }
-                    }).addTo(drawnItems);
-                };
-                reader.readAsText(file);
-            }
-        });
-
-        document.getElementById('exportGeoJSON').addEventListener('click', () => {
-            const geojson = drawnItems.toGeoJSON();
-            const blob = new Blob([JSON.stringify(geojson)], { type: "application/json" });
-            const a = document.createElement('a');
-            a.href = URL.createObjectURL(blob);
-            a.download = 'mapa.geojson';
-            a.click();
-        });
-
-        // Activar GPS
-        document.getElementById('gpsButton').addEventListener('click', () => {
-            map.locate({ setView: true, maxZoom: 16 });
-        });
-
-        map.on('locationfound', (e) => {
-            L.marker(e.latlng).addTo(map).bindPopup("Tu ubicación actual").openPopup();
-        });
-
-        map.on('locationerror', () => {
-            alert("No se pudo obtener la ubicación.");
-        });
     </script>
 </body>
 </html>
