@@ -143,6 +143,16 @@
             layerList.appendChild(listItem);
         }
 
+        function getColorByCultivo(cultivo) {
+            const colorMap = {
+                "Café": "#FF5733",
+                "Maíz": "#FFC300",
+                "Frijol": "#DAF7A6",
+                "Otro": "#C70039"
+            };
+            return colorMap[cultivo] || "#808080"; // Default color
+        }
+
         // Importar GeoJSON
         document.getElementById('selectFile').addEventListener('click', function () {
             document.getElementById('importGeoJSON').click();
@@ -157,6 +167,12 @@
 
                     // Añadir las capas importadas al mapa
                     const importedLayer = L.geoJSON(geojson, {
+                        style: function (feature) {
+                            return {
+                                color: getColorByCultivo(feature.properties.cultivo),
+                                weight: 2
+                            };
+                        },
                         onEachFeature: function (feature, layer) {
                             if (feature.properties) {
                                 let popupContent = "<b>Atributos:</b><br>";
