@@ -9,7 +9,56 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/leaflet.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="styles.css">
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+        }
+
+        #map {
+            height: 100vh;
+        }
+
+        .bottom-left, .bottom-right, .sidebar {
+            position: absolute;
+            z-index: 1000;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 10px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        }
+
+        .bottom-left {
+            bottom: 10px;
+            left: 10px;
+        }
+
+        .bottom-right {
+            bottom: 10px;
+            right: 10px;
+        }
+
+        .sidebar {
+            top: 10px;
+            right: 10px;
+            width: 300px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+
+        table, th, td {
+            border: 1px solid #ddd;
+        }
+
+        th, td {
+            padding: 8px;
+            text-align: left;
+        }
+    </style>
 </head>
 <body>
     <div id="map"></div>
@@ -81,6 +130,63 @@
     <!-- Leaflet JS -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/leaflet.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
-    <script src="script.js"></script>
+    <script>
+        const map = L.map('map').setView([4.60971, -74.08175], 6);
+
+        const baseLayers = {
+            osm: L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenStreetMap contributors' }),
+            esri: L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { attribution: '&copy; Esri, DigitalGlobe' }),
+            googleSatellite: L.tileLayer('https://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', { subdomains: ['mt0', 'mt1', 'mt2', 'mt3'], attribution: '&copy; Google' }),
+            googleHybrid: L.tileLayer('https://{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', { subdomains: ['mt0', 'mt1', 'mt2', 'mt3'], attribution: '&copy; Google' })
+        };
+
+        baseLayers.osm.addTo(map);
+
+        document.getElementById('baseMapSelector').addEventListener('change', (event) => {
+            const selectedBaseMap = event.target.value;
+            map.eachLayer(layer => {
+                if (!Object.values(baseLayers).includes(layer)) {
+                    map.removeLayer(layer);
+                }
+            });
+            baseLayers[selectedBaseMap].addTo(map);
+        });
+
+        const productoresTable = document.getElementById('productoresTable').querySelector('tbody');
+        const fincasTable = document.getElementById('fincasTable').querySelector('tbody');
+        const cultivosTable = document.getElementById('cultivosTable').querySelector('tbody');
+
+        document.getElementById('addProductor').addEventListener('click', () => {
+            const id = prompt('ID del productor:');
+            const nombre = prompt('Nombre del productor:');
+            const contacto = prompt('Contacto del productor:');
+            const row = productoresTable.insertRow();
+            row.innerHTML = `<td>${id}</td><td>${nombre}</td><td>${contacto}</td><td><button onclick="deleteRow(this)">Eliminar</button></td>`;
+        });
+
+        document.getElementById('addFinca').addEventListener('click', () => {
+            const id = prompt('ID de la finca:');
+            const nombre = prompt('Nombre de la finca:');
+            const productor = prompt('ID del productor asociado:');
+            const area = prompt('Área de la finca:');
+            const row = fincasTable.insertRow();
+            row.innerHTML = `<td>${id}</td><td>${nombre}</td><td>${productor}</td><td>${area}</td><td><button onclick="deleteRow(this)">Eliminar</button></td>`;
+        });
+
+        document.getElementById('addCultivo').addEventListener('click', () => {
+            const id = prompt('ID del cultivo:');
+            const nombre = prompt('Nombre del cultivo:');
+            const finca = prompt('ID de la finca asociada:');
+            const tipo = prompt('Tipo de cultivo:');
+            const area = prompt('Área del cultivo:');
+            const row = cultivosTable.insertRow();
+            row.innerHTML = `<td>${id}</td><td>${nombre}</td><td>${finca}</td><td>${tipo}</td><td>${area}</td><td><button onclick="deleteRow(this)">Eliminar</button></td>`;
+        });
+
+        function deleteRow(button) {
+            const row = button.parentNode.parentNode;
+            row.parentNode.removeChild(row);
+        }
+    </script>
 </body>
 </html>
