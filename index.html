@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tablas para Geoportal</title>
+    <title>Tablas Interactivas para Geoportal</title>
     <style>
         table {
             border-collapse: collapse;
@@ -22,13 +22,42 @@
             font-weight: bold;
             margin-bottom: 10px;
         }
+        form {
+            margin-bottom: 20px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            background-color: #f9f9f9;
+        }
+        form input, form select {
+            margin: 5px;
+            padding: 5px;
+            font-size: 14px;
+        }
+        button {
+            padding: 5px 10px;
+            font-size: 14px;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
-    <h1>Tablas para Geoportal</h1>
+    <h1>Tablas Interactivas para Geoportal</h1>
 
-    <!-- Tabla Productor -->
-    <table>
+    <!-- Formulario para agregar datos a Productor -->
+    <form id="form-productor">
+        <h3>Agregar Productor</h3>
+        <input type="text" id="cedula" placeholder="Cédula" required>
+        <input type="text" id="nombre" placeholder="Nombre" required>
+        <select id="genero">
+            <option value="Masculino">Masculino</option>
+            <option value="Femenino">Femenino</option>
+        </select>
+        <input type="tel" id="telefono" placeholder="Teléfono" required>
+        <input type="email" id="correo" placeholder="Correo" required>
+        <button type="button" onclick="agregarProductor()">Agregar Productor</button>
+    </form>
+
+    <table id="tabla-productor">
         <caption>Tabla Productor</caption>
         <thead>
             <tr>
@@ -39,20 +68,24 @@
                 <th>Correo</th>
             </tr>
         </thead>
-        <tbody>
-            <!-- Filas de ejemplo -->
-            <tr>
-                <td>12345678</td>
-                <td>Juan Pérez</td>
-                <td>Masculino</td>
-                <td>3001234567</td>
-                <td>juan.perez@example.com</td>
-            </tr>
-        </tbody>
+        <tbody></tbody>
     </table>
 
-    <!-- Tabla Finca -->
-    <table>
+    <!-- Formulario para agregar datos a Finca -->
+    <form id="form-finca">
+        <h3>Agregar Finca</h3>
+        <input type="text" id="codigo_finca" placeholder="Código Finca" required>
+        <input type="text" id="nombre_finca" placeholder="Nombre Finca" required>
+        <input type="number" id="area_finca" placeholder="Área (ha)" step="0.01" required>
+        <select id="propietario">
+            <option value="">Seleccionar Propietario</option>
+        </select>
+        <input type="text" id="vereda" placeholder="Vereda" required>
+        <input type="text" id="municipio" placeholder="Municipio" required>
+        <button type="button" onclick="agregarFinca()">Agregar Finca</button>
+    </form>
+
+    <table id="tabla-finca">
         <caption>Tabla Finca</caption>
         <thead>
             <tr>
@@ -64,21 +97,21 @@
                 <th>Municipio</th>
             </tr>
         </thead>
-        <tbody>
-            <!-- Filas de ejemplo -->
-            <tr>
-                <td>F001</td>
-                <td>La Esperanza</td>
-                <td>15.5</td>
-                <td>12345678</td>
-                <td>El Retiro</td>
-                <td>Antioquia</td>
-            </tr>
-        </tbody>
+        <tbody></tbody>
     </table>
 
-    <!-- Tabla Lotes -->
-    <table>
+    <!-- Formulario para agregar datos a Lotes -->
+    <form id="form-lote">
+        <h3>Agregar Lote</h3>
+        <select id="codigo_finca_lote">
+            <option value="">Seleccionar Finca</option>
+        </select>
+        <input type="text" id="cultivo" placeholder="Cultivo" required>
+        <input type="number" id="area_lote" placeholder="Área (ha)" step="0.01" required>
+        <button type="button" onclick="agregarLote()">Agregar Lote</button>
+    </form>
+
+    <table id="tabla-lotes">
         <caption>Tabla Lotes</caption>
         <thead>
             <tr>
@@ -87,14 +120,70 @@
                 <th>Área (ha)</th>
             </tr>
         </thead>
-        <tbody>
-            <!-- Filas de ejemplo -->
-            <tr>
-                <td>F001</td>
-                <td>Café</td>
-                <td>5.2</td>
-            </tr>
-        </tbody>
+        <tbody></tbody>
     </table>
+
+    <script>
+        // Agregar Productor
+        function agregarProductor() {
+            const cedula = document.getElementById("cedula").value;
+            const nombre = document.getElementById("nombre").value;
+            const genero = document.getElementById("genero").value;
+            const telefono = document.getElementById("telefono").value;
+            const correo = document.getElementById("correo").value;
+
+            const tabla = document.getElementById("tabla-productor").querySelector("tbody");
+            const nuevaFila = tabla.insertRow();
+            nuevaFila.innerHTML = `<td>${cedula}</td><td>${nombre}</td><td>${genero}</td><td>${telefono}</td><td>${correo}</td>`;
+
+            // Actualizar selector de propietario
+            const propietarioSelect = document.getElementById("propietario");
+            const nuevaOpcion = document.createElement("option");
+            nuevaOpcion.value = cedula;
+            nuevaOpcion.textContent = `${nombre} (${cedula})`;
+            propietarioSelect.appendChild(nuevaOpcion);
+
+            // Limpiar formulario
+            document.getElementById("form-productor").reset();
+        }
+
+        // Agregar Finca
+        function agregarFinca() {
+            const codigo = document.getElementById("codigo_finca").value;
+            const nombre = document.getElementById("nombre_finca").value;
+            const area = document.getElementById("area_finca").value;
+            const propietario = document.getElementById("propietario").value;
+            const vereda = document.getElementById("vereda").value;
+            const municipio = document.getElementById("municipio").value;
+
+            const tabla = document.getElementById("tabla-finca").querySelector("tbody");
+            const nuevaFila = tabla.insertRow();
+            nuevaFila.innerHTML = `<td>${codigo}</td><td>${nombre}</td><td>${area}</td><td>${propietario}</td><td>${vereda}</td><td>${municipio}</td>`;
+
+            // Actualizar selector de fincas
+            const fincaSelect = document.getElementById("codigo_finca_lote");
+            const nuevaOpcion = document.createElement("option");
+            nuevaOpcion.value = codigo;
+            nuevaOpcion.textContent = nombre;
+            fincaSelect.appendChild(nuevaOpcion);
+
+            // Limpiar formulario
+            document.getElementById("form-finca").reset();
+        }
+
+        // Agregar Lote
+        function agregarLote() {
+            const codigoFinca = document.getElementById("codigo_finca_lote").value;
+            const cultivo = document.getElementById("cultivo").value;
+            const area = document.getElementById("area_lote").value;
+
+            const tabla = document.getElementById("tabla-lotes").querySelector("tbody");
+            const nuevaFila = tabla.insertRow();
+            nuevaFila.innerHTML = `<td>${codigoFinca}</td><td>${cultivo}</td><td>${area}</td>`;
+
+            // Limpiar formulario
+            document.getElementById("form-lote").reset();
+        }
+    </script>
 </body>
 </html>
