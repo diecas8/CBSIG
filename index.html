@@ -1,66 +1,28 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Geoportal de Fincas</title>
+  <title>Mi Mapa</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@turf/turf@7/turf.min.js"></script>
-  <style>
-    #map { height: 400px; }
-    #form-container { display: none; }
-  </style>
 </head>
 <body>
   <div id="map"></div>
-  <div id="form-container">
-    <form>
-      <label for="codigo_finca">Código Finca:</label>
-      <input type="text" id="codigo_finca" name="codigo_finca"><br>
-      </form>
-  </div>
 
   <script>
-    var map = L.map('map').setView([-3.745, -73.223], 13); // Cambia las coordenadas si es necesario
+    var map = L.map('map').setView([51.505, -0.09], 13);
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
     }).addTo(map);
 
-    var drawnItems = new L.FeatureGroup();
-    map.addLayer(drawnItems);
-
+    // Inicializar el control de dibujo
     var drawControl = new L.Control.Draw({
       draw: {
         polygon: true,
         polyline: true,
-        marker: {
-          icon: L.icon({
-            iconUrl: 'marker-icon.png', // Reemplaza con la ruta a tu icono
-            iconSize: [25, 41],
-            iconAnchor: [12, 41],
-            popupAnchor: [1, -34],
-          })
-        },
-      },
-      edit: {
-        featureGroup: drawnItems
+        marker: true
       }
-    });
-    map.addControl(drawControl);
-
-    map.on(L.Draw.Event.CREATED, function(event) {
-      var layer = event.layer;
-      drawnItems.addLayer(layer);
-
-      // Mostrar el formulario al crear un punto
-      if (layer instanceof L.Marker) {
-        $('#form-container').show();
-        // Agregar un evento al enviar el formulario para guardar los datos
-      }
-
-      // Calcular área o longitud según el tipo de entidad
-      // ... (código similar al ejemplo anterior)
-    });
+    }).addTo(map);
   </script>
 </body>
 </html>
