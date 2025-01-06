@@ -15,7 +15,9 @@
   <div id="form-container">
     <form>
       <label for="codigo_finca">Código Finca:</label>
-      <input type="text" id="codigo_finca" name="codigo_finca"><br>
+      <input type="text" id="codigo_finca" name="codigo_finca">
+      <label for="propietario">Propietario:</label>
+      <input type="text" id="propietario" name="propietario">
       <button type="submit">Guardar</button>
     </form>
   </div>
@@ -45,7 +47,6 @@
       var layer = event.layer;
       drawnItems.addLayer(layer);
 
-      // Mostrar el formulario al crear un punto
       if (layer instanceof L.Marker) {
         $('#form-container').show();
       }
@@ -60,14 +61,15 @@
       }
     });
 
-    // Manejar el envío del formulario
     $('form').submit(function(e) {
       e.preventDefault();
       var codigoFinca = $('#codigo_finca').val();
-      // Aquí puedes guardar los datos en una base de datos, enviarlos a un servidor,
-      // o utilizar localStorage. Por ejemplo:
-      console.log('Código de finca:', codigoFinca);
-      // localStorage.setItem('ultimo_codigo_finca', codigoFinca);
+      var propietario = $('#propietario').val();
+      // ... otros datos del formulario
+
+      // Aquí debes implementar la lógica para guardar los datos
+      // Puedes usar localStorage, IndexedDB, enviarlos a un servidor, etc.
+      console.log('Datos capturados:', codigoFinca, propietario);
       $('#form-container').hide();
     });
   </script>
