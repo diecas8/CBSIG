@@ -1,14 +1,12 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Mapa Interactivo con Leaflet.Draw</title>
+  <title>Mapa Interactivo con Leaflet.Draw y Turf.js</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css" />
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet-draw@latest/dist/leaflet.draw.css" />
   <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/leaflet-draw@latest/dist/leaflet.draw.js"></script>
-  <style>
-    #map { height: 400px; }
-  </style>
+  <script src="https://cdn.jsdelivr.net/npm/@turf/turf@latest/turf.min.js"></script>
 </head>
 <body>
   <div id="map"></div>
@@ -38,10 +36,16 @@
         }
     }).addTo(map);
 
-    // Eventos para cuando se crea una nueva entidad
+    // Evento para cuando se crea un nuevo polígono
     map.on(L.Draw.Event.CREATED, function (event) {
         var layer = event.layer;
         drawnItems.addLayer(layer);
+
+        // Si es un polígono, calculamos el área
+        if (layer instanceof L.Polygon) {
+            var area = turf.area(layer.toGeoJSON());
+            alert('El área del polígono es: ' + area + ' metros cuadrados');
+        }
     });
   </script>
 </body>
