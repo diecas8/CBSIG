@@ -1,77 +1,47 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Geoportal de Fincas</title>
+  <title>Mapa Interactivo con Leaflet.Draw</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css" />
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet-draw@latest/dist/leaflet.draw.css" />
   <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/leaflet-draw@latest/dist/leaflet.draw.js"></script>
   <style>
     #map { height: 400px; }
-    #form-container { display: none; }
   </style>
 </head>
 <body>
   <div id="map"></div>
-  <div id="form-container">
-    <form>
-      <label for="codigo_finca">Código Finca:</label>
-      <input type="text" id="codigo_finca" name="codigo_finca">
-      <label for="propietario">Propietario:</label>
-      <input type="text" id="propietario" name="propietario">
-      <button type="submit">Guardar</button>
-    </form>
-  </div>
 
   <script>
-    var map = L.map('map').setView([-3.745, -73.223], 13);
+    // Crear el mapa
+    var map = L.map('map').setView([51.505, -0.09], 13);
 
+    // Agregar capa de tiles (puedes cambiar esto por otra fuente)
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
     }).addTo(map);
 
+    // Crear un grupo de capas para almacenar las entidades dibujadas
     var drawnItems = new L.FeatureGroup();
     map.addLayer(drawnItems);
 
+    // Agregar control de dibujo
     var drawControl = new L.Control.Draw({
-      draw: {
-        polygon: true,
-        polyline: true,
-        marker: true
-      },
-      edit: {
-        featureGroup: drawnItems
-      }
+        draw: {
+            polygon: true,
+            polyline: true,
+            marker: true
+        },
+        edit: {
+            featureGroup: drawnItems
+        }
     }).addTo(map);
 
-    map.on(L.Draw.Event.CREATED, function(event) {
-      var layer = event.layer;
-      drawnItems.addLayer(layer);
-
-      if (layer instanceof L.Marker) {
-        $('#form-container').show();
-      }
-
-      // Calcular área o longitud según el tipo de entidad
-      if (layer instanceof L.Polygon) {
-        var area = turf.area(layer.toGeoJSON());
-        console.log('Área:', area);
-      } else if (layer instanceof L.Polyline) {
-        var length = turf.length(layer.toGeoJSON());
-        console.log('Longitud:', length);
-      }
-    });
-
-    $('form').submit(function(e) {
-      e.preventDefault();
-      var codigoFinca = $('#codigo_finca').val();
-      var propietario = $('#propietario').val();
-      // ... otros datos del formulario
-
-      // Aquí debes implementar la lógica para guardar los datos
-      // Puedes usar localStorage, IndexedDB, enviarlos a un servidor, etc.
-      console.log('Datos capturados:', codigoFinca, propietario);
-      $('#form-container').hide();
+    // Eventos para cuando se crea una nueva entidad
+    map.on(L.Draw.Event.CREATED, function (event) {
+        var layer = event.layer;
+        drawnItems.addLayer(layer);
     });
   </script>
 </body>
