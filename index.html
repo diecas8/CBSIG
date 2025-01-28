@@ -3,14 +3,12 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Mapa Interactivo con Leaflet, Leaflet.Draw y Turf.js</title>
+  <title>Mapa Interactivo con Satélite, Leaflet y GPS</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css" />
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet-draw@latest/dist/leaflet.draw.css" />
   <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/leaflet-draw@latest/dist/leaflet.draw.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@turf/turf@latest/turf.min.js"></script>
-  <script src="https://unpkg.com/leaflet-minimap@3.6.1/dist/Control.MiniMap.min.js"></script>
-  <link rel="stylesheet" href="https://unpkg.com/leaflet-minimap@3.6.1/dist/Control.MiniMap.css" />
   <style>
     body {
       margin: 0;
@@ -42,20 +40,32 @@
     var latlng = [-4.0522, -72.5000]; // Región de Colombia
 
     // Crear el mapa
-    var map = L.map('map').setView(latlng, 6);
+    var map = L.map('map', {
+      center: latlng,
+      zoom: 6
+    });
 
-    // Agregar capa de azulejos de OpenStreetMap
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    // Capas base: mapa estándar (OSM) y satelital (Mapbox)
+    var standardLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-    }).addTo(map);
+    });
+
+    var satelliteLayer = L.tileLayer('https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+      attribution: 'Tiles &copy; Esri &mdash; Source: Esri, Maxar, Earthstar Geographics, and the GIS User Community'
+    });
+
+    // Agregar la capa estándar por defecto
+    standardLayer.addTo(map);
+
+    // Crear el control de capas (alternar entre mapas)
+    var baseMaps = {
+      "Estándar": standardLayer,
+      "Satélite": satelliteLayer
+    };
+    L.control.layers(baseMaps).addTo(map);
 
     // Agregar control de escala
     L.control.scale().addTo(map);
-
-    // Agregar minimapa
-    var miniMap = new L.Control.MiniMap(
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png')
-    ).addTo(map);
 
     // Crear un grupo de capas para almacenar las entidades dibujadas
     var drawnItems = new L.FeatureGroup();
@@ -133,9 +143,20 @@
     function showPosition(position) {
       var lat = position.coords.latitude;
       var lng = position.coords.longitude;
-      var marker = L.marker([lat, lng]).addTo(map);
-      marker.bindPopup("Tu ubicación actual").openPopup();
-      map.setView([lat, lng], 12); // Centrar el mapa en la ubicación del usuario
+
+      // Agregar un marcador en la ubicación actual
+      var gpsMarker = L.marker([lat, lng], {
+        icon: L.icon({
+          iconUrl: 'https://cdn-icons-png.flaticon.com/512/149/149059.png',
+          iconSize: [32, 32],
+          iconAnchor: [16, 32]
+        })
+      }).addTo(map);
+
+      gpsMarker.bindPopup("Tu ubicación actual").openPopup();
+
+      // Centrar el mapa en la ubicación actual
+      map.setView([lat, lng], 12);
     }
 
     function showError(error) {
@@ -154,7 +175,7 @@
       }
     }
 
-    // Llamar a la función para obtener la ubicación
+    // Llamar a la función para obtener la ubicación del GPS
     getLocation();
 
     // Función para exportar las entidades dibujadas a GeoJSON
