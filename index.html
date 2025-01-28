@@ -1,78 +1,166 @@
 <!DOCTYPE html>
-<html>
+<html lang="es">
 <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Mapa Interactivo con Leaflet.Draw y Turf.js</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css" />
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet-draw@latest/dist/leaflet.draw.css" />
   <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/leaflet-draw@latest/dist/leaflet.draw.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@turf/turf@latest/turf.min.js"></script>
+  <style>
+    /* Ajusta el contenedor del mapa */
+    #map {
+      height: 100vh; /* Ocupa todo el alto de la ventana */
+      width: 100%;
+    }
+
+    /* Estiliza el botón de exportar */
+    #export-btn {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      z-index: 1000;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      padding: 10px 15px;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+
+    #export-btn:hover {
+      background-color: #0056b3;
+    }
+  </style>
 </head>
 <body>
+  <button id="export-btn">Exportar GeoJSON</button>
   <div id="map"></div>
 
   <script>
-    // Ruta del archivo en el repositorio
-    console.log('Archivo cargado desde: index.html en el repositorio');
+    // Coordenadas iniciales (Colombia)
+    var latlng = [-4.0522, -72.5000]; 
 
-    // Coordenadas iniciales para centrar el mapa en Colombia
-    var latlng = [-4.0522, -72.5000]; // Ajusta según la región específica
-
-    // Crear el mapa
+    // Crear el mapa y centrarlo
     var map = L.map('map').setView(latlng, 6);
 
-    // Agregar capa de tiles (puedes cambiar esto por otra fuente)
+    // Agregar capa de tiles
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
     }).addTo(map);
 
-    // Crear un grupo de capas para almacenar las entidades dibujadas
+    // Control de escala
+    L.control.scale().addTo(map);
+
+    // Minimapa
+    var miniMap = new L.Control.MiniMap(
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'), 
+      { toggleDisplay: true }
+    ).addTo(map);
+
+    // Crear grupo de capas para las entidades dibujadas
     var drawnItems = new L.FeatureGroup();
     map.addLayer(drawnItems);
 
-    // Agregar control de dibujo
+    // Agregar control de dibujo con opciones personalizadas
     var drawControl = new L.Control.Draw({
-        draw: {
-            polygon: true,
-            polyline: true,
-            marker: true
+      draw: {
+        polygon: {
+          shapeOptions: {
+            color: 'blue',
+            weight: 4
+          }
         },
-        edit: {
-            featureGroup: drawnItems
-        }
+        polyline: {
+          shapeOptions: {
+            color: 'green',
+            weight: 3
+          }
+        },
+        marker: true,
+        circle: false,
+        rectangle: false
+      },
+      edit: {
+        featureGroup: drawnItems
+      }
     }).addTo(map);
 
-    // Evento para cuando se crea una nueva entidad
+    // Manejo del evento cuando se crea una nueva entidad
     map.on(L.Draw.Event.CREATED, function (event) {
-        var layer = event.layer;
-        drawnItems.addLayer(layer);
+      var layer = event.layer;
+      drawnItems.addLayer(layer);
 
-        // Si es un polígono, calculamos el área y agregamos un popup con atributos
-        if (layer instanceof L.Polygon) {
-            var area = turf.area(layer.toGeoJSON());
-            layer.bindPopup("Área: " + area + " m²" + "<br>" + 
-                            "Otros atributos: " + // Aquí agregas tus atributos
-                            "<br> Ubicación GPS: " + layer.getBounds().getCenter());
-            layer.openPopup();
-        }
+      // Si es un polígono, calcular el área
+      if (layer instanceof L.Polygon) {
+        var area = turf.area(layer.toGeoJSON()); // Área en m²
+        var areaKm2 = (area / 1000000).toFixed(2); // Convertir a km²
+
+        // Crear popup con información
+        layer.bindPopup(`
+          <div>
+            <h3>Información del Polígono</h3>
+            <p><b>Área:</b> ${areaKm2} km²</p>
+            <p><b>Centro:</b> ${layer.getBounds().getCenter().lat.toFixed(5)}, ${layer.getBounds().getCenter().lng.toFixed(5)}</p>
+          </div>
+        `).openPopup();
+      }
     });
 
-    // Obtener la ubicación del GPS (requiere permisos del usuario)
+    // Función para obtener la ubicación del usuario
     function getLocation() {
       if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(showPosition);
+        navigator.geolocation.getCurrentPosition(showPosition, showError);
       } else {
-        console.log("Geolocation is not supported by this browser.");
+        alert("Geolocalización no es compatible con este navegador.");
       }
     }
 
+    // Mostrar la posición del usuario en el mapa
     function showPosition(position) {
-      var marker = L.marker([position.coords.latitude, position.coords.longitude]).addTo(map);
-      marker.bindPopup("Tu ubicación").openPopup();
+      var lat = position.coords.latitude;
+      var lng = position.coords.longitude;
+
+      var marker = L.marker([lat, lng]).addTo(map);
+      marker.bindPopup("Tu ubicación actual").openPopup();
+      map.setView([lat, lng], 12); // Centrar el mapa en la posición del usuario
+    }
+
+    // Manejo de errores en la geolocalización
+    function showError(error) {
+      switch (error.code) {
+        case error.PERMISSION_DENIED:
+          alert("El usuario denegó el permiso de geolocalización.");
+          break;
+        case error.POSITION_UNAVAILABLE:
+          alert("La información de ubicación no está disponible.");
+          break;
+        case error.TIMEOUT:
+          alert("La solicitud de geolocalización expiró.");
+          break;
+        default:
+          alert("Ocurrió un error desconocido.");
+      }
     }
 
     // Llamar a la función para obtener la ubicación
     getLocation();
+
+    // Función para exportar las entidades dibujadas en formato GeoJSON
+    document.getElementById('export-btn').addEventListener('click', function () {
+      var data = drawnItems.toGeoJSON();
+      var blob = new Blob([JSON.stringify(data)], { type: 'application/json' });
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a');
+      a.href = url;
+      a.download = 'entidades.geojson';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    });
   </script>
 </body>
 </html>
+
