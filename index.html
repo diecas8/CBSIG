@@ -2,71 +2,163 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Sistema de Monitoreo de Broca - 30 Árboles</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Diagnóstico Técnico de Broca - Cenicafé</title>
     <style>
-        body { font-family: Arial, sans-serif; margin: 20px; }
-        .container { max-width: 800px; margin: auto; }
-        .arbol { border: 1px solid #ddd; padding: 15px; margin-bottom: 10px; }
-        .parametro { margin: 10px 0; }
-        .resumen { background-color: #f9f9f9; padding: 20px; }
+        :root {
+            --color-alerta: #e74c3c;
+            --color-exito: #2ecc71;
+            --color-info: #3498db;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+            background-color: #f4f7f6;
+        }
+        .container {
+            max-width: 1200px;
+            margin: auto;
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+        }
+        .grid-arboles {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        .arbol {
+            background: #fff;
+            border: 1px solid #e0e0e0;
+            padding: 15px;
+            border-radius: 8px;
+            transition: transform 0.2s;
+        }
+        .arbol:hover {
+            transform: translateY(-3px);
+        }
+        .parametro {
+            margin: 12px 0;
+        }
+        .resumen-cenicafe {
+            background: linear-gradient(45deg, #2c3e50, #34495e);
+            color: white;
+            padding: 25px;
+            border-radius: 10px;
+            margin-top: 30px;
+        }
+        .dashboard {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        .dashboard-item {
+            background: #f8f9fa;
+            padding: 15px;
+            border-left: 4px solid var(--color-info);
+            border-radius: 5px;
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>Monitoreo de Broca (Hypothenemus hampei) - 30 Árboles</h1>
-        <p>Instrucciones: Registre los parámetros técnicos por árbol según el MIB :cite[1].</p>
+        <h1 style="color: #2c3e50; text-align: center; margin-bottom: 30px;">
+            🐞 Sistema de Diagnóstico de Broca - Protocolos Cenicafé
+        </h1>
 
-        <form id="formularioBroca">
-            <!-- Sección para cada árbol (1-30) -->
-            <div class="arbol" id="arbol1">
-                <h3>Árbol 1</h3>
-                <div class="parametro">
-                    <label>Presencia de broca (Sí/No):</label>
-                    <select name="presencia">
-                        <option value="si">Sí</option>
-                        <option value="no">No</option>
-                    </select>
-                </div>
-                <div class="parametro">
-                    <label>% Granos infestados (0-100):</label>
-                    <input type="number" min="0" max="100" name="infestacion">
-                </div>
-                <div class="parametro">
-                    <label>Granos caídos/remantes (cantidad):</label>
-                    <input type="number" min="0" name="granos_caidos">
-                </div>
-                <div class="parametro">
-                    <label>Temperatura ambiente (°C):</label>
-                    <input type="number" step="0.1" name="temperatura">
-                </div>
-                <div class="parametro">
-                    <label>Uso de trampas artesanales (Sí/No):</label>
-                    <select name="trampas">
-                        <option value="si">Sí</option>
-                        <option value="no">No</option>
-                    </select>
-                </div>
+        <!-- Sección de datos generales según MIB -->
+        <div class="resumen-cenicafe">
+            <h2>Directrices Clave Cenicafé :cite[2]:cite[3]</h2>
+            <ul>
+                <li>Monitoreo semanal durante el período crítico (8-32 semanas post-floración)</li>
+                <li>Umbral de acción: >5% de frutos infestados</li>
+                <li>Integrar trampas con mezcla de alcoholes (metanol + etanol 3:1)</li>
+                <li>Registro de temperatura y humedad relativa</li>
+            </ul>
+        </div>
+
+        <!-- Dashboard de métricas -->
+        <div class="dashboard">
+            <div class="dashboard-item">
+                <h3>🌡️ Temperatura Actual</h3>
+                <p id="temperatura-promedio">23°C</p>
             </div>
-            <!-- Repetir la sección "arbol" hasta el Árbol 30 -->
+            <div class="dashboard-item">
+                <h3>📊 Infestación Promedio</h3>
+                <p id="infestacion-promedio">0%</p>
+            </div>
+            <div class="dashboard-item">
+                <h3>⚠️ Alertas Activas</h3>
+                <p id="alertas">0</p>
+            </div>
+        </div>
+
+        <form id="formDiagnostico">
+            <div class="grid-arboles">
+                <!-- Árbol 1 a 30 (ejemplo 1 árbol) -->
+                <div class="arbol">
+                    <h3>Árbol 1</h3>
+                    <div class="parametro">
+                        <label>📅 Fecha de floración:</label>
+                        <input type="date" name="fecha_floracion" required 
+                               title="Registre según cronograma Cenicafé :cite[3]">
+                    </div>
+                    <div class="parametro">
+                        <label>🔍 Frutos infestados (%):</label>
+                        <input type="number" min="0" max="100" name="infestacion" 
+                               class="nivel-infestacion" 
+                               data-umbral="5">
+                        <div class="leyenda">
+                            <span style="color: var(--color-exito)">≤5%: Normal</span>
+                            <span style="color: var(--color-alerta)">>5%: Acción</span>
+                        </div>
+                    </div>
+                    <div class="parametro">
+                        <label>🪤 Brocas en trampas (24h):</label>
+                        <input type="number" min="0" name="trampas_count" 
+                               title="Conteo en trampas artesanales :cite[2]">
+                    </div>
+                </div>
+                <!-- Repetir para árboles 2-30 -->
+            </div>
         </form>
 
-        <div class="resumen">
-            <h2>Resumen Técnico :cite[1]</h2>
-            <p>Parámetros clave según el MIB:</p>
-            <ul>
-                <li><strong>Granos infestados >5%:</strong> Acciones inmediatas requeridas (ej. control biológico con <em>Beauveria bassiana</em>).</li>
-                <li><strong>Granos caídos:</strong> Eliminar para reducir ciclos de infestación.</li>
-                <li><strong>Temperatura >23°C:</strong> Favorece reproducción de broca :cite[1].</li>
-                <li><strong>Trampas artesanales:</strong> Usar mezcla de alcoholes como atrayente.</li>
-            </ul>
+        <!-- Panel de recomendaciones técnicas -->
+        <div class="resumen-cenicafe" style="margin-top: 30px;">
+            <h2>📋 Protocolos de Acción Cenicafé</h2>
+            <div id="recomendaciones">
+                <p>◾ <strong>Control biológico:</strong> Aplicar <em>Beauveria bassiana</em> cuando >5% de infestación :cite[3]</p>
+                <p>◾ <strong>Manejo cultural:</strong> Recolección inmediata de frutos caídos :cite[1]</p>
+                <p>◾ <strong>Trampeo masivo:</strong> Instalar 20 trampas/ha con alcohol metílico :cite[2]</p>
+            </div>
         </div>
     </div>
 
     <script>
-        // Opcional: Añadir funcionalidad para cálculos automáticos
-        document.getElementById('formularioBroca').addEventListener('input', function() {
-            // Lógica para calcular promedios/totales
+        // Lógica para cálculo automático de métricas
+        document.addEventListener('input', function(e) {
+            if(e.target.classList.contains('nivel-infestacion')) {
+                const valor = parseInt(e.target.value);
+                if(valor > 5) {
+                    e.target.style.borderColor = 'var(--color-alerta)';
+                } else {
+                    e.target.style.borderColor = '#ccc';
+                }
+            }
+            // Actualizar dashboard (ejemplo simplificado)
+            document.getElementById('infestacion-promedio').textContent = 
+                calcularPromedioInfestacion() + '%';
         });
+
+        function calcularPromedioInfestacion() {
+            // Implementar cálculo real con datos de los 30 árboles
+            return 4.7; 
+        }
     </script>
 </body>
 </html>
